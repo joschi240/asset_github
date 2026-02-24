@@ -60,11 +60,18 @@ function berechneDashboard(int $assetId): array {
   $h14_old = (float)($row['h'] ?? 0);
 
   $trend = '➝';
+  $trendLabel = 'gleichbleibend';
   if ($h14_old > 0) {
-    if ($h14_new > $h14_old * 1.10) $trend = '▲';
-    elseif ($h14_new < $h14_old * 0.90) $trend = '▼';
+    if ($h14_new > $h14_old * 1.10) {
+      $trend = '▲';
+      $trendLabel = 'steigend';
+    } elseif ($h14_new < $h14_old * 0.90) {
+      $trend = '▼';
+      $trendLabel = 'fallend';
+    }
   } elseif ($h14_new > 0) {
     $trend = '▲';
+    $trendLabel = 'steigend';
   }
 
   // 4) Nächst fälliger Wartungspunkt (PRODUKTIV!)
@@ -109,6 +116,7 @@ function berechneDashboard(int $assetId): array {
     'kw' => $kw,
     'schnitt' => round($wochenschnitt, 1),
     'trend' => $trend,
+    'trend_label' => $trendLabel,
     'wp_id' => $wpId,
     'wp_text' => $wpText,
     'wp_interval' => $wpInterval
@@ -178,7 +186,7 @@ function renderTable(array $rows, string $title, string $base, bool $canSeePunkt
 
           <td><?= e($r['kw']) ?></td>
           <td><?= number_format((float)$r['schnitt'], 1, ',', '.') ?></td>
-          <td style="font-size:16px;"><?= e($r['trend']) ?></td>
+          <td style="font-size:16px;"><span aria-hidden="true"><?= e($r['trend']) ?></span><span class="sr-only"><?= e($r['trend_label'] ?? '') ?></span></td>
         </tr>
       <?php endforeach; ?>
       </tbody>

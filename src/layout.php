@@ -19,25 +19,26 @@ function render_header(string $title): void {
     <link rel="stylesheet" href="<?= e($base) ?>/src/css/main.css">
   </head>
   <body>
+  <a class="skip-link" href="#main-content">Zum Hauptinhalt springen</a>
   <div class="app">
 
-    <aside class="sidebar">
+    <aside class="sidebar" aria-label="Hauptnavigation">
       <div class="sidebar__brand">
-        <a href="<?= e($base) ?>/app.php?r=<?= e(urlencode($cfg['app']['default_route'] ?? 'wartung.dashboard')) ?>">
+        <a href="<?= e($base) ?>/app.php?r=<?= e(urlencode($cfg['app']['default_route'] ?? 'wartung.dashboard')) ?>" aria-label="Instandhaltung – Startseite">
           Instandhaltung
         </a>
       </div>
 
       <div class="sidebar__user">
         <?php if ($u): ?>
-          <div class="sidebar__user-name">👤 <?= e($u['anzeigename']) ?></div>
+          <div class="sidebar__user-name"><span aria-hidden="true">👤</span> <?= e($u['anzeigename']) ?></div>
           <a class="btn btn--ghost sidebar__logout" href="<?= e($base) ?>/logout.php">Logout</a>
         <?php else: ?>
           <a class="btn btn--ghost sidebar__logout" href="<?= e($base) ?>/login.php">Login</a>
         <?php endif; ?>
       </div>
 
-      <nav class="sidebar__nav">
+      <nav class="sidebar__nav" aria-label="Hauptmenü">
         <?php
         $renderNode = function($node, $depth = 0) use (&$renderNode) {
           $isActive = !empty($node['active']) || !empty($node['branch_active']);
@@ -76,7 +77,7 @@ function render_header(string $title): void {
       </nav>
     </aside>
 
-    <main class="content">
+    <main class="content" id="main-content" tabindex="-1">
       <div class="content__top">
         <h1><?= e($title) ?></h1>
       </div>
