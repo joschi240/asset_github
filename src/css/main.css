@@ -1,5 +1,19 @@
 /* src/css/main.css */
 
+/* Skip-link (A11Y) */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 0;
+  z-index: 9999;
+  padding: 10px 16px;
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 0 0 8px 0;
+}
+.skip-link:focus { top: 0; }
+
 /* Base / Reset */
 * { box-sizing: border-box; }
 html, body { height: 100%; }
