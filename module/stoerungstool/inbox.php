@@ -21,17 +21,6 @@ $showOlder = !empty($_GET['show_older']) ? 1 : 0;
 $onlyStop  = !empty($_GET['only_stop']) ? 1 : 0;
 $onlyUnassigned = !empty($_GET['only_unassigned']) ? 1 : 0;
 
-function badge_for(string $s): array {
-  switch ($s) {
-    case 'neu':        return ['cls'=>'badge--r','label'=>'neu'];
-    case 'angenommen': return ['cls'=>'badge--y','label'=>'angenommen'];
-    case 'in_arbeit':  return ['cls'=>'badge--y','label'=>'in Arbeit'];
-    case 'bestellt':   return ['cls'=>'badge--y','label'=>'bestellt'];
-    case 'erledigt':   return ['cls'=>'badge--g','label'=>'erledigt'];
-    case 'geschlossen':return ['cls'=>'','label'=>'geschlossen'];
-    default:           return ['cls'=>'','label'=>$s];
-  }
-}
 function short_text(?string $s, int $max=90): string {
   $s = trim((string)$s);
   if ($s === '') return '';

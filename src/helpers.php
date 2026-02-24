@@ -95,6 +95,22 @@ function audit_log(string $modul, string $entityType, int $entityId, string $act
   );
 }
 
+/**
+ * Ticket-Status: zentrale Badge-Map und Helper
+ */
+const TICKET_STATUS_BADGES = [
+  'neu'        => ['cls' => 'badge--r', 'label' => 'neu'],
+  'angenommen' => ['cls' => 'badge--y', 'label' => 'angenommen'],
+  'in_arbeit'  => ['cls' => 'badge--y', 'label' => 'in Arbeit'],
+  'bestellt'   => ['cls' => 'badge--y', 'label' => 'bestellt'],
+  'erledigt'   => ['cls' => 'badge--g', 'label' => 'erledigt'],
+  'geschlossen'=> ['cls' => '', 'label' => 'geschlossen'],
+];
+
+function badge_for(string $s): array {
+  return TICKET_STATUS_BADGES[$s] ?? ['cls' => '', 'label' => $s];
+}
+
 function ensure_dir(string $dir): void {
   if (!is_dir($dir)) {
     if (!mkdir($dir, 0775, true) && !is_dir($dir)) {

@@ -16,18 +16,6 @@ $canDelete = user_can_delete($userId, 'stoerungstool', 'global', null);
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) { echo '<div class="card"><h2>Fehler</h2><p class="small">Ticket-ID fehlt.</p></div>'; exit; }
 
-function badge_for(string $s): array {
-  switch ($s) {
-    case 'neu':        return ['cls'=>'badge--r','label'=>'neu'];
-    case 'angenommen': return ['cls'=>'badge--y','label'=>'angenommen'];
-    case 'in_arbeit':  return ['cls'=>'badge--y','label'=>'in Arbeit'];
-    case 'bestellt':   return ['cls'=>'badge--y','label'=>'bestellt'];
-    case 'erledigt':   return ['cls'=>'badge--g','label'=>'erledigt'];
-    case 'geschlossen':return ['cls'=>'','label'=>'geschlossen'];
-    default:           return ['cls'=>'','label'=>$s];
-  }
-}
-
 $err = '';
 $ok  = (int)($_GET['ok'] ?? 0);
 
