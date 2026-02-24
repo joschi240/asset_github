@@ -1,1 +1,0 @@
-<?php echo password_hash('b3k78k0b', PASSWORD_DEFAULT), PHP_EOL;

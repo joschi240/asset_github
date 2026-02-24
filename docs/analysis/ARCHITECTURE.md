@@ -28,7 +28,6 @@
 ├── index.php                       # Redirect → app.php (default_route)
 ├── login.php                       # Standalone Login (eigenes Layout)
 ├── logout.php                      # Session destroy + Redirect
-├── hash.php                        # Dev-Hilfsskript (password_hash); sollte entfernt werden
 ├── create.bat                      # Windows-Batch (Dev-Hilfsskript)
 ├── Erzeuge / Done                  # Textdateien (Dev-Artefakte)
 │

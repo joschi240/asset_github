@@ -114,6 +114,10 @@ if (!function_exists('user_can_flag')) {
   function user_can_flag(?int $userId, ?string $modul, ?string $objektTyp, $objektId, string $flagCol): bool {
     if (!$userId || !$modul || !$objektTyp) return false;
 
+    // Allowlist for flag column names – prevents SQL injection via dynamic $flagCol
+    $allowedFlags = ['darf_sehen', 'darf_aendern', 'darf_loeschen'];
+    if (!in_array($flagCol, $allowedFlags, true)) return false;
+
     // Objekt-ID optional (NULL => global)
     $objektId = ($objektId === null) ? null : (int)$objektId;
 

@@ -1,4 +1,6 @@
 <?php
+if (php_sapi_name() !== 'cli') { http_response_code(403); exit('Forbidden'); }
+
 require_once __DIR__ . '/../src/db.php';
 
 header('Content-Type: text/plain; charset=utf-8');

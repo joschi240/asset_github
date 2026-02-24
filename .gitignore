@@ -25,3 +25,6 @@ Thumbs.db
 
 /src/config.php
 
+# Dev helper scripts
+hash.php
+
