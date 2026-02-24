@@ -3,8 +3,10 @@
 // Files are served through this script so they are never directly accessible
 // from the webroot.  Access requires a valid session and view permission for
 // the module that owns the document.
-require_once __DIR__ . '/src/helpers.php';
+require_once __DIR__ . '/src/db.php';
 require_once __DIR__ . '/src/auth.php';
+require_once __DIR__ . '/src/helpers.php';
+require_once __DIR__ . '/src/permission.php';
 
 require_login();
 
