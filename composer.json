@@ -1,0 +1,12 @@
+{
+    "name": "joschi240/asset-github",
+    "description": "Asset management web application",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2"
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
