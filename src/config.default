@@ -1,0 +1,35 @@
+<?php
+// src/config.php
+
+return [
+  'db' => [
+    'host' => 'localhost',
+    'name' => '',
+    'user' => '',
+    'pass' => '',
+    'charset' => 'utf8mb4',
+  ],
+
+  'app' => [
+    'session_name' => 'insta_stack',
+    'csrf_key' => 'csrf_token',
+
+    // null/'' => automatisch aus SCRIPT_NAME ableiten
+    // Test:  http://localhost/asset_ki  => /asset_ki
+    // Live:  http://domain.tld/         => ''
+    'base_url' => null,
+    'base_url_auto' => true,
+
+    // Default route, wenn keine r= gesetzt ist
+    'default_route' => 'wartung.dashboard',
+  ],
+
+  'upload' => [
+    'base_dir' => __DIR__ . '/../uploads',
+    'max_bytes' => 10 * 1024 * 1024,
+    'allowed_mimes' => [
+      'image/jpeg', 'image/png', 'image/webp',
+      'application/pdf'
+    ],
+  ],
+];

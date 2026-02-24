@@ -1,0 +1,27 @@
+/vendor/
+.env
+.env.*
+!.env.example
+
+# logs / cache
+*.log
+/tmp/
+/cache/
+/storage/
+
+# IDE / OS
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+.DS_Store
+Thumbs.db
+
+.continue/*
+
+
+/uploads/*
+!/uploads/.gitkeep
+
+/src/config.php
+

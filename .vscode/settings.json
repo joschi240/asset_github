@@ -1,0 +1,21 @@
+{
+  "php.validate.executablePath": "C:\\xampp\\php\\php.exe",
+  "intelephense.environment.phpVersion": "8.2.12",
+  "sqltools.connections": [
+    {
+      "mysqlOptions": {
+        "authProtocol": "default",
+        "enableSsl": "Disabled"
+      },
+      "ssh": "Disabled",
+      "previewLimit": 50,
+      "server": "localhost",
+      "port": 3306,
+      "driver": "MySQL",
+      "name": "asset_ki",
+      "database": "asset_ki",
+      "username": "asset_ki",
+      "password": "dOMSzF6TU7/sV(PU"
+    }
+  ]
+}

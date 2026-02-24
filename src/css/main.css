@@ -1,0 +1,156 @@
+/* src/css/main.css */
+
+/* Base / Reset */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: #f6f7f9;
+  color: #111;
+}
+
+a { color: inherit; }
+.small { font-size: 12px; color: #666; }
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  background: rgba(0,0,0,.05);
+  padding: 2px 5px;
+  border-radius: 6px;
+}
+
+/* App Shell */
+.app { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: #355b7a;
+  color: #fff;
+  padding: 14px;
+}
+
+.sidebar__brand { padding: 6px 4px 10px; }
+.sidebar__brand a { color: #fff; text-decoration: none; font-weight: 800; letter-spacing: .2px; }
+
+.sidebar__user {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255,255,255,.08);
+  border-radius: 12px;
+}
+
+.sidebar__user-name { font-size: 13px; opacity: .95; }
+
+.sidebar__logout { margin-top: 10px; width: 100%; text-align: center; }
+
+/* Navigation */
+.sidebar__nav { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+.navitem {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #fff;
+  background: rgba(255,255,255,.06);
+  transition: background .12s ease;
+}
+.navitem:hover { background: rgba(255,255,255,.12); }
+.navitem--active { background: rgba(255,255,255,.22); font-weight: 700; }
+
+.navsub { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; margin-bottom: 6px; }
+.navitem--sub { margin-left: 10px; padding-left: 16px; background: rgba(255,255,255,.04); }
+
+/* Content */
+.content { flex: 1; background: #f6f7f9; min-width: 0; }
+.content__top { padding: 16px 16px 0; }
+.content__top h1 { margin: 8px 0 14px; font-size: 20px; }
+.content__body { padding: 0 16px 16px; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .app { flex-direction: column; }
+  .sidebar { width: 100%; }
+  .content__body { padding: 0 12px 12px; }
+}
+
+/* Cards */
+.card {
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 1px 1px rgba(0,0,0,.03);
+}
+h2 { font-size: 16px; margin: 0 0 10px; }
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn--ghost { background: #fff; color: #111; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Badges (Ampel) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  font-size: 12px;
+  line-height: 1.1;
+}
+.badge--g { background: #e8f7ee; border-color: #bfe7cd; color: #0b5d2a; }
+.badge--y { background: #fff7e6; border-color: #ffe0a3; color: #7a4b00; }
+.badge--r { background: #ffe9e9; border-color: #ffb8b8; color: #7a0b0b; }
+
+/* Forms */
+label { display: block; font-size: 13px; color: #333; margin: 10px 0 6px; }
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d8d8d8;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+}
+textarea { min-height: 120px; resize: vertical; }
+input[type="checkbox"] { width: auto; margin-right: 8px; }
+
+/* Tables */
+.table { width: 100%; border-collapse: collapse; background: #fff; }
+.table th, .table td { border-bottom: 1px solid #eee; padding: 10px; text-align: left; vertical-align: top; }
+.table th { font-size: 12px; color: #555; font-weight: 700; background: #f0f2f4; }
+.table tr:hover td { background: #fafbfc; }
+
+.tablewrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* --- Menu polish (Groups) --- */
+.navgroup{
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  opacity: .9;
+  background: rgba(255,255,255,.10);
+}
+.navgroup--active{
+  background: rgba(255,255,255,.18);
+  font-weight: 800;
+}
