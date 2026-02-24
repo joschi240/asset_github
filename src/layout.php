@@ -19,6 +19,7 @@ function render_header(string $title): void {
     <link rel="stylesheet" href="<?= e($base) ?>/src/css/main.css">
   </head>
   <body>
+  <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
   <div class="app">
 
     <aside class="sidebar">
@@ -37,7 +38,7 @@ function render_header(string $title): void {
         <?php endif; ?>
       </div>
 
-      <nav class="sidebar__nav">
+      <nav class="sidebar__nav" aria-label="Hauptnavigation">
         <?php
         $renderNode = function($node, $depth = 0) use (&$renderNode) {
           $isActive = !empty($node['active']) || !empty($node['branch_active']);
@@ -60,7 +61,8 @@ function render_header(string $title): void {
 
           // Normaler Link (oder Parent mit href)
           $href = $node['href'] ?? '#';
-          echo '<a class="navitem' . $indent . ' ' . $cls . '" href="' . e($href) . '">';
+          $ariaCurrent = !empty($node['active']) ? ' aria-current="page"' : '';
+          echo '<a class="navitem' . $indent . ' ' . $cls . '" href="' . e($href) . '"' . $ariaCurrent . '>';
           echo e($node['label']);
           echo '</a>';
 
@@ -76,7 +78,7 @@ function render_header(string $title): void {
       </nav>
     </aside>
 
-    <main class="content">
+    <main class="content" id="main-content" tabindex="-1">
       <div class="content__top">
         <h1><?= e($title) ?></h1>
       </div>

@@ -30,11 +30,11 @@ render_header('Login');
       <form method="post">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <label>Benutzername</label>
-        <input name="benutzername" autocomplete="username" required>
+        <label for="benutzername">Benutzername</label>
+        <input id="benutzername" name="benutzername" autocomplete="username" required>
 
-        <label>Passwort</label>
-        <input name="passwort" type="password" autocomplete="current-password" required>
+        <label for="passwort">Passwort</label>
+        <input id="passwort" name="passwort" type="password" autocomplete="current-password" required>
 
         <div style="margin-top:12px;">
           <button class="btn" type="submit">Einloggen</button>
