@@ -9,7 +9,7 @@ Bewertung: 🔴 Kritisch · 🟠 Hoch · 🟡 Mittel · 🟢 Niedrig / Info
 
 ## 1. Sicherheit (Security)
 
-### 🔴 S-1 – `hash.php` enthält hartkodierten Passwort-Hash im Repository
+### ✅ S-1 – `hash.php` enthält hartkodierten Passwort-Hash im Repository *(behoben – PR-18)*
 
 **Datei:** `hash.php` (Projekt-Root)  
 **Inhalt:** `<?php echo password_hash('b3k78k0b', PASSWORD_DEFAULT), PHP_EOL;`
@@ -18,9 +18,11 @@ Das Klartextpasswort `b3k78k0b` steht im Repository. Diese Datei ist ein Entwick
 
 **Maßnahme:** `hash.php` aus dem Repository entfernen (`git rm hash.php`).
 
+**Status:** `hash.php` ist nicht mehr im Repository vorhanden und in `.gitignore` eingetragen.
+
 ---
 
-### 🟠 S-2 – `tools/runtime_rollup.php` ohne Webzugriff-Schutz
+### ✅ S-2 – `tools/runtime_rollup.php` ohne Webzugriff-Schutz *(behoben – PR-18)*
 
 **Datei:** `tools/runtime_rollup.php`
 
@@ -35,11 +37,13 @@ $limitSamplesPerAsset= (int)($_GET['limit'] ?? 50000);
 
 Ein Angreifer könnte durch wiederholte Requests Datenbank-Last erzeugen (rudimentärer DoS-Vektor) und Aggregations-Parameter manipulieren.
 
-**Maßnahme:** Webzugriff via Apache/Nginx auf das `tools/`-Verzeichnis sperren, oder CLI-Guard am Dateianfang einbauen:
+**Maßnahme:** CLI-Guard am Dateianfang:
 
 ```php
 if (php_sapi_name() !== 'cli') { http_response_code(403); exit('Forbidden'); }
 ```
+
+**Status:** CLI-Guard ist in Zeile 2 von `tools/runtime_rollup.php` implementiert. Nicht-CLI-Anfragen erhalten HTTP 403.
 
 ---
 
@@ -70,7 +74,7 @@ Deny from all
 
 ---
 
-### 🟡 S-5 – `user_can_flag()` fügt Spaltenname ungepuffert in SQL ein
+### ✅ S-5 – `user_can_flag()` fügt Spaltenname ungepuffert in SQL ein *(behoben – PR-18)*
 
 **Datei:** `src/auth.php`, Funktion `user_can_flag()`
 
@@ -90,6 +94,8 @@ $row = db_one(
 $allowed = ['darf_sehen', 'darf_aendern', 'darf_loeschen'];
 if (!in_array($flagCol, $allowed, true)) return false;
 ```
+
+**Status:** Allowlist ist in `user_can_flag()` in `src/auth.php` (Zeilen 118–119) implementiert. Ungültige `$flagCol`-Werte geben `false` zurück ohne SQL zu erreichen.
 
 ---
 

@@ -20,7 +20,7 @@
 
 ### P1 – Kritisch (sofort angehen)
 
-#### TASK-01: `hash.php` aus Repository entfernen
+#### ✅ TASK-01: `hash.php` aus Repository entfernen *(erledigt – PR-18)*
 
 **Risiko:** Klartext-Passwort `b3k78k0b` in versionierter Datei  
 **Aufwand:** XS (< 30 Minuten)  
@@ -32,9 +32,11 @@ echo "hash.php" >> .gitignore
 ```
 **Referenz:** `RISKS.md` → S-1
 
+**Status:** `hash.php` ist nicht im Repository vorhanden; Eintrag in `.gitignore` verhindert versehentliches Einchecken.
+
 ---
 
-#### TASK-02: `tools/runtime_rollup.php` vor Webzugriff schützen
+#### ✅ TASK-02: `tools/runtime_rollup.php` vor Webzugriff schützen *(erledigt – PR-18)*
 
 **Risiko:** Beliebige Aggregations-Manipulation + DB-Last via GET-Requests  
 **Aufwand:** XS  
@@ -48,6 +50,8 @@ if (php_sapi_name() !== 'cli') {
 ```
 Alternativ/zusätzlich: Webserver-Konfiguration sperrt `GET /tools/`.  
 **Referenz:** `RISKS.md` → S-2
+
+**Status:** CLI-Guard ist in Zeile 2 implementiert. Direkter Webzugriff liefert HTTP 403.
 
 ---
 
@@ -93,7 +97,7 @@ $canDoWartung = user_can_edit($userId, 'wartungstool', 'global', null);
 
 ---
 
-#### TASK-06: Whitelist-Validierung in `user_can_flag()`
+#### ✅ TASK-06: Whitelist-Validierung in `user_can_flag()` *(erledigt – PR-18)*
 
 **Risiko:** SQL-Column-Injection bei zukünftigen Aufrufen  
 **Aufwand:** XS  
@@ -107,6 +111,8 @@ function user_can_flag(?int $userId, ?string $modul, ?string $objektTyp, $objekt
 }
 ```
 **Referenz:** `RISKS.md` → S-5
+
+**Status:** Allowlist `['darf_sehen', 'darf_aendern', 'darf_loeschen']` ist in `user_can_flag()` implementiert. Ungültige Spaltennamen werden abgelehnt (return false).
 
 ---
 
@@ -309,12 +315,12 @@ Diese drei Pull Requests sind bewusst klein, in sich abgeschlossen und sofort um
 
 | Task | Priorität | Aufwand | Kategorie |
 |---|---|---|---|
-| TASK-01: hash.php entfernen | P1 | XS | Security |
-| TASK-02: rollup CLI-Guard | P1 | XS | Security |
+| ~~TASK-01: hash.php entfernen~~ ✅ | P1 | XS | Security |
+| ~~TASK-02: rollup CLI-Guard~~ ✅ | P1 | XS | Security |
 | TASK-03: Brute-Force-Schutz Login | P2 | S | Security |
 | TASK-04: Uploads-Schutz | P2 | S–M | Security |
 | TASK-05: function_exists Guards entfernen | P2 | XS | Quality |
-| TASK-06: user_can_flag Whitelist | P2 | XS | Security |
+| ~~TASK-06: user_can_flag Whitelist~~ ✅ | P2 | XS | Security |
 | TASK-07: N+1 Dashboard optimieren | P3 | M | Performance |
 | TASK-08: Dev-Artefakte bereinigen | P3 | XS | Maintainability |
 | TASK-09: Ticket-Status zentralisieren | P3 | S | Quality |
