@@ -21,9 +21,17 @@ $ok  = (int)($_GET['ok'] ?? 0);
 
 function upload_ticket_file(int $ticketId, int $userId): void {
   $cfg = app_cfg();
-  $baseDir = $cfg['upload']['base_dir'] ?? (__DIR__ . '/../../uploads');
+  $baseDir = $cfg['upload']['base_dir'] ?? (dirname(__DIR__, 3) . '/asset_private_uploads');
   $allowed = $cfg['upload']['allowed_mimes'] ?? ['image/jpeg','image/png','image/webp','application/pdf'];
   $maxBytes = (int)($cfg['upload']['max_bytes'] ?? (10*1024*1024));
+
+  // Strict MIME → allowed extensions mapping (allowlist)
+  $mimeExtMap = [
+    'image/jpeg'      => ['jpg', 'jpeg'],
+    'image/png'       => ['png'],
+    'image/webp'      => ['webp'],
+    'application/pdf' => ['pdf'],
+  ];
 
   if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     throw new RuntimeException("Upload fehlgeschlagen.");
@@ -43,10 +51,17 @@ function upload_ticket_file(int $ticketId, int $userId): void {
     throw new RuntimeException("Dateityp nicht erlaubt: {$mime}");
   }
 
-  $ext = '';
-  if (preg_match('/\\.([a-zA-Z0-9]{1,8})$/', $orig, $m)) $ext = strtolower($m[1]);
+  // Validate that the original file extension matches the detected MIME type
+  $origExt = '';
+  if (preg_match('/\\.([a-zA-Z0-9]{1,8})$/', $orig, $m)) $origExt = strtolower($m[1]);
+  $allowedExts = $mimeExtMap[$mime] ?? [];
+  if ($origExt === '' || !in_array($origExt, $allowedExts, true)) {
+    throw new RuntimeException("Dateiendung passt nicht zum erkannten Dateityp ({$mime}).");
+  }
+  $ext = $origExt;
 
-  $stored = date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . ($ext ? '.'.$ext : '');
+  // Secure random filename — no user-supplied extension used directly
+  $stored = date('Ymd_His') . '_' . bin2hex(random_bytes(16)) . '.' . $ext;
   $relPath = "stoerungstool/tickets/{$ticketId}/{$stored}";
   $absPath = rtrim($baseDir, '/\\') . '/' . $relPath;
 
@@ -409,7 +424,7 @@ $openHist   = !empty($aktionen);
           <?php foreach ($doks as $d): ?>
             <tr>
               <td><?= e($d['hochgeladen_am']) ?></td>
-              <td><a href="<?= e($base) ?>/uploads/<?= e($d['dateiname']) ?>" target="_blank" rel="noopener">
+              <td><a href="<?= e($base) ?>/download.php?id=<?= (int)$d['id'] ?>" target="_blank" rel="noopener">
                 <?= e($d['originalname'] ?: $d['dateiname']) ?>
               </a></td>
               <td class="small"><?= e($d['mime'] ?: '') ?></td>

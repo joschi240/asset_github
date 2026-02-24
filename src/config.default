@@ -25,7 +25,9 @@ return [
   ],
 
   'upload' => [
-    'base_dir' => __DIR__ . '/../uploads',
+    // IMPORTANT: this directory must be outside the webroot so uploaded files
+    // are not directly accessible via URL.  Adjust the path for your server.
+    'base_dir' => dirname(__DIR__, 2) . '/asset_private_uploads',
     'max_bytes' => 10 * 1024 * 1024,
     'allowed_mimes' => [
       'image/jpeg', 'image/png', 'image/webp',
