@@ -16,18 +16,6 @@ $canDelete = user_can_delete($userId, 'stoerungstool', 'global', null);
 $id = (int)($_GET['id'] ?? 0);
 if ($id <= 0) { echo '<div class="card"><h2>Fehler</h2><p class="small">Ticket-ID fehlt.</p></div>'; exit; }
 
-function badge_for(string $s): array {
-  switch ($s) {
-    case 'neu':        return ['cls'=>'badge--r','label'=>'neu'];
-    case 'angenommen': return ['cls'=>'badge--y','label'=>'angenommen'];
-    case 'in_arbeit':  return ['cls'=>'badge--y','label'=>'in Arbeit'];
-    case 'bestellt':   return ['cls'=>'badge--y','label'=>'bestellt'];
-    case 'erledigt':   return ['cls'=>'badge--g','label'=>'erledigt'];
-    case 'geschlossen':return ['cls'=>'','label'=>'geschlossen'];
-    default:           return ['cls'=>'','label'=>$s];
-  }
-}
-
 $err = '';
 $ok  = (int)($_GET['ok'] ?? 0);
 
@@ -202,7 +190,7 @@ $ticket = db_one("
 
 if (!$ticket) { echo '<div class="card"><h2>Nicht gefunden</h2></div>'; exit; }
 
-$badge = badge_for($ticket['status']);
+$badge = badge_for_ticket_status($ticket['status']);
 
 $assets = db_all("SELECT id, code, name FROM core_asset WHERE aktiv=1 ORDER BY name ASC");
 $users  = db_all("SELECT id, anzeigename, benutzername FROM core_user WHERE aktiv=1 ORDER BY anzeigename ASC, benutzername ASC");
