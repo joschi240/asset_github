@@ -1,400 +1,183 @@
-# RISKS – Sicherheit, Qualität, Wartbarkeit & Barrierefreiheit
+# RISKS.md – Asset KI (Stand: 2026-02-25)
 
-> Stand: 2026-02-25 · Analysiert von Copilot Coding Agent (vollständige Neuanalyse)  
-> Basis: Quellcode-Analyse aller Dateien in `src/`, `module/`, `tools/`, `login.php`, `app.php`
-
-Bewertung: 🔴 P0 Kritisch · 🟠 P1 Hoch · 🟡 P2 Mittel · 🟢 Positiv / kein Handlungsbedarf
+Risikobewertung auf Basis einer Code-Analyse des aktuellen `main`-Stands.  
+Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mittel/mittelfristig.
 
 ---
 
-## 1. Sicherheit (Security)
+## P0 – Kritisch
 
-### 🔴 P0-S-1 – Uploads ohne Authentifizierung abrufbar
+### R-01 · CSRF-Check fehlt in `logout.php`
 
-**Dateien:** `module/stoerungstool/ticket.php` (Zeilen 410–414), `module/stoerungstool/melden.php`  
-**Stelle:** `<a href="<?= e($base) ?>/uploads/<?= e($d['dateiname']) ?>" ...>`
+**Problem:** `logout.php` akzeptiert GET-Requests ohne CSRF-Schutz. Ein Angreifer kann mit einem einfachen `<img src=".../logout.php">` einen Login-CSRF (Forced Logout) auslösen.
 
-Hochgeladene Dokumente liegen unter `uploads/` und sind direkt über die URL `<base>/uploads/<pfad>` abrufbar – ohne Login-Prüfung. Wer den Pfad kennt oder errät, kann fremde Schadensdokumentationen und Fotos einsehen.
+**Betroffene Dateien:** `logout.php`
 
-Pfade folgen dem Muster `stoerungstool/tickets/<id>/<datum>_<8 zufällige Bytes>.<ext>`. Die `<id>` ist eine sequenzielle Zahl (erratbar). Bei bekannter Ticket-ID sind Uploads in linearer Enumeration erreichbar.
+**Auswirkung:** Jeder Benutzer kann ohne Interaktion aus der Session geworfen werden (Denial-of-Service auf Session-Ebene). Bei kombinierten Angriffen ist Re-Login auf fremdes Konto möglich.
 
-**Auswirkung:** Datenvertraulichkeit verletzt (Fotos, PDFs, Mängelkarten).
-
-**Gegenmaßnahme:**
-1. `uploads/.htaccess` mit `Deny from all` anlegen (Apache).
-2. Neuen Download-Controller erstellen (z.B. `module/stoerungstool/download.php` oder Route `dokument.download`), der `require_login()` + `user_can_see()` prüft und dann mit `readfile()` ausliefert.
-3. Alle Download-Links in `ticket.php` auf den Controller umlenken.
+**Gegenmaßnahme:** Logout auf POST umstellen, CSRF-Token prüfen. Alternativ kurze Nonce als GET-Parameter (`logout.php?tok=<nonce>`) mit Session-Vergleich.
 
 ---
 
-### 🔴 P0-S-2 – Öffentliches Meldeformular ohne Rate-Limiting
+### R-02 · Kein Rate-Limiting auf `login.php`
 
-**Datei:** `module/stoerungstool/melden.php`  
-**Stelle:** Gesamtes POST-Handling; Route `stoerung.melden` mit `require_login=0`
+**Problem:** `login.php` prüft Passwörter ohne Begrenzung der Versuche. Brute-Force-Angriffe auf `core_user.passwort_hash` (bcrypt) sind möglich.
 
-Das Formular ist öffentlich (kein Login erforderlich) und erlaubt beliebig viele Ticket-Einträge ohne Gegenwehr. Ein Angreifer kann innerhalb von Sekunden tausende Dummy-Tickets einschleusen und die Datenbank fluten.
+**Betroffene Dateien:** `login.php`, `src/auth.php` (`login()`)
 
-**Auswirkung:** DoS durch DB-Überlastung; Produktive Tickets in Rauschen vergraben.
+**Auswirkung:** Offline-Brute-Force wird durch bcrypt erschwert, Online-Brute-Force (direkter HTTP-POST) ist unbegrenzt möglich.
 
-**Gegenmaßnahme:**
-- IP-basiertes Rate-Limiting auf Webserver-Ebene (z.B. nginx `limit_req_zone`).
-- Alternativ: PHP-seitiger Throttle via APCu: max. N Tickets pro IP pro Stunde.
-- Optional: reCAPTCHA oder ein einfaches CAPTCHA auf `melden.php`.
+**Gegenmaßnahme:** Fehlschlag-Zähler pro IP und/oder Benutzername in DB oder Session speichern; nach N Fehlversuchen temporärer Lockout (z. B. `failed_login_count + locked_until` in `core_user`).
 
 ---
 
-### 🟠 P1-S-3 – Kein Brute-Force-Schutz auf `login.php`
+### R-03 · `config.php` darf nicht per HTTP erreichbar sein
 
-**Datei:** `login.php` (gesamte Login-Logik in `src/auth.php: login()`)
+**Problem:** Die Konfigurationsdatei (`src/config.php`) enthält DB-Zugangsdaten, Ingest-Token und CSRF-Key. Wenn der Webserver PHP nicht ausführt oder ein Misconfiguration vorliegt, kann die Datei als Plaintext ausgegeben werden.
 
-Es gibt kein Rate-Limiting, keine Loginversuch-Zählung und keine Account-Sperrung. Ein Angreifer kann beliebig viele Passwort-Versuche ohne Gegenmassnahme durchführen.
+**Betroffene Dateien:** `src/config.php` (wird von `src/config.default` erzeugt)
 
-**Auswirkung:** Passwörter sind durch Wörterbuchangriffe kompromittierbar.
+**Auswirkung:** Vollständige Kompromittierung (DB-Credentials, Token).
 
-**Gegenmaßnahme:**
-- Fehlversuche je IP + Benutzername in Tabelle `core_login_attempt` (neu) oder APCu zählen.
-- Nach 5 Fehlversuchen in 10 Minuten: HTTP 429 + 60 Sekunden Wartezeit.
-- Alternativ: Fail2ban auf Webserver-Ebene für `POST /login.php`.
+**Gegenmaßnahme:** `src/` außerhalb des Document-Root verschieben (Annahme: aktuell im Webroot) ODER `.htaccess`/Nginx-Regel hinzufügen, die direkten HTTP-Zugriff auf `src/` und `docs/` blockt.
 
 ---
 
-### 🟠 P1-S-4 – Telemetrie-Ingest ohne Rate-Limiting
+## P1 – Hoch
 
-**Datei:** `tools/runtime_ingest.php`
+### R-04 · `uploads/` ohne Download-Kontrolle
 
-Der Ingest-Endpoint ist durch einen statischen Token geschützt (`X-INGEST-TOKEN`). Bei bekanntem Token können unbegrenzt viele Bulk-Anfragen gestellt werden. Es gibt kein Request-Rate-Limiting und kein Payload-Size-Limit auf Anwendungsebene.
+**Problem:** Das Upload-Verzeichnis (`uploads/`) liegt per Default direkt im Projektroot (s. `src/config.default`: `'base_dir' => __DIR__ . '/../uploads'`). Hochgeladene Dateien sind damit direkt per HTTP abrufbar – ohne Auth-Prüfung.
 
-**Auswirkung:** Bei kompromittiertem Token: DB-Flut mit Rohdaten; `core_runtime_sample` wächst unkontrolliert.
+**Betroffene Dateien:** `src/helpers.php` (`handle_upload`), `module/stoerungstool/melden.php`, `module/stoerungstool/ticket.php`
 
-**Gegenmaßnahme:**
-- Webserver-seitiges Rate-Limiting (nginx `limit_req`, Apache `mod_ratelimit`).
-- Bulk-Limit im PHP-Code:
-  ```php
-  if (count($samples) > 1000) { http_response_code(400); exit(...); }
-  ```
-- Token rotierbar halten und aus `config.php` steuern (bereits korrekt implementiert).
+**Auswirkung:** Alle hochgeladenen Dokumente (Fotos, PDFs) sind öffentlich lesbar, sobald der Pfad bekannt ist (`stoerungstool/tickets/<id>/<stored>`). Der `stored`-Name ist `date('Ymd_His') + bin2hex(random_bytes(8))` – nicht rätselbar, aber kein Auth-Schutz.
+
+**Gegenmaßnahme:** `uploads/` außerhalb des Document-Root legen und Downloads über einen PHP-Download-Controller (`download.php`) mit Permission-Check ausliefern. Alternativ `.htaccess` `Deny from all` in `uploads/`.
 
 ---
 
-### 🟡 P2-S-5 – `runtime_rollup.php` liest GET-Parameter in SQL-LIMIT ohne PDO
+### R-05 · `stoerung.melden` ist komplett öffentlich – kein Spam-Schutz
 
-**Datei:** `tools/runtime_rollup.php`, Zeilen 8–11 und 50, 73
+**Problem:** `module/stoerungstool/melden.php` erfordert keinen Login (`require_login=0`). Jeder kann beliebig viele Tickets anlegen, optional mit Datei-Upload.
 
+**Betroffene Dateien:** `module/stoerungstool/melden.php`
+
+**Auswirkung:** Spam-Flood der `stoerungstool_ticket`-Tabelle und des Upload-Verzeichnisses; DoS auf DB und Filesystem möglich.
+
+**Gegenmaßnahme:** Honeypot-Feld, serverseitiges Rate-Limiting pro IP (z. B. max. N Tickets pro Stunde per `created_at` + `ip`), optional CAPTCHA.
+
+---
+
+### R-06 · Duplicate-Code: `upload_ticket_file()` und `upload_first_ticket_file()`
+
+**Problem:** Die Upload-Logik ist nahezu identisch in `module/stoerungstool/ticket.php` (`upload_ticket_file`) und `module/stoerungstool/melden.php` (`upload_first_ticket_file`) dupliziert. `src/helpers.php` stellt bereits `handle_upload()` bereit, wird aber von den Modul-Dateien nicht genutzt.
+
+**Betroffene Dateien:** `module/stoerungstool/ticket.php`, `module/stoerungstool/melden.php`, `src/helpers.php`
+
+**Auswirkung:** Sicherheitspatch in einem File muss manuell in beiden Files nachgezogen werden (Drift-Risiko).
+
+**Gegenmaßnahme:** Modul-Upload-Funktionen auf `handle_upload()` aus `src/helpers.php` umstellen oder eine gemeinsame Hilfsfunktion `store_ticket_dokument(int $ticketId, array $file): void` extrahieren.
+
+---
+
+### R-07 · Fehlende `telemetry`-Konfiguration führt zu Fatal Error
+
+**Problem:** `tools/runtime_ingest.php` greift auf `$cfg['telemetry']['ingest_token']` zu. Die Musterdatei `src/config.default` enthält keinen `telemetry`-Abschnitt. Bei fehlendem Schlüssel produziert PHP einen Warning oder Fatal Error.
+
+**Betroffene Dateien:** `tools/runtime_ingest.php`, `src/config.default`
+
+**Auswirkung:** Telemetrie-Ingest schlägt mit einem Fehler fehl, statt einen konfigurierten Fehler auszugeben; ein Admin sieht eventuell PHP-Warnings in der HTTP-Response (Information Disclosure).
+
+**Gegenmaßnahme:** `telemetry`-Block mit Pflichtkommentar in `src/config.default` ergänzen:
 ```php
-$maxAssets = (int)($_GET['max_assets'] ?? 500);
-$limitSamplesPerAsset = (int)($_GET['limit'] ?? 50000);
-// ...
-$assets = db_all("... LIMIT $maxAssets");
-$samples = db_all("... LIMIT $limitSamplesPerAsset", ...);
+'telemetry' => [
+  'ingest_token' => '',          // PFLICHT: starkes Secret setzen
+  'max_clock_skew_sec' => 300,
+],
 ```
 
-Der Webzugriff ist durch den CLI-Guard in Zeile 2 gesperrt (`if (php_sapi_name() !== 'cli') { http_response_code(403); exit('Forbidden'); }`). Da `$_GET` im CLI-Modus leer ist, erhalten die Variablen immer die Defaultwerte. Die SQL-Interpolation ist damit aktuell **nicht** ausnutzbar.
+---
 
-**Latentes Risiko:** Sollte der CLI-Guard versehentlich entfernt werden oder das Skript via PHP-CGI/PHP-FPM aufgerufen werden können, besteht ein Integer-Overflow-Risiko im LIMIT-Ausdruck.
+### R-08 · Keine HTTP-Security-Header
 
-**Gegenmaßnahme:** Variablen vor der SQL-Interpolation auf positive Integer klemmen und mit absolutem Maximum begrenzen:
+**Problem:** Weder `app.php`, `login.php` noch `tools/` senden Security-Header (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
+
+**Betroffene Dateien:** `src/layout.php` (`render_header`), `login.php`
+
+**Auswirkung:** Erhöhtes Risiko für XSS-Persistenz, Clickjacking, MIME-Sniffing.
+
+**Gegenmaßnahme:** Mindest-Header in `render_header()` einmal zentral setzen:
 ```php
-$maxAssets = max(1, min((int)($_GET['max_assets'] ?? 500), 5000));
+header('X-Frame-Options: SAMEORIGIN');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 ```
+Content-Security-Policy als mittelfristiges Ziel (erfordert Inline-Style-Prüfung).
 
 ---
 
-### 🟢 S-Positiv – Bereits korrekt implementiert
+## P2 – Mittel
 
-| Bereich | Befund | Fundstelle |
-|---|---|---|
-| SQL-Injection | PDO Prepared Statements überall; kein String-Concat mit Userdaten in WHERE | `src/db.php` |
-| XSS | `e()` = `htmlspecialchars(ENT_QUOTES)` konsequent in allen Views | `src/helpers.php: e()` |
-| CSRF | `csrf_token()` + `csrf_check()` in allen POST-Formularen | `src/auth.php` |
-| Session-Flags | `httponly=true`, `samesite=Lax`, `secure` (bei HTTPS) | `src/auth.php: session_boot()` |
-| Passwort-Hashing | `password_hash(PASSWORD_DEFAULT)` + `password_verify()` (bcrypt) | `src/auth.php: login()` |
-| Session-Fixation | `session_regenerate_id(true)` nach erfolgreichem Login | `src/auth.php: login()` |
-| Pfad-Traversal | `realpath()` + `strpos($file, '..')` Check | `app.php` Zeile 50–60 |
-| Column-Whitelist | `user_can_flag()` prüft `$flagCol` gegen Allowlist | `src/auth.php` Zeile 118–119 |
-| Setup-Guard | `has_any_user()` verhindert erneuten Admin-Setup | `module/admin/setup.php` |
-| Telemetrie-Auth | `hash_equals()` verhindert Timing-Angriffe auf Token-Vergleich | `tools/runtime_ingest.php` |
-| Rollup-Web-Schutz | CLI-Guard (`php_sapi_name() !== 'cli'`) → HTTP 403 | `tools/runtime_rollup.php` Zeile 2 |
+### R-09 · Kein Fehlerhandling für `db()` / fehlende `config.php`
 
----
+**Problem:** Wenn `src/config.php` fehlt (z. B. nach frischem Clone), liefert `require __DIR__ . '/config.php'` in `src/db.php` einen Fatal Error ohne Benutzer-freundliche Meldung.
 
-## 2. Datenintegrität (Data Integrity)
+**Betroffene Dateien:** `src/db.php`, `src/auth.php`
 
-### 🟠 P1-D-1 – Ticket-Erstellung ohne Validierung der `asset_id`
+**Auswirkung:** Unverständliche Fehlermeldung / White Page für den Admin beim ersten Setup.
 
-**Datei:** `module/stoerungstool/melden.php`, Zeile 56
-
+**Gegenmaßnahme:** In `db()` prüfen ob `config.php` existiert, andernfalls lesbare Anleitung ausgeben:
 ```php
-$assetId = $_POST['asset_id'] !== '' ? (int)$_POST['asset_id'] : null;
-```
-
-Es wird geprüft, ob der Wert nicht leer ist, aber **nicht**, ob die Asset-ID tatsächlich in `core_asset` existiert und aktiv ist. Ein Angreifer (oder ein Formularfehler) könnte eine ungültige Asset-ID einschleusen.
-
-**Auswirkung:** `stoerungstool_ticket.asset_id` referenziert ein nicht-existentes Asset. Der FK `fk_ticket_asset` in MariaDB ist `ON DELETE SET NULL` – aber das verhindert nicht das initiale Einfügen ungültiger IDs, wenn FK-Checks aktiv sind. Tatsächlich würde ein ungültiger Wert einen FK-Constraint-Fehler auslösen, aber nur wenn FK-Checks aktiviert sind und der Wert nicht NULL ist.
-
-*Annahme:* Bei deaktivierten FK-Checks (in manchen Hosting-Umgebungen) wäre ein inkonsistenter Eintrag möglich.
-
-**Gegenmaßnahme:**
-```php
-if ($assetId !== null) {
-  $assetCheck = db_one("SELECT id FROM core_asset WHERE id=? AND aktiv=1 LIMIT 1", [$assetId]);
-  if (!$assetCheck) { $err = "Ungültige Anlage."; /* ... */ }
+if (!file_exists($configPath)) {
+  die('config.php fehlt. Kopiere src/config.default nach src/config.php und trage DB-Zugangsdaten ein.');
 }
 ```
 
 ---
 
-### 🟡 P2-D-2 – Keine Bereinigung verwaister `core_dokument`-Einträge
+### R-10 · Legacy `src/menu.php` nicht mehr verwendet
 
-**Dateien:** `module/stoerungstool/melden.php`, `module/stoerungstool/ticket.php`
+**Problem:** `src/menu.php` definiert eine ältere `load_menu_tree()`-Funktion ohne Parameter. Die aktuelle Version ist in `src/helpers.php` implementiert (mit `$menuName`-Parameter und Legacy-Kompatibilität). `src/menu.php` wird laut Code-Analyse nicht mehr included.
 
-Hochgeladene Dateien werden in `core_dokument` eingetragen. Wird ein Ticket gelöscht (soweit möglich), bleibt die Datei auf dem Filesystem und der Eintrag in `core_dokument` erhalten (sofern FK `ON DELETE CASCADE` nicht greift – `fk_doc_user` ist `ON DELETE SET NULL`, kein CASCADE auf Ticket).
+**Betroffene Dateien:** `src/menu.php`
 
-**Auswirkung:** Datei-Leichen auf dem Filesystem; potenziell datenschutzrelevante Dateien bleiben erhalten.
+**Auswirkung:** Potenzielle Verwirrung; bei versehentlichem Include könnte die Funktion überschrieben werden (obwohl `if (!function_exists(...))` fehlt hier – würde Fatal Error auslösen, wenn `helpers.php` vorher geladen wurde).
 
-**Gegenmaßnahme:** Cleanup-Routine implementieren; bei Ticket-Schließung/Löschung zugehörige Dokumente entfernen oder archivieren.
-
----
-
-## 3. Code-Qualität (Code Quality)
-
-### 🟠 P1-Q-1 – N+1-Queries im Wartungs-Dashboard
-
-**Datei:** `module/wartungstool/dashboard.php`, Funktion `berechneDashboard()` (Zeilen 31–116)
-
-Pro Asset werden **4 separate DB-Queries** ausgeführt:
-1. `core_runtime_counter` (Produktivstunden)
-2. `core_runtime_agg_day` (28-Tage-Schnitt)
-3. `core_runtime_agg_day` (Trend: 14 Tage neu vs. alt)
-4. `wartungstool_wartungspunkt` (nächste Fälligkeit)
-
-Bei 20 Assets = 80+ Queries pro Dashboard-Aufruf, plus die initiale Asset-Abfrage.
-
-**Auswirkung:** Langsame Dashboard-Ladezeiten bei wachsendem Asset-Bestand; erhöhte DB-Last.
-
-**Gegenmaßnahme:** Alle 4 Subabfragen in eine kombinierte Abfrage (JOINs + Subqueries) zusammenfassen oder Ergebnisse in einem einzigen Bulk-Query pro Kennzahl über alle Asset-IDs vorladen.
+**Gegenmaßnahme:** `src/menu.php` entfernen oder mit `@deprecated`-Kommentar versehen.
 
 ---
 
-### 🟠 P1-Q-2 – Business-Logik-Funktionen inline in View-Dateien
+### R-11 · `core_audit_log` wird nur punktuell genutzt
 
-**Dateien:**
-- `module/wartungstool/dashboard.php`: `berechneDashboard()`, `ampel_for()`, `renderTable()`
-- `module/wartungstool/uebersicht.php`: `ampel_from_rest()`, `is_open_item()`, `extract_ticket_marker()`, `short_text()`
-- `module/stoerungstool/inbox.php`: `short_text()`, `fmt_minutes()`
+**Problem:** `audit_log()` ist in `src/helpers.php` implementiert, wird aber nur in `module/wartungstool/punkt_save.php` aktiv genutzt (Annahme basierend auf Code-Analyse). Das Störungstool (`ticket.php`) und Admin-Module schreiben bei Status-/Datenänderungen keinen Audit-Eintrag.
 
-Funktionen werden inline in View-Dateien deklariert. Die Funktion `short_text()` ist sogar in zwei verschiedenen Modulen separat definiert (Duplikat in `uebersicht.php` und `inbox.php`).
+**Betroffene Dateien:** `module/stoerungstool/ticket.php`, `module/admin/users.php`, `module/admin/permissions.php`
 
-**Auswirkung:** Code-Duplizierung, keine Wiederverwendung, nicht testbar.
+**Auswirkung:** Fehlende Nachvollziehbarkeit bei Statuswechseln, Benutzerverwaltungs-Aktionen und Rechteänderungen; Compliance-Risiko (ISO-Anforderungen).
 
-**Gegenmaßnahme:** Gemeinsame Hilfsfunktionen in `src/helpers.php` konsolidieren. Modul-spezifische Logik in eigene `src/<modul>_helpers.php` auslagern.
+**Gegenmaßnahme:** `audit_log()` systematisch bei allen INSERT/UPDATE/DELETE in den Modul-Views aufrufen. Priorität: `stoerungstool/ticket.php` (Status-Workflow), `admin/users.php`, `admin/permissions.php`.
 
 ---
 
-### 🟡 P2-Q-3 – `function_exists()`-Guards mit unsicherem Fallback
+### R-12 · `password_hash` ohne expliziten Algorithmus und Kosten-Faktor
 
-**Datei:** `module/wartungstool/punkt.php`, Zeilen 13–14
+**Problem:** `password_hash($pw, PASSWORD_DEFAULT)` nutzt den PHP-Default-Algorithmus (aktuell bcrypt, `cost=10`). Bei künftigen PHP-Versionen könnte `PASSWORD_DEFAULT` auf Argon2 wechseln, was zu Migration-Problemen führen kann (wenn `password_needs_rehash` nicht verwendet wird).
 
-```php
-$canDoWartung    = function_exists('user_can_edit') ? user_can_edit($userId, 'wartungstool', 'global', null) : true;
-$canCreateTicket = function_exists('user_can_edit') ? user_can_edit($userId, 'stoerungstool', 'global', null) : true;
-```
+**Betroffene Dateien:** `module/admin/setup.php`, `module/admin/users.php`
 
-Der Fallback `true` bedeutet: Bei einem Fehler im Include-Chain (z.B. wenn `src/auth.php` nicht geladen wird) hat der Benutzer implizit **alle Rechte**.
+**Auswirkung:** Niedrig bei aktueller PHP-Version; mittelfristig bei PHP-Upgrade ohne Rehash-Mechanismus.
 
-**Auswirkung:** Potenzielle Privilege-Escalation bei Include-Fehlern.
-
-**Gegenmaßnahme:** Guards entfernen, direkten Aufruf verwenden:
-```php
-$canDoWartung    = user_can_edit($userId, 'wartungstool', 'global', null);
-$canCreateTicket = user_can_edit($userId, 'stoerungstool', 'global', null);
-```
+**Gegenmaßnahme:** Explizit `PASSWORD_BCRYPT` mit `['cost' => 12]` setzen und `password_needs_rehash()` beim Login prüfen.
 
 ---
 
-### 🟡 P2-Q-4 – Hard-kodierte ENUM-Werte an mehreren Stellen
+### R-13 · Keine Datenbankmigrationshistorie / kein Schema-Versions-Mechanismus
 
-Ticket-Status (`neu`, `angenommen`, `in_arbeit`, `bestellt`, `erledigt`, `geschlossen`) sind sowohl im DB-Schema (ENUM) als auch im PHP-Code in mindestens 4 Dateien als Literalstrings verstreut:
-- `module/stoerungstool/inbox.php` (Filter-Logik)
-- `module/stoerungstool/ticket.php` (Status-Buttons, Validierung)
-- `module/stoerungstool/melden.php` (`'neu'` als Default)
-- `module/wartungstool/punkt_save.php` (`'neu'` beim Ticket-Anlegen)
-- `src/helpers.php`: `badge_for_ticket_status()` (einzige bereits zentrale Funktion)
+**Problem:** Das Schema liegt in `docs/db_schema_v2.sql` (IF NOT EXISTS, idempotent). Es gibt eine Migrations-Datei `docs/db_migration_permissions_v1.sql`. Ein formales Migrationsframework oder Versions-Tracking fehlt.
 
-**Auswirkung:** Eine neue Status-Stufe erfordert Änderungen an DB + mindestens 4 PHP-Dateien; Inkonsistenz-Risiko.
+**Betroffene Dateien:** `docs/db_schema_v2.sql`, `docs/db_migration_permissions_v1.sql`
 
-**Gegenmaßnahme:** Zentrale Konstante in `src/helpers.php`:
-```php
-const TICKET_STATUS_FLOW = ['neu','angenommen','in_arbeit','bestellt','erledigt','geschlossen'];
-```
+**Auswirkung:** Bei Weiterentwicklung ist unklar, welche Schemaversion ein Produktivsystem hat. Additive Migrationen können in falscher Reihenfolge eingespielt werden.
 
----
-
-### 🟡 P2-Q-5 – Entwicklungs-Artefakte im Repository
-
-**Dateien:** `create.bat`, `Erzeuge`, `Done` (Projekt-Root)
-
-Diese Dateien haben keinen produktiven Nutzen.
-
-**Auswirkung:** Unklare Zuständigkeiten, unprofessioneller Eindruck, potenzielle Konfusion bei neuen Entwicklern.
-
-**Gegenmaßnahme:**
-```bash
-git rm create.bat Erzeuge Done
-echo "create.bat" >> .gitignore
-```
-
----
-
-### 🟡 P2-Q-6 – Toter Code: `src/menu.php`
-
-**Datei:** `src/menu.php`
-
-Enthält eine veraltete `load_menu_tree()` Funktion (Legacy-Schema). Die produktive Implementierung befindet sich in `src/helpers.php`. `src/menu.php` wird von keiner Produktionsdatei per `require_once` eingebunden (nur theoretisch über das Legacy-Schema aktiv, wenn `core_menu_item` nicht existiert – aber dann würde `src/helpers.php: load_menu_tree()` die Legacy-Variante bereits intern abdecken).
-
-**Auswirkung:** Verwirrung für Entwickler; zwei `load_menu_tree()` Implementierungen im Projekt.
-
-**Gegenmaßnahme:** `src/menu.php` entfernen (nach Verifikation, dass keine externe Einbindung existiert).
-
----
-
-### 🟢 Q-Positiv – Bereits korrekt implementiert
-
-| Bereich | Befund | Fundstelle |
-|---|---|---|
-| Output-Escaping | `e()` konsequent in allen Views verwendet | Alle module/*.php |
-| DB-Schema | Idempotentes Schema (`IF NOT EXISTS`, kein DROP) | `docs/db_schema_v2.sql` |
-| Audit-Coverage | `audit_log()` in Wartungstool + Störungstool | `module/wartungstool/punkt_save.php`, `ticket.php` |
-| Transaktionen | Alle Multi-Step-Writes in `beginTransaction()` + `rollBack()` | `punkt_save.php`, `ticket.php`, `admin_punkte.php` |
-| Upload-Validierung | MIME via `finfo`, SHA-256, zufällige Dateinamen | `src/helpers.php: handle_upload()` |
-| Routing | Zentraler Front-Controller, Path-Traversal-Schutz | `app.php` |
-| badge_for_ticket_status | Zentrale Funktion für Status-Labels | `src/helpers.php` |
-
----
-
-## 4. Wartbarkeit (Maintainability)
-
-### 🟠 P1-M-1 – Kein Dependency-Management (kein Composer)
-
-Das Projekt verwendet kein Composer. Es gibt keine `composer.json`, kein Autoloading und keine Drittanbieter-Bibliotheken.
-
-**Auswirkung:** Jede externe Abhängigkeit (PHPUnit, Monolog, phpdotenv) müsste manuell eingebunden werden. Autoloading fehlt, alle Includes sind manuell.
-
-**Gegenmaßnahme:** Composer einführen, PSR-4-Autoloading aktivieren. Kurzfristig: Alle `require_once`-Aufrufe in einer zentralen Bootstrap-Datei zusammenfassen.
-
----
-
-### 🟠 P1-M-2 – Keine automatisierten Tests
-
-Es gibt keine Unit-Tests, Integrations-Tests oder End-to-End-Tests.
-
-**Auswirkung:** Refactorings und neue Features können nicht sicher getestet werden; Regressionen nicht erkennbar.
-
-**Gegenmaßnahme:** PHPUnit einführen. Erste Test-Prioritäten:
-- `user_can_see()` (Permission-Logik mit Wildcard)
-- `user_can_flag()` (Whitelist-Validierung)
-- `split_interval_by_day()` (Tagessplitting im Rollup)
-- `badge_for_ticket_status()` (Status-Mapping)
-- `handle_upload()` (MIME-Validierung, Fehlerbehandlung)
-
----
-
-### 🟡 P2-M-3 – Keine `.env`-Unterstützung / Konfiguration nur via `config.php`
-
-Konfiguration läuft über `src/config.php`. Es gibt kein `.env`-basiertes System. Deployments in verschiedene Umgebungen (dev/staging/prod) erfordern manuelle Kopien.
-
-**Hinweis:** `/src/config.php` ist bereits in `.gitignore` eingetragen – Credentials werden damit nicht versehentlich versioniert. ✓
-
-**Gegenmaßnahme:** `vlucas/phpdotenv` einführen oder natives `$_ENV`-basiertes System, um Umgebungsvariablen sauber zu trennen.
-
----
-
-### 🟡 P2-M-4 – Kein strukturiertes Logging
-
-Fehler und Laufzeitinfos werden nur über `echo` ausgegeben (`tools/runtime_rollup.php`). Kein PSR-3-Logger.
-
-**Auswirkung:** Keine zentrale Fehlerübersicht; schwierige Diagnose in Produktion.
-
-**Gegenmaßnahme:** Monolog oder minimales PSR-3-konformes Logging für `tools/`.
-
----
-
-### 🟡 P2-M-5 – Tippfehler in Dokumentationsdateinamen
-
-**Dateien:** `docs/PRIJECT_CONTEXT.md`, `docs/PRIJECT_CONTEXT_v2.md` (Tippfehler: `PRIJECT` statt `PROJECT`)
-
-**Gegenmaßnahme:**
-```bash
-git mv docs/PRIJECT_CONTEXT.md docs/PROJECT_CONTEXT.md
-git mv docs/PRIJECT_CONTEXT_v2.md docs/PROJECT_CONTEXT_v2.md
-```
-
----
-
-### 🟢 M-Positiv – Bereits korrekt implementiert
-
-| Bereich | Befund |
-|---|---|
-| Modulares Design | Klare Trennung: `src/` (Core), `module/` (Logik), `tools/` (CLI) |
-| DB-getriebenes Routing | Neue Seiten ohne Code-Änderung in `app.php` |
-| Additives Schema | DB-Erweiterungen ohne `DROP` (produktionssicher) |
-| Konfigurationsvorlage | `src/config.default` als Template vorhanden |
-| Audit-Trail | Vollständiger `core_audit_log` mit old/new JSON |
-
----
-
-## 5. Barrierefreiheit (A11Y)
-
-### 🟡 P2-A-1 – Status-Badges ohne semantisches Role-Attribut
-
-**Dateien:** `module/stoerungstool/inbox.php`, `module/wartungstool/dashboard.php`
-
-Die Ampel-Badges zeigen Text und Farbe. Es fehlt ein semantisches Role-Attribut für Screenreader.
-
-**Gegenmaßnahme:**
-```html
-<!-- Statt -->
-<span class="badge badge--r">neu</span>
-<!-- Empfohlen -->
-<span class="badge badge--r" role="status">neu</span>
-```
-
----
-
-### 🟡 P2-A-2 – Kein sichtbarer allgemeiner Fokusindikator im CSS
-
-**Datei:** `src/css/main.css`
-
-Das Stylesheet enthält CSS für den Skip-Link (`:focus { top: 0; }`), aber keinen allgemeinen `:focus-visible`-Stil. Browser-Standard-Outline wird durch globale Resets häufig unterdrückt.
-
-**Gegenmaßnahme:**
-```css
-:focus-visible {
-  outline: 3px solid #005fcc;
-  outline-offset: 2px;
-}
-```
-
----
-
-### 🟡 P2-A-3 – Datentabellen ohne `scope`-Attribute auf `<th>`
-
-**Dateien:** `module/wartungstool/dashboard.php`, `module/stoerungstool/inbox.php`, `module/wartungstool/uebersicht.php`
-
-`<th>`-Elemente haben kein `scope="col"`. Screenreader können Spalten-Header nicht korrekt zuordnen.
-
-**Gegenmaßnahme:** `<th scope="col">` auf alle Spalten-Header setzen.
-
----
-
-### 🟢 A-Positiv – Bereits korrekt implementiert
-
-| Bereich | Befund | Fundstelle |
-|---|---|---|
-| Skip-Link | `<a class="skip-link" href="#main-content">` + CSS-Implementierung | `src/layout.php` Zeile 22, `src/css/main.css` |
-| main-content ID | `<main class="content" id="main-content" tabindex="-1">` | `src/layout.php` Zeile 81 |
-| ARIA auf Navigation | `<nav aria-label="Hauptnavigation">` | `src/layout.php` Zeile 41 |
-| Semantisches HTML | `<aside>`, `<nav>`, `<main>`, `<form>`, `<label>` korrekt | `src/layout.php` |
-| Labels für Inputs | Alle Inputs haben `<label>`-Elemente | Alle Formular-Views |
-| `lang="de"` | Korrekt gesetzt | `src/layout.php` |
-| Meta Viewport | `<meta name="viewport" content="width=device-width, initial-scale=1">` | `src/layout.php` |
-| Badge-Text | Ampel zeigt immer Text + Farbe | `src/helpers.php: badge_for_ticket_status()` |
+**Gegenmaßnahme:** Migrations-Tabelle `core_migration` einführen (id, filename, applied_at) und ein einfaches CLI-Script `tools/migrate.php` zum geordneten Einspielen nummerierter SQL-Dateien.
