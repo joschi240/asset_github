@@ -60,6 +60,7 @@ function user_can_see(?int $userId, ?string $modul, ?string $objektTyp, ?int $ob
        AND (
          (modul=? AND objekt_typ=? AND darf_sehen=1 AND (objekt_id IS NULL OR objekt_id = ?))
          OR (modul=? AND objekt_typ='global' AND darf_sehen=1 AND objekt_id IS NULL)
+         OR (modul='*' AND objekt_typ IN ('*','global') AND darf_sehen=1 AND objekt_id IS NULL)
        )
      LIMIT 1",
     [$userId, $modul, $objektTyp, $objektId, $modul]

@@ -62,13 +62,14 @@ function resolve_can_see(
     string $objektTyp,
     ?int  $objektId
 ): bool {
-    // Admin wildcard check (identisch zu user_can_see in helpers.php)
+    // Admin wildcard shortcut (identisch zu user_can_see in helpers.php)
     foreach ($permissions as $p) {
         if ((int)$p['user_id'] !== $userId) continue;
         if ($p['modul'] === '*' && in_array($p['objekt_typ'], ['*', 'global'], true) && (int)$p['darf_sehen'] === 1) {
             return true;
         }
     }
+    // Non-admin path: exact + module-global fallback + wildcard (all three OR branches)
     return resolve_flag($permissions, $userId, $modul, $objektTyp, $objektId, 'darf_sehen');
 }
 
@@ -169,6 +170,57 @@ assert_true (resolve_flag($fallbackGlobal, 4, 'wartungstool', 'dashboard', null,
 // ---------------------------------------------------------------------------
 // Ergebnis
 // ---------------------------------------------------------------------------
+
+echo "\n=== 8) SQL-Placeholder-Count Safety (? vs params) ===\n";
+
+// Prüft, ob substr_count($sql,'?') === count($params) für die Queries aus den Resolver-Funktionen.
+// Schützt vor Silent-Bugs durch falsch gezählte PDO-Parameter.
+
+$sqlChecks = [
+  [
+    'label' => 'user_can_flag (auth.php) – 5 Platzhalter',
+    'sql'   => "SELECT MAX(darf_aendern) AS ok
+       FROM core_permission
+       WHERE user_id=?
+         AND (
+           (modul=? AND objekt_typ=? AND (objekt_id IS NULL OR objekt_id=?))
+           OR (modul=? AND objekt_typ='global' AND objekt_id IS NULL)
+           OR (modul='*' AND objekt_typ IN ('*','global') AND objekt_id IS NULL)
+         )",
+    'params' => [1, 'wartungstool', 'global', null, 'wartungstool'],
+  ],
+  [
+    'label'  => 'user_can_see non-admin (helpers.php) – 5 Platzhalter',
+    'sql'    => "SELECT 1
+     FROM core_permission
+     WHERE user_id=?
+       AND (
+         (modul=? AND objekt_typ=? AND darf_sehen=1 AND (objekt_id IS NULL OR objekt_id = ?))
+         OR (modul=? AND objekt_typ='global' AND darf_sehen=1 AND objekt_id IS NULL)
+         OR (modul='*' AND objekt_typ IN ('*','global') AND darf_sehen=1 AND objekt_id IS NULL)
+       )
+     LIMIT 1",
+    'params' => [1, 'stoerungstool', 'global', null, 'stoerungstool'],
+  ],
+  [
+    'label'  => 'user_can_see admin-shortcut (helpers.php) – 1 Platzhalter',
+    'sql'    => "SELECT 1 FROM core_permission
+     WHERE user_id=? AND modul='*' AND objekt_typ IN ('*','global') AND darf_sehen=1
+     LIMIT 1",
+    'params' => [1],
+  ],
+  [
+    'label'  => 'is_admin_user (helpers.php) – 1 Platzhalter',
+    'sql'    => "SELECT 1 FROM core_permission WHERE user_id=? AND modul='*' AND objekt_typ IN ('*','global') AND darf_sehen=1 LIMIT 1",
+    'params' => [1],
+  ],
+];
+
+foreach ($sqlChecks as $chk) {
+  $countQ = substr_count($chk['sql'], '?');
+  $countP = count($chk['params']);
+  assert_true($countQ === $countP, $chk['label'] . " ({$countQ} ? = {$countP} params)");
+}
 
 echo "\n----------------------------------------\n";
 echo "Ergebnis: $passed bestanden, $failed fehlgeschlagen\n";
