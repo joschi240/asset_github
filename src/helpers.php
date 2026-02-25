@@ -8,6 +8,15 @@ function e(?string $s): string {
   return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+if (!function_exists('short_text')) {
+  function short_text(?string $s, int $max = 120): string {
+    $s = preg_replace('/\s+/', ' ', trim((string)$s));
+    if ($s === '') return '';
+    if (mb_strlen($s) <= $max) return $s;
+    return mb_substr($s, 0, $max - 1) . '…';
+  }
+}
+
 /**
  * DB Introspection (für Legacy/Neu-Kompatibilität)
  */

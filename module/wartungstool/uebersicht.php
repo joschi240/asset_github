@@ -54,11 +54,13 @@ function extract_ticket_marker(?string $bemerkung): ?int {
   return null;
 }
 
-function short_text(?string $s, int $max = 90): string {
-  $s = trim((string)$s);
-  if ($s === '') return '';
-  if (mb_strlen($s) <= $max) return $s;
-  return mb_substr($s, 0, $max - 1) . '…';
+if (!function_exists('short_text')) {
+  function short_text(?string $s, int $max = 90): string {
+    $s = trim((string)$s);
+    if ($s === '') return '';
+    if (mb_strlen($s) <= $max) return $s;
+    return mb_substr($s, 0, $max - 1) . '…';
+  }
 }
 
 // Daten für ausgewähltes Asset laden
