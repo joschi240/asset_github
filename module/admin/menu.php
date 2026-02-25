@@ -123,9 +123,10 @@ $walk = function($pid, $depth) use (&$walk, &$flat, &$byParent) {
 $walk(0, 0);
 
 if ($action === 'edit') {
+  $default_row = ['id'=>0,'parent_id'=>null,'label'=>'','route_key'=>null,'url'=>null,'modul'=>null,'objekt_typ'=>null,'objekt_id'=>null,'sort'=>0,'aktiv'=>1];
   $row = ($id > 0)
-    ? db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$id, (int)$menu['id']])
-    : ['id'=>0,'parent_id'=>null,'label'=>'','route_key'=>null,'url'=>null,'modul'=>null,'objekt_typ'=>null,'objekt_id'=>null,'sort'=>0,'aktiv'=>1];
+    ? (db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$id, (int)$menu['id']]) ?: $default_row)
+    : $default_row;
 
   ?>
   <div class="grid">
