@@ -252,53 +252,91 @@ $openHist   = !empty($aktionen);
 ?>
 
 <div class="card">
-  <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-    <div>
+
+  <div class="ticket-actions">
+    <div class="ticket-actions__inner">
+      <div class="ticket-actions__left">
+        <span class="ticket-actions__title">Ticket #<?= (int)$ticket['id'] ?></span>
+        <span class="badge <?= e($badge['cls']) ?>"><?= e($badge['label']) ?></span>
+        <span class="badge">Prio <?= (int)$ticket['prioritaet'] ?></span>
+        <?php if ((int)$ticket['maschinenstillstand']===1): ?><span class="badge badge--r">Stillstand</span><?php endif; ?>
+      </div>
+      <div class="ticket-actions__right">
+        <a class="btn btn--mini btn--jump" href="#assign" title="Zuweisung"><span aria-hidden="true">🧑‍🔧</span> Zuweisung</a>
+        <a class="btn btn--mini btn--jump" href="#action" title="Aktion"><span aria-hidden="true">⚡</span> Aktion</a>
+      </div>
+    </div>
+    <?php if ($canEdit): ?>
+    <div class="ticket-actions__quickstatus">
+      <?php $statusList = ['angenommen','in_arbeit','bestellt','erledigt','geschlossen']; foreach ($statusList as $s): ?>
+        <form method="post" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>" style="display:inline">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="set_status">
+          <button class="btn btn--pill<?= ($ticket['status']===$s?' btn--pill-active':'') ?> btn--mini" name="to" value="<?= e($s) ?>">
+            <?= e($s==='in_arbeit'?'in Arbeit':ucfirst($s)) ?>
+          </button>
+        </form>
+      <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+  </div>
+
+  <div class="ticket-header">
+    <div class="ticket-header__left">
       <h1>Ticket #<?= (int)$ticket['id'] ?></h1>
       <div class="small"><a href="<?= e($base) ?>/app.php?r=stoerung.inbox">← zurück zur Inbox</a></div>
     </div>
-    <div>
+    <div class="ticket-header__right">
       <span class="badge <?= e($badge['cls']) ?>"><?= e($badge['label']) ?></span>
       <span class="badge">Prio <?= (int)$ticket['prioritaet'] ?></span>
       <?php if ((int)$ticket['maschinenstillstand']===1): ?><span class="badge badge--r">Stillstand</span><?php endif; ?>
     </div>
   </div>
 
+  <div class="ticket-summary">
+    <div class="ticket-summary__title">
+      <?= htmlspecialchars($ticket['titel'] ?? '', ENT_QUOTES, 'UTF-8') ?>
+    </div>
+    <div class="ticket-summary__desc">
+      <?= nl2br(htmlspecialchars($ticket['beschreibung'] ?? '', ENT_QUOTES, 'UTF-8')) ?>
+    </div>
+  </div>
+
   <?php if ($ok): ?><p class="badge badge--g" role="status">Gespeichert.</p><?php endif; ?>
   <?php if ($err !== ''): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
-  <div class="small" style="margin-top:10px;">
-    Anlage: <b><?= e(trim(($ticket['asset_code'] ?: '').' '.($ticket['asset_name'] ?: ''))) ?: '—' ?></b>
-    · Typ: <b><?= e($ticket['meldungstyp'] ?: '—') ?></b>
-    · Fach: <b><?= e($ticket['fachkategorie'] ?: $ticket['kategorie'] ?: '—') ?></b>
-    · Ausfall: <b><?= e($ticket['ausfallzeitpunkt'] ?: '—') ?></b>
-    · Zugewiesen: <b><?= e($ticket['assigned_name'] ?: '—') ?></b>
-    · Summe Arbeitszeit: <b><?= sprintf('%02d:%02d', intdiv($sumMin,60), $sumMin%60) ?></b>
+  <div class="ticket-meta">
+    <span class="chip">Anlage: <b><?= e(trim(($ticket['asset_code'] ?: '').' '.($ticket['asset_name'] ?: ''))) ?: '—' ?></b></span>
+    <span class="chip">Typ: <b><?= e($ticket['meldungstyp'] ?: '—') ?></b></span>
+    <span class="chip">Fach: <b><?= e($ticket['fachkategorie'] ?: $ticket['kategorie'] ?: '—') ?></b></span>
+    <span class="chip">Ausfall: <b><?= e($ticket['ausfallzeitpunkt'] ?: '—') ?></b></span>
+    <span class="chip">Zugewiesen: <b><?= e($ticket['assigned_name'] ?: '—') ?></b></span>
+    <span class="chip">Arbeitszeit: <b><?= sprintf('%02d:%02d', intdiv($sumMin,60), $sumMin%60) ?></b></span>
   </div>
 
-  <div style="margin-top:12px;">
-    <h2 style="margin:0 0 8px;">Quick Status</h2>
+  <div class="ticket-quickstatus">
+    <h2>Quick Status</h2>
     <?php if ($canEdit): ?>
-    <form method="post" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>" style="display:flex; gap:8px; flex-wrap:wrap;">
+    <form method="post" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>">
       <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
       <input type="hidden" name="action" value="set_status">
-      <button class="btn btn--ghost" name="to" value="angenommen">angenommen</button>
-      <button class="btn btn--ghost" name="to" value="in_arbeit">in Arbeit</button>
-      <button class="btn btn--ghost" name="to" value="bestellt">bestellt</button>
-      <button class="btn btn--ghost" name="to" value="erledigt">erledigt</button>
-      <button class="btn btn--ghost" name="to" value="geschlossen">geschlossen</button>
+      <?php $statusList = ['angenommen','in_arbeit','bestellt','erledigt','geschlossen']; foreach ($statusList as $s): ?>
+        <button class="btn btn--pill<?= ($ticket['status']===$s?' btn--pill-active':'') ?>" name="to" value="<?= e($s) ?>">
+          <?= e($s==='in_arbeit'?'in Arbeit':ucfirst($s)) ?>
+        </button>
+      <?php endforeach; ?>
     </form>
-    <p class="small" style="margin-top:6px;">Statuswechsel schreibt automatisch Aktion + Auditlog.</p>
+    <p class="small">Statuswechsel schreibt automatisch Aktion + Auditlog.</p>
     <?php else: ?>
     <p class="small">Kein Bearbeitungsrecht für Störungstickets.</p>
     <?php endif; ?>
   </div>
 </div>
 
-<div class="card">
-  <details <?= $openAssign ? 'open' : '' ?>>
-    <summary style="cursor:pointer; font-weight:600;">Zuweisung</summary>
-    <div style="margin-top:10px;">
+<div class="card" id="assign">
+  <details <?= $openAssign ? 'open' : '' ?> >
+    <summary class="accordion__summary">Zuweisung</summary>
+    <div class="accordion__body">
       <?php if ($canEdit): ?>
       <form method="post" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -307,12 +345,12 @@ $openHist   = !empty($aktionen);
         <select id="ticket_assign_user" name="assigned_user_id">
           <option value="0">— niemand —</option>
           <?php foreach ($users as $uu): ?>
-            <option value="<?= (int)$uu['id'] ?>" <?= ((int)$ticket['assigned_user_id']===(int)$uu['id']?'selected':'') ?>>
+            <option value="<?= (int)$uu['id'] ?>" <?= ((int)$ticket['assigned_user_id']===(int)$uu['id']?'selected':'') ?> >
               <?= e($uu['anzeigename'] ?: $uu['benutzername']) ?>
             </option>
           <?php endforeach; ?>
         </select>
-        <div style="margin-top:10px;">
+        <div>
           <button class="btn" type="submit">Zuweisen</button>
         </div>
       </form>
@@ -323,64 +361,10 @@ $openHist   = !empty($aktionen);
   </details>
 </div>
 
-<div class="card">
-  <details <?= $openEdit ? 'open' : '' ?>>
-    <summary style="cursor:pointer; font-weight:600;">Ticket bearbeiten</summary>
-    <div style="margin-top:10px;">
-      <?php if ($canEdit): ?>
-      <form method="post" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="action" value="update_ticket">
-
-        <label for="ticket_asset_id">Anlage</label>
-        <select id="ticket_asset_id" name="asset_id">
-          <option value="0">— ohne Anlage —</option>
-          <?php foreach ($assets as $a): ?>
-            <option value="<?= (int)$a['id'] ?>" <?= ((int)$ticket['asset_id']===(int)$a['id']?'selected':'') ?>>
-              <?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-
-        <label for="ticket_meldungstyp">Meldungsart (Typ)</label>
-        <input id="ticket_meldungstyp" name="meldungstyp" value="<?= e($ticket['meldungstyp'] ?? '') ?>">
-
-        <label for="ticket_fachkat">Fachkategorie</label>
-        <input id="ticket_fachkat" name="fachkategorie" value="<?= e($ticket['fachkategorie'] ?? '') ?>">
-
-        <label for="ticket_prio">Priorität</label>
-        <select id="ticket_prio" name="prioritaet">
-          <option value="1" <?= ((int)$ticket['prioritaet']===1?'selected':'') ?>>1</option>
-          <option value="2" <?= ((int)$ticket['prioritaet']===2?'selected':'') ?>>2</option>
-          <option value="3" <?= ((int)$ticket['prioritaet']===3?'selected':'') ?>>3</option>
-        </select>
-
-        <label><input type="checkbox" name="maschinenstillstand" value="1" <?= ((int)$ticket['maschinenstillstand']===1?'checked':'') ?>> Maschinenstillstand</label>
-
-        <label for="ticket_ausfall">Ausfallzeitpunkt</label>
-        <input id="ticket_ausfall" type="datetime-local" name="ausfallzeitpunkt" value="<?= $ticket['ausfallzeitpunkt'] ? e(str_replace(' ','T', substr($ticket['ausfallzeitpunkt'],0,16))) : '' ?>">
-
-        <label for="ticket_titel">Titel</label>
-        <input id="ticket_titel" name="titel" required aria-required="true" value="<?= e($ticket['titel']) ?>">
-
-        <label for="ticket_beschreibung">Beschreibung</label>
-        <textarea id="ticket_beschreibung" name="beschreibung" required aria-required="true"><?= e($ticket['beschreibung']) ?></textarea>
-
-        <div style="margin-top:10px;">
-          <button class="btn" type="submit">Speichern</button>
-        </div>
-      </form>
-      <?php else: ?>
-      <p class="small">Kein Bearbeitungsrecht.</p>
-      <?php endif; ?>
-    </div>
-  </details>
-</div>
-
-<div class="card">
-  <details <?= $openAction ? 'open' : '' ?>>
-    <summary style="cursor:pointer; font-weight:600;">Aktion hinzufügen</summary>
-    <div style="margin-top:10px;">
+<div class="card" id="action">
+  <details <?= $openAction ? 'open' : '' ?> >
+    <summary class="accordion__summary">Aktion hinzufügen</summary>
+    <div class="accordion__body">
       <?php if ($canEdit): ?>
       <form method="post" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
@@ -414,7 +398,7 @@ $openHist   = !empty($aktionen);
         <label for="aktion_text">Text</label>
         <textarea id="aktion_text" name="text" required aria-required="true"></textarea>
 
-        <div style="margin-top:10px;">
+        <div>
           <button class="btn" type="submit">Aktion speichern</button>
         </div>
       </form>
@@ -426,51 +410,25 @@ $openHist   = !empty($aktionen);
 </div>
 
 <div class="card">
-  <details open>
-    <summary style="cursor:pointer; font-weight:600;">Timeline</summary>
-    <div style="margin-top:10px; border-left:3px solid #ccc; padding-left:16px;">
-      <?php if (!$aktionen): ?>
-        <p class="small">Noch keine Aktionen.</p>
-      <?php else: ?>
-        <?php foreach (array_reverse($aktionen) as $a): $b2 = $a['status_neu'] ? badge_for_ticket_status($a['status_neu']) : null; ?>
-        <div style="margin-bottom:14px;">
-          <div class="small" style="color:#666;">
-            <?= e($a['datum']) ?> · <b><?= e($a['anzeigename'] ?: '—') ?></b>
-            <?php if ($b2): ?>
-              &nbsp;<span class="badge <?= e($b2['cls']) ?>"><?= e($b2['label']) ?></span>
-            <?php endif; ?>
-            <?php if ($a['arbeitszeit_min'] !== null): ?>
-              &nbsp;· <?= (int)$a['arbeitszeit_min'] ?> min
-            <?php endif; ?>
-          </div>
-          <div style="margin-top:2px;"><?= e($a['text']) ?></div>
-        </div>
-        <?php endforeach; ?>
-      <?php endif; ?>
-    </div>
-  </details>
-</div>
-
-<div class="card">
   <details <?= $openDocs ? 'open' : '' ?>>
-    <summary style="cursor:pointer; font-weight:600;">Dokumente</summary>
-    <div style="margin-top:10px;">
+    <summary class="accordion__summary">Dokumente</summary>
+    <div class="accordion__body">
       <?php if ($canEdit): ?>
       <form method="post" enctype="multipart/form-data" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="upload_doc">
         <label for="ticket_doc_file">Datei (jpg/png/webp/pdf)</label>
         <input id="ticket_doc_file" type="file" name="file" required>
-        <div style="margin-top:10px;">
+        <div>
           <button class="btn" type="submit">Hochladen</button>
         </div>
       </form>
       <?php endif; ?>
 
       <?php if (!$doks): ?>
-        <p class="small" style="margin-top:10px;">Keine Dokumente.</p>
+        <p class="small">Keine Dokumente.</p>
       <?php else: ?>
-        <table class="table" style="margin-top:10px;">
+        <table class="table">
           <thead><tr><th scope="col">Datum</th><th scope="col">Datei</th><th scope="col">Typ</th></tr></thead>
           <tbody>
           <?php foreach ($doks as $d): ?>
@@ -491,8 +449,8 @@ $openHist   = !empty($aktionen);
 
 <div class="card">
   <details <?= $openHist ? 'open' : '' ?>>
-    <summary style="cursor:pointer; font-weight:600;">Historie</summary>
-    <div style="margin-top:10px;">
+    <summary class="accordion__summary">Historie</summary>
+    <div class="accordion__body">
       <?php if (!$aktionen): ?>
         <p class="small">Noch keine Aktionen.</p>
       <?php else: ?>

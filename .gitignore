@@ -28,3 +28,4 @@ Thumbs.db
 # Dev helper scripts
 hash.php
 
+/tests/*

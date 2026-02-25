@@ -1,6 +1,7 @@
 > ⚠️ Hinweis: Neue Version unter **PRIJECT_CONTEXT_v2.md**  
 > Projektübersicht: **[README.md](../README.md)**  
-> Datenbankschema (aktuell): **[db_schema_v2.sql](db_schema_v2.sql)**  
+> Datenbankschema (aktuell): **[asset_github_schema.sql](asset_github_schema.sql)**  
+> Testdaten/Seeds: **[asset_github_seed_testdaten.sql](asset_github_seed_testdaten.sql)**  
 > Stand vom **24.02.2026**  
 > Die alte Datei ist nur noch historisch.
 

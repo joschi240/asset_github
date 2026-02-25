@@ -1,18 +1,5 @@
--- =====================================================================
--- Asset KI – Datenbankschema v2 (vollständig, kommentiert)
--- Stand: 2026-02-24 (MariaDB 10.4.x kompatibel)
---
--- Ziel dieses Schemas:
---  - Modularer Aufbau: core_* (System), wartungstool_*, stoerungstool_*, runtime_*
---  - DB-getriebenes Routing (core_route) + Menü (core_menu/core_menu_item)
---  - Auditfähigkeit (core_audit_log) + universelle Dokumente (core_dokument)
---  - Produktivstunden via Polling-Samples (core_runtime_sample) + Aggregation
---  - v2: stoerungstool_ticket um Meldungstyp, Fachkategorie, Stillstand, Zuweisung erweitert
---  - v2: stoerungstool_aktion Status-Workflow um 'bestellt' erweitert
---
--- Änderungen gegenüber v1:
---  - stoerungstool_ticket: neue Spalten meldungstyp, fachkategorie,
---    maschinenstillstand, ausfallzeitpunkt, assigned_user_id
+
+-- Hinweis: Das aktuelle Datenbankschema befindet sich in asset_github_schema.sql. Testdaten/Seeds sind in asset_github_seed_testdaten.sql zu finden.
 --  - stoerungstool_aktion: status_neu ENUM ergänzt um 'bestellt'
 --
 -- WICHTIG (Design-Regeln):

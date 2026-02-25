@@ -111,28 +111,38 @@ function csrf_check(?string $token): void {
 // user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen
 
 if (!function_exists('user_can_flag')) {
+  /**
+   * Permission-Resolver mit Fallback-Priorität:
+   * a) (user, modul, objekt_typ, objekt_id)
+   * b) (user, modul, objekt_typ, NULL)
+   * c) (user, modul, 'global', NULL)
+   * d) (user, '*', '*', NULL)
+   * e) (user, '*', 'global', NULL)
+   *
+   * Exakt 1 SQL-Query, 7 Parameter.
+   */
   function user_can_flag(?int $userId, ?string $modul, ?string $objektTyp, $objektId, string $flagCol): bool {
     if (!$userId || !$modul || !$objektTyp) return false;
-
-    // Allowlist for flag column names – prevents SQL injection via dynamic $flagCol
     $allowedFlags = ['darf_sehen', 'darf_aendern', 'darf_loeschen'];
     if (!in_array($flagCol, $allowedFlags, true)) return false;
-
-    // Objekt-ID optional (NULL => global)
     $objektId = ($objektId === null) ? null : (int)$objektId;
 
-    // Matching: entweder spezifisches Objekt oder global (objekt_id IS NULL)
-    // MAX() gibt 1 zurück, wenn irgendein passender Eintrag 1 ist.
     $row = db_one(
-      "SELECT MAX($flagCol) AS ok
-       FROM core_permission
-       WHERE user_id=?
-         AND modul=?
-         AND objekt_typ=?
-         AND (objekt_id IS NULL OR objekt_id=?)",
-      [$userId, $modul, $objektTyp, $objektId]
+      "SELECT MAX($flagCol) AS ok FROM core_permission
+       WHERE user_id = ? AND (
+         (modul = ? AND objekt_typ = ? AND objekt_id = ?)
+         OR (modul = ? AND objekt_typ = ? AND objekt_id IS NULL)
+         OR (modul = ? AND objekt_typ = 'global' AND objekt_id IS NULL)
+         OR (modul = '*' AND objekt_typ = '*' AND objekt_id IS NULL)
+         OR (modul = '*' AND objekt_typ = 'global' AND objekt_id IS NULL)
+       )",
+      [
+        $userId,
+        $modul, $objektTyp, $objektId,
+        $modul, $objektTyp,
+        $modul,
+      ]
     );
-
     return (int)($row['ok'] ?? 0) === 1;
   }
 }

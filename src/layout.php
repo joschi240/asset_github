@@ -17,6 +17,7 @@ function render_header(string $title): void {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title) ?></title>
     <link rel="stylesheet" href="<?= e($base) ?>/src/css/main.css">
+    <link rel="stylesheet" href="<?= e($base) ?>/src/css/ticket.css">
   </head>
   <body>
   <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
@@ -62,7 +63,7 @@ function render_header(string $title): void {
           // Normaler Link (oder Parent mit href)
           $href = $node['href'] ?? '#';
           $ariaCurrent = !empty($node['active']) ? ' aria-current="page"' : '';
-          echo '<a class="navitem' . $indent . ' ' . $cls . '" href="' . e($href) . '"' . $ariaCurrent . '>';
+          echo '<a class="navitem' . $indent . ' ' . $cls . '" href="' . e($href) . '"' . $ariaCurrent . '">';
           echo e($node['label']);
           echo '</a>';
 

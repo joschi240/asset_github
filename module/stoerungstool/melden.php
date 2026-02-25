@@ -11,37 +11,41 @@ $ok = null;
 $err = null;
 
 function upload_first_ticket_file(int $ticketId): void {
-  if (empty($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) return; // optional
-  // reuse simple logic from ticket.php-like behavior (minimal duplicate)
+  if (empty($_FILES['file']) || !isset($_FILES['file']['error'])) return; // optional
+  $err = $_FILES['file']['error'];
+  if ($err !== UPLOAD_ERR_OK) {
+    if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
+      throw new RuntimeException("Datei zu groß. Bitte maximal 20 MB pro Datei hochladen.");
+    } elseif ($err === UPLOAD_ERR_NO_FILE) {
+      return; // optional
+    } elseif ($err === UPLOAD_ERR_PARTIAL) {
+      throw new RuntimeException("Upload unvollständig. Bitte erneut versuchen.");
+    } else {
+      throw new RuntimeException("Upload fehlgeschlagen (Fehlercode $err).");
+    }
+  }
   $cfg = app_cfg();
   $baseDir = $cfg['upload']['base_dir'] ?? (__DIR__ . '/../../uploads');
   $allowed = $cfg['upload']['allowed_mimes'] ?? ['image/jpeg','image/png','image/webp','application/pdf'];
   $maxBytes = (int)($cfg['upload']['max_bytes'] ?? (10*1024*1024));
-
-  if ($_FILES['file']['error'] !== UPLOAD_ERR_OK) throw new RuntimeException("Upload fehlgeschlagen.");
   $f = $_FILES['file'];
   if ($f['size'] <= 0 || $f['size'] > $maxBytes) throw new RuntimeException("Datei zu groß oder leer.");
-
   $tmp = $f['tmp_name'];
   $orig = (string)$f['name'];
   $fi = new finfo(FILEINFO_MIME_TYPE);
   $mime = $fi->file($tmp) ?: 'application/octet-stream';
   if (!in_array($mime, $allowed, true)) throw new RuntimeException("Dateityp nicht erlaubt: {$mime}");
-
   $ext = '';
   if (preg_match('/\\.([a-zA-Z0-9]{1,8})$/', $orig, $m)) $ext = strtolower($m[1]);
   $stored = date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . ($ext ? '.'.$ext : '');
-
   $relPath = "stoerungstool/tickets/{$ticketId}/{$stored}";
   $absPath = rtrim($baseDir, '/\\') . '/' . $relPath;
   $dir = dirname($absPath);
   if (!is_dir($dir) && !mkdir($dir, 0775, true)) throw new RuntimeException("Upload-Verzeichnis nicht anlegbar.");
   if (!move_uploaded_file($tmp, $absPath)) throw new RuntimeException("Konnte Datei nicht speichern.");
-
   $sha = hash_file('sha256', $absPath);
   $u = current_user();
   $userId = (int)($u['id'] ?? 0);
-
   db_exec(
     "INSERT INTO core_dokument
      (modul, referenz_typ, referenz_id, dateiname, originalname, mime, size_bytes, sha256, hochgeladen_am, hochgeladen_von_user_id)

@@ -61,10 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       // Auto-fill modul/objekt_typ aus Route, wenn route_key gewählt und Felder leer
       if ($route_key !== '' && ($modul === '' || $objekt_typ === '')) {
         $r = db_one("SELECT modul, objekt_typ, objekt_id FROM core_route WHERE route_key=? LIMIT 1", [$route_key]);
-        if ($r) {
+        if (is_array($r)) {
           if ($modul === '') $modul = (string)($r['modul'] ?? '');
           if ($objekt_typ === '') $objekt_typ = (string)($r['objekt_typ'] ?? '');
-          if ($objekt_id === null && $r['objekt_id'] !== null) $objekt_id = (int)$r['objekt_id'];
+          if ($objekt_id === null && array_key_exists('objekt_id', $r) && $r['objekt_id'] !== null) $objekt_id = (int)$r['objekt_id'];
         }
       }
 
@@ -126,6 +126,10 @@ if ($action === 'edit') {
   $row = ($id > 0)
     ? db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$id, (int)$menu['id']])
     : ['id'=>0,'parent_id'=>null,'label'=>'','route_key'=>null,'url'=>null,'modul'=>null,'objekt_typ'=>null,'objekt_id'=>null,'sort'=>0,'aktiv'=>1];
+  // Falls fetch() false liefert (z.B. nach Löschen der Route), Default-Array setzen
+  if (!is_array($row)) {
+    $row = ['id'=>0,'parent_id'=>null,'label'=>'','route_key'=>null,'url'=>null,'modul'=>null,'objekt_typ'=>null,'objekt_id'=>null,'sort'=>0,'aktiv'=>1];
+  }
 
   ?>
   <div class="grid">

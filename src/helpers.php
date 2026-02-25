@@ -1,5 +1,17 @@
+
 <?php
 // src/helpers.php
+// Kürzt einen String auf $max Zeichen, normalisiert Whitespace. Guard für mehrfaches Definieren.
+if (!function_exists('short_text')) {
+  function short_text(string $s, int $max = 120): string {
+    $s = preg_replace('/\s+/u', ' ', $s ?? '');
+    $s = trim($s);
+    if (mb_strlen($s) > $max) {
+      return mb_substr($s, 0, $max - 1) . '…';
+    }
+    return $s;
+  }
+}
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/auth.php';
@@ -44,28 +56,8 @@ function db_col_exists(string $table, string $col): bool {
 function user_can_see(?int $userId, ?string $modul, ?string $objektTyp, ?int $objektId): bool {
   if (!$modul || !$objektTyp) return true;
   if (!$userId) return false;
-
-  $admin = db_one(
-    "SELECT 1 FROM core_permission
-     WHERE user_id=? AND modul='*' AND darf_sehen=1
-     LIMIT 1",
-    [$userId]
-  );
-  if ($admin) return true;
-
-  $row = db_one(
-    "SELECT 1
-     FROM core_permission
-     WHERE user_id=?
-       AND modul=?
-       AND objekt_typ=?
-       AND darf_sehen=1
-       AND (objekt_id IS NULL OR objekt_id = ?)
-     LIMIT 1",
-    [$userId, $modul, $objektTyp, $objektId]
-  );
-
-  return (bool)$row;
+  // Nutzt denselben Resolver wie user_can_flag
+  return user_can_flag($userId, $modul, $objektTyp, $objektId, 'darf_sehen');
 }
 
 /**
