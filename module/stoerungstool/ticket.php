@@ -276,6 +276,11 @@ $openHist   = !empty($aktionen);
     · Summe Arbeitszeit: <b><?= sprintf('%02d:%02d', intdiv($sumMin,60), $sumMin%60) ?></b>
   </div>
 
+  <div style="margin-top:12px; padding:10px 14px; background:#f5f7fa; border-left:4px solid #6c8ebf; border-radius:4px;">
+    <div style="font-weight:600; font-size:1.05em; margin-bottom:4px;"><?= e($ticket['titel']) ?></div>
+    <div class="small" style="white-space:pre-wrap;"><?= nl2br(e($ticket['beschreibung'])) ?></div>
+  </div>
+
   <div style="margin-top:12px;">
     <h2 style="margin:0 0 8px;">Quick Status</h2>
     <?php if ($canEdit): ?>
