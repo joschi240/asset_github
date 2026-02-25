@@ -3,58 +3,6 @@
 require_once __DIR__ . '/../../src/helpers.php';
 require_login();
 
-function upload_wartungspunkt_file(int $wpId, int $userId): void {
-  $cfg      = app_cfg();
-  $baseDir  = $cfg['upload']['base_dir'] ?? (__DIR__ . '/../../uploads');
-  $allowed  = $cfg['upload']['allowed_mimes'] ?? ['image/jpeg','image/png','image/webp','application/pdf'];
-  $maxBytes = (int)($cfg['upload']['max_bytes'] ?? (10 * 1024 * 1024));
-
-  if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-    throw new RuntimeException("Upload fehlgeschlagen.");
-  }
-  $f = $_FILES['file'];
-  if ($f['size'] <= 0 || $f['size'] > $maxBytes) {
-    throw new RuntimeException("Datei zu groß oder leer.");
-  }
-
-  $fi   = new finfo(FILEINFO_MIME_TYPE);
-  $mime = $fi->file($f['tmp_name']) ?: 'application/octet-stream';
-  if (!in_array($mime, $allowed, true)) {
-    throw new RuntimeException("Dateityp nicht erlaubt: {$mime}");
-  }
-
-  $ext = '';
-  if (preg_match('/\.([a-zA-Z0-9]{1,8})$/', (string)$f['name'], $m)) $ext = strtolower($m[1]);
-
-  $stored  = date('Ymd_His') . '_' . bin2hex(random_bytes(8)) . ($ext ? '.'.$ext : '');
-  $relPath = "wartungstool/wartungspunkte/{$wpId}/{$stored}";
-  $absPath = rtrim($baseDir, '/\\') . '/' . $relPath;
-
-  $dir = dirname($absPath);
-  if (!is_dir($dir) && !mkdir($dir, 0775, true)) throw new RuntimeException("Upload-Verzeichnis nicht anlegbar.");
-  if (!move_uploaded_file($f['tmp_name'], $absPath)) throw new RuntimeException("Konnte Datei nicht speichern.");
-
-  $sha   = hash_file('sha256', $absPath);
-  $u     = current_user();
-  $actor = $u['anzeigename'] ?? $u['benutzername'] ?? 'user';
-
-  db_exec(
-    "INSERT INTO core_dokument
-     (modul, referenz_typ, referenz_id, dateiname, originalname, mime, size_bytes, sha256, hochgeladen_am, hochgeladen_von_user_id)
-     VALUES ('wartungstool','wartungspunkt',?,?,?,?,?,?,NOW(),?)",
-    [$wpId, $relPath, (string)$f['name'], $mime, (int)$f['size'], $sha, $userId ?: null]
-  );
-  $dokId = (int)db()->lastInsertId();
-
-  audit_log('wartungstool', 'dokument', $dokId, 'CREATE', null, [
-    'referenz_typ' => 'wartungspunkt',
-    'referenz_id'  => $wpId,
-    'dateiname'    => $relPath,
-    'originalname' => (string)$f['name'],
-    'mime'         => $mime,
-  ], $userId, $actor);
-}
-
 $cfg  = app_cfg();
 $base = $cfg['app']['base_url'] ?? '';
 
@@ -69,20 +17,6 @@ $wpId = (int)($_GET['wp'] ?? 0);
 if ($wpId <= 0) {
   echo '<div class="card"><h2>Fehler</h2><p class="small">Wartungspunkt fehlt (Parameter wp).</p></div>';
   exit;
-}
-
-$err = '';
-// Dokument hochladen (POST)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string)($_POST['action'] ?? '') === 'upload_doc') {
-  csrf_check($_POST['csrf'] ?? null);
-  require_can_edit('wartungstool', 'global', null);
-  try {
-    upload_wartungspunkt_file($wpId, $userId);
-    header("Location: {$base}/app.php?r=wartung.punkt&wp={$wpId}&ok=1");
-    exit;
-  } catch (Throwable $ex) {
-    $err = $ex->getMessage();
-  }
 }
 
 $wp = db_one(
@@ -148,7 +82,7 @@ $prot = db_all(
 session_boot();
 $defaultTeam = $_SESSION['wartung_team_text'] ?? '';
 $ok = (int)($_GET['ok'] ?? 0);
-if ($err === '') $err = trim((string)($_GET['err'] ?? ''));
+$err = trim((string)($_GET['err'] ?? ''));
 
 // Ticket default: wenn Messwertpflicht + Grenzwerte existieren
 $ticketDefault = 0;
@@ -297,9 +231,9 @@ $doks = db_all("
     <div class="col-12" style="margin-top:16px;">
       <h2>Dokumente</h2>
       <?php if ($canDoWartung): ?>
-      <form method="post" enctype="multipart/form-data" action="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wpId ?>">
+      <form method="post" enctype="multipart/form-data" action="<?= e($base) ?>/app.php?r=wartung.punkt_dokument_upload">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="action" value="upload_doc">
+        <input type="hidden" name="wp_id" value="<?= (int)$wpId ?>">
         <label>Datei (jpg/png/webp/pdf)</label>
         <input type="file" name="file" required>
         <div style="margin-top:10px;">
