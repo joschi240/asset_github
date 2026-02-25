@@ -1,4 +1,4 @@
-# ARCHITECTURE.md – Asset KI (Stand: 2026-02-25)
+# ARCHITECTURE.md - Asset KI (Stand: 2026-02-25)
 
 ## Tech-Stack
 
@@ -22,11 +22,11 @@
 | Datei | Zweck |
 |---|---|
 | `index.php` | Weiterleitung zu `app.php?r=<default_route>` |
-| `app.php` | **Front-Controller** – DB-Routing, Auth, Permission, View-Include |
+| `app.php` | **Front-Controller** - DB-Routing, Auth, Permission, View-Include |
 | `login.php` | Login-Formular (standalone, rendert eigenes Layout) |
 | `logout.php` | Session löschen, Redirect zu `login.php` |
 | `tools/runtime_ingest.php` | Telemetrie-Ingest via HTTP-POST (Token-Auth) |
-| `tools/runtime_rollup.php` | Produktivstunden-Aggregation (CLI only, `php_sapi_name() === 'cli'`) |
+| `tools/runtime_rollup.php` | Produktivstunden-Aggregation (CLI only; non-CLI requests blocked with HTTP 403 via `php_sapi_name()` guard) |
 
 ---
 
@@ -40,11 +40,11 @@ GET app.php?r=<route_key>
 
 Ablauf:
 1. `$routeKey` aus `$_GET['r']` lesen; Fallback auf `cfg.app.default_route` (`wartung.dashboard`)
-2. `SELECT … FROM core_route WHERE route_key = ? AND aktiv=1` – liefert Titel, `file_path`, `modul`, `objekt_typ`, `objekt_id`, `require_login`
-3. `require_login=1` → `require_login()` (redirect zu `login.php` falls nicht eingeloggt)
-4. `user_can_see($userId, modul, objekt_typ, objekt_id)` → 403 falls falsch
+2. `SELECT ... FROM core_route WHERE route_key = ? AND aktiv=1` - liefert Titel, `file_path`, `modul`, `objekt_typ`, `objekt_id`, `require_login`
+3. `require_login=1` -> `require_login()` (redirect zu `login.php` falls nicht eingeloggt)
+4. `user_can_see($userId, modul, objekt_typ, objekt_id)` -> 403 falls falsch
 5. `file_path` via `realpath()` gegen Projektroot absichern (blockt `..`)
-6. `render_header(route.titel)` → `require $full` (**INNER-VIEW**) → `render_footer()`
+6. `render_header(route.titel)` -> `require $full` (**INNER-VIEW**) -> `render_footer()`
 
 **Wichtig:** INNER-VIEWs rufen niemals selbst `render_header()`/`render_footer()` auf.  
 Nur wenn ein Modul als Standalone direkt aufgerufen wird (direktes `!defined('APP_INNER')`-Guard), rendern sie ein eigenes Layout.
@@ -58,12 +58,12 @@ Implementierung: `src/auth.php`
 | Funktion | Zweck |
 |---|---|
 | `session_boot()` | Session starten (einmalig); HTTPOnly, SameSite=Lax, Secure (HTTPS-aware) |
-| `current_user()` | `$_SESSION['user']` – gibt `['id','benutzername','anzeigename']` oder `null` |
+| `current_user()` | `$_SESSION['user']` - gibt `['id','benutzername','anzeigename']` oder `null` |
 | `require_login()` | Redirect zu `login.php` falls kein Session-User |
 | `login($user, $pass)` | DB-Lookup `core_user`, `password_verify`, `session_regenerate_id(true)`, `UPDATE last_login_at` |
 | `logout()` | `$_SESSION=[]`, Cookie löschen, `session_destroy()` |
 | `csrf_token()` | Token in Session erzeugen/lesen |
-| `csrf_check($token)` | `hash_equals` – 400 bei Mismatch |
+| `csrf_check($token)` | `hash_equals` - 400 bei Mismatch |
 
 ---
 
@@ -96,16 +96,16 @@ Admin-Wildcard (`modul='*'`, `objekt_typ='*'`, `objekt_id=NULL`) gewährt uneing
 
 | Tabelle | Zweck | Schlüsselbeziehungen |
 |---|---|---|
-| `core_asset` | Anlagenstamm (code UNIQUE) | → `core_asset_kategorie`, → `core_standort` |
-| `core_asset_kategorie` | Kategorien + Kritikalitätsstufe (1–3) | — |
-| `core_standort` | Standorte/Bereiche | — |
-| `core_user` | Benutzer (benutzername UNIQUE) | — |
-| `core_permission` | Rechte (user_id, modul, objekt_typ, objekt_id) | → `core_user` (CASCADE DELETE) |
-| `core_route` | DB-Routing (route_key UNIQUE) | — |
-| `core_menu` | Menü-Container (name UNIQUE) | — |
-| `core_menu_item` | Menübaum (parent_id FK auf sich selbst) | → `core_menu`, → `core_menu_item` |
-| `core_dokument` | Universelle Attachments (modul + referenz_typ + referenz_id) | → `core_user` (SET NULL) |
-| `core_audit_log` | ISO-Audit-Trail (old_json/new_json, actor, ip) | — |
+| `core_asset` | Anlagenstamm (code UNIQUE) | -> `core_asset_kategorie`, -> `core_standort` |
+| `core_asset_kategorie` | Kategorien + Kritikalitätsstufe (1-3) | - |
+| `core_standort` | Standorte/Bereiche | - |
+| `core_user` | Benutzer (benutzername UNIQUE) | - |
+| `core_permission` | Rechte (user_id, modul, objekt_typ, objekt_id) | -> `core_user` (CASCADE DELETE) |
+| `core_route` | DB-Routing (route_key UNIQUE) | - |
+| `core_menu` | Menü-Container (name UNIQUE) | - |
+| `core_menu_item` | Menübaum (parent_id FK auf sich selbst) | -> `core_menu`, -> `core_menu_item` |
+| `core_dokument` | Universelle Attachments (modul + referenz_typ + referenz_id) | -> `core_user` (SET NULL) |
+| `core_audit_log` | ISO-Audit-Trail (old_json/new_json, actor, ip) | - |
 
 ### Runtime / Telemetrie
 
@@ -129,15 +129,15 @@ Admin-Wildcard (`modul='*'`, `objekt_typ='*'`, `objekt_id=NULL`) gewährt uneing
 
 | Tabelle | Zweck |
 |---|---|
-| `stoerungstool_ticket` | Störungstickets; Status-Workflow: `neu → angenommen → in_arbeit → bestellt → erledigt → geschlossen` |
+| `stoerungstool_ticket` | Störungstickets; Status-Workflow: `neu -> angenommen -> in_arbeit -> bestellt -> erledigt -> geschlossen` |
 | `stoerungstool_aktion` | Aktionen/Kommentare/Statuswechsel pro Ticket; `arbeitszeit_min` für Zeiterfassung |
 
 v2-Erweiterungen in `stoerungstool_ticket`:
-- `meldungstyp` (Störmeldung, Mängelkarte, Logeintrag, …)
-- `fachkategorie` (Mechanik, Elektrik, Sicherheit, Qualität, …)
+- `meldungstyp` (Störmeldung, Mängelkarte, Logeintrag, ...)
+- `fachkategorie` (Mechanik, Elektrik, Sicherheit, Qualität, ...)
 - `maschinenstillstand` (Anlage steht: 0/1)
 - `ausfallzeitpunkt` (DATETIME)
-- `assigned_user_id` (FK → `core_user`, SET NULL)
+- `assigned_user_id` (FK -> `core_user`, SET NULL)
 
 ---
 
@@ -161,7 +161,7 @@ v2-Erweiterungen in `stoerungstool_ticket`:
 │   └── admin/               # Systemverwaltung (nur Admin-Wildcard)
 ├── tools/
 │   ├── runtime_ingest.php   # REST-Ingest (HTTP-POST, Token-Auth)
-│   └── runtime_rollup.php   # CLI-Rollup (Samples → Counter + agg_day)
+│   └── runtime_rollup.php   # CLI-Rollup (Samples -> Counter + agg_day)
 └── docs/                    # Schemas, Migrations, Analysen
 ```
 
@@ -169,41 +169,41 @@ v2-Erweiterungen in `stoerungstool_ticket`:
 
 ## Typische Flows
 
-### Flow: wartungstool – Dashboard
+### Flow: wartungstool - Dashboard
 
 ```
 Browser GET app.php?r=wartung.dashboard
-  → core_route: file_path=module/wartungstool/dashboard.php
-  → require_login=1 → session prüfen
-  → user_can_see(userId, 'wartungstool', 'dashboard', NULL)
-  → render_header('Wartung – Dashboard')
-  → dashboard.php (INNER-VIEW):
+  -> core_route: file_path=module/wartungstool/dashboard.php
+  -> require_login=1 -> session prüfen
+  -> user_can_see(userId, 'wartungstool', 'dashboard', NULL)
+  -> render_header('Wartung - Dashboard')
+  -> dashboard.php (INNER-VIEW):
       SELECT wartungspunkt JOIN core_asset
         + LEFT JOIN protokoll (letzter Eintrag)
         + LEFT JOIN core_runtime_counter
-      → Ampelstatus berechnen (Fälligkeitsdelta)
-  → render_footer()
+      -> Ampelstatus berechnen (Fälligkeitsdelta)
+  -> render_footer()
 ```
 
-### Flow: stoerungstool – Störung melden (öffentlich)
+### Flow: stoerungstool - Störung melden (öffentlich)
 
 ```
 Browser GET app.php?r=stoerung.melden
-  → core_route: require_login=0 (öffentlich zugänglich)
-  → user_can_see(NULL, 'stoerungstool', 'global', NULL) → true (modul+objekt_typ leer = öffentlich)
-  → render_header('Störung melden')
-  → melden.php (INNER-VIEW):
-      POST: csrf_check → INSERT stoerungstool_ticket → INSERT core_dokument (optional)
-  → render_footer()
+  -> core_route: require_login=0 (öffentlich zugänglich)
+  -> user_can_see(NULL, 'stoerungstool', 'global', NULL) -> true (modul+objekt_typ leer = öffentlich)
+  -> render_header('Störung melden')
+  -> melden.php (INNER-VIEW):
+      POST: csrf_check -> INSERT stoerungstool_ticket -> INSERT core_dokument (optional)
+  -> render_footer()
 ```
 
-### Flow: admin – Berechtigungen setzen
+### Flow: admin - Berechtigungen setzen
 
 ```
 Browser GET app.php?r=admin.permissions
-  → is_admin_user($uid) → 403 falls nicht Admin
-  → permissions.php: SELECT alle aktiven User + alle Routes
-  → POST: csrf_check → UPSERT core_permission pro Route/User/Flag
+  -> is_admin_user($uid) -> 403 falls nicht Admin
+  -> permissions.php: SELECT alle aktiven User + alle Routes
+  -> POST: csrf_check -> UPSERT core_permission pro Route/User/Flag
 ```
 
 ### Flow: Telemetrie-Ingest + Rollup
@@ -213,13 +213,13 @@ PLC / Cron:
   POST tools/runtime_ingest.php
     Header: X-INGEST-TOKEN: <token>
     Body: {"asset_id":1,"state":"run","ts":"2026-02-25 07:00:00"}
-    → Token-Check (hash_equals)
-    → INSERT INTO core_runtime_sample … ON DUPLICATE KEY UPDATE (upsert)
+    -> Token-Check (hash_equals)
+    -> INSERT INTO core_runtime_sample ... ON DUPLICATE KEY UPDATE (upsert)
 
   php tools/runtime_rollup.php (CLI, z.B. alle 5 min via cron)
-    → Pro Asset: Samples seit last_ts auslesen
-    → run-Intervalle akkumulieren → UPDATE core_runtime_counter
-    → Tageswerte → UPSERT core_runtime_agg_day
+    -> Pro Asset: Samples seit last_ts auslesen
+    -> run-Intervalle akkumulieren -> UPDATE core_runtime_counter
+    -> Tageswerte -> UPSERT core_runtime_agg_day
 ```
 
 ---

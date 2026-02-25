@@ -1,4 +1,4 @@
-# INVENTORY.md – Asset KI (Stand: 2026-02-25)
+# INVENTORY.md - Asset KI (Stand: 2026-02-25)
 
 Strukturkarte des Repositories: Ordner, Module, wichtigste Dateien und wo was lebt.
 
@@ -8,20 +8,20 @@ Strukturkarte des Repositories: Ordner, Module, wichtigste Dateien und wo was le
 
 ```
 asset_github/
-├── app.php                          # Front-Controller (DB-Routing) — NICHT ändern
-├── index.php                        # Redirect → app.php?r=<default_route>
+├── app.php                          # Front-Controller (DB-Routing) - NICHT ändern
+├── index.php                        # Redirect -> app.php?r=<default_route>
 ├── login.php                        # Standalone Login-Formular
 ├── logout.php                       # Session zerstören + Redirect
 │
 ├── src/                             # Kern-Bibliothek (kein öffentlicher Zugriff)
 │   ├── config.default               # Konfigurationsvorlage (nach config.php kopieren)
-│   ├── config.php                   # ❌ nicht im Repo (gitignore) — lokal anlegen
+│   ├── config.php                   # no nicht im Repo (gitignore) - lokal anlegen
 │   ├── db.php                       # PDO-Wrapper: db(), db_one(), db_all(), db_exec()
 │   ├── auth.php                     # Session, Login, Logout, CSRF, Permission-Helpers
 │   ├── helpers.php                  # e(), audit_log(), user_can_*, handle_upload(), load_menu_tree()
 │   ├── layout.php                   # render_header() / render_footer() + Menüausgabe
 │   ├── permission.php               # can(), require_permission(), user_permissions()
-│   ├── menu.php                     # ⚠ LEGACY – nicht mehr aktiv genutzt (vgl. RISKS R-10)
+│   ├── menu.php                     # [!] LEGACY - nicht mehr aktiv genutzt (vgl. RISKS R-10)
 │   └── css/
 │       └── main.css                 # Globales Stylesheet (kein JS-Framework)
 │
@@ -47,9 +47,9 @@ asset_github/
 │
 ├── tools/                           # CLI / API-Tools (nicht im Browser-Pfad)
 │   ├── runtime_ingest.php           # HTTP-POST-Ingest: Telemetrie-Samples (Token-Auth)
-│   └── runtime_rollup.php           # CLI: Samples → Counter + agg_day aggregieren
+│   └── runtime_rollup.php           # CLI: Samples -> Counter + agg_day aggregieren
 │
-├── uploads/                         # ⚠ Hochgeladene Dateien (sollte nicht per HTTP erreichbar sein)
+├── uploads/                         # [!] Hochgeladene Dateien (sollte nicht per HTTP erreichbar sein)
 │   └── stoerungstool/tickets/<id>/  # Anhänge zu Tickets
 │
 └── docs/                            # Projektdokumentation
@@ -65,19 +65,19 @@ asset_github/
         ├── ARCHITECTURE.md
         ├── RISKS.md
         ├── ROADMAP.md
-        └── INVENTORY.md             # ← diese Datei
+        └── INVENTORY.md             # <- diese Datei
 ```
 
 ---
 
-## Wichtigste Dateien – Wo was lebt
+## Wichtigste Dateien - Wo was lebt
 
 ### Einstiegspunkte
 
 | Datei | Zweck |
 |---|---|
 | `app.php` | Zentraler Front-Controller; DB-Routing über `core_route`; einziger Weg um INNER-VIEWs zu rendern |
-| `login.php` | Standalone Login; rendert eigenes Layout; POST → `src/auth.php login()` |
+| `login.php` | Standalone Login; rendert eigenes Layout; POST -> `src/auth.php login()` |
 | `logout.php` | Zerstört Session; Redirect zu `login.php` |
 | `index.php` | Einfacher Redirect zu `app.php?r=<default_route>` |
 
@@ -85,11 +85,11 @@ asset_github/
 
 | Datei | Schlüsselfunktionen |
 |---|---|
-| `src/db.php` | `db()` – PDO-Singleton; `db_one()`, `db_all()`, `db_exec()` |
+| `src/db.php` | `db()` - PDO-Singleton; `db_one()`, `db_all()`, `db_exec()` |
 | `src/auth.php` | `session_boot()`, `current_user()`, `login()`, `logout()`, `csrf_token()`, `csrf_check()`, `user_can_edit()`, `user_can_delete()`, `user_can_flag()`, `require_can_edit()`, `require_can_delete()` |
 | `src/helpers.php` | `e()` (HTML-Escape), `user_can_see()`, `is_admin_user()`, `has_any_user()`, `audit_log()`, `handle_upload()`, `load_menu_tree()`, `route_map_for_keys()`, `db_table_exists()`, `db_col_exists()`, `badge_for_ticket_status()` |
-| `src/layout.php` | `render_header(string $title)`, `render_footer()` – rendern HTML-Layout mit Sidebar-Navigation |
-| `src/permission.php` | `can(string $modul, string $recht)`, `require_permission()`, `user_permissions()` – caching |
+| `src/layout.php` | `render_header(string $title)`, `render_footer()` - rendern HTML-Layout mit Sidebar-Navigation |
+| `src/permission.php` | `can(string $modul, string $recht)`, `require_permission()`, `user_permissions()` - caching |
 | `src/config.default` | Konfigurationsvorlage: `db`, `app` (session_name, base_url, default_route), `upload` |
 
 ### Module (`module/`)
@@ -106,7 +106,7 @@ asset_github/
 #### stoerungstool
 | Datei | Schlüsselfunktionen |
 |---|---|
-| `melden.php` | Öffentliches Meldeformular (kein Login); INSERT `stoerungstool_ticket`; optional Datei-Upload → `core_dokument` |
+| `melden.php` | Öffentliches Meldeformular (kein Login); INSERT `stoerungstool_ticket`; optional Datei-Upload -> `core_dokument` |
 | `inbox.php` | Ticket-Liste mit Filtern (Asset, Status, Meldungstyp, Fachkategorie, Priorität, Freitext); dynamisches WHERE-Building |
 | `ticket.php` | Ticket-Detailansicht; POST: Statuswechsel, Kommentar, Datei-Upload, Zuweisung; liest `stoerungstool_aktion` für Timeline |
 
@@ -117,7 +117,7 @@ asset_github/
 | `users.php` | Benutzer anlegen/bearbeiten/deaktivieren; `password_hash` + `password_verify` |
 | `routes.php` | `core_route` CRUD (route_key, file_path, modul, objekt_typ, require_login) |
 | `menu.php` | `core_menu_item` CRUD; auto-fill modul/objekt_typ aus Route |
-| `permissions.php` | Matrix-View: alle User × alle Routes → `core_permission` UPSERT/DELETE |
+| `permissions.php` | Matrix-View: alle User x alle Routes -> `core_permission` UPSERT/DELETE |
 
 ### Tools (`tools/`)
 
@@ -133,11 +133,11 @@ asset_github/
 | Prefix | Tabellen | Zweck |
 |---|---|---|
 | `core_asset*` | `core_asset`, `core_asset_kategorie`, `core_standort` | Anlagenstammdaten |
-| `core_user` / `core_permission` | — | Authentifizierung + Berechtigungen |
-| `core_route` | — | DB-getriebenes Routing |
-| `core_menu` / `core_menu_item` | — | Navigation (Baum) |
-| `core_dokument` | — | Universelle Dateianhänge |
-| `core_audit_log` | — | ISO-Audit-Trail |
+| `core_user` / `core_permission` | - | Authentifizierung + Berechtigungen |
+| `core_route` | - | DB-getriebenes Routing |
+| `core_menu` / `core_menu_item` | - | Navigation (Baum) |
+| `core_dokument` | - | Universelle Dateianhänge |
+| `core_audit_log` | - | ISO-Audit-Trail |
 | `core_runtime_*` | `sample`, `counter`, `agg_day` | Telemetrie / Produktivstunden |
 | `wartungstool_*` | `wartungspunkt`, `protokoll` | Wartungsplanung + -durchführung |
 | `stoerungstool_*` | `ticket`, `aktion` | Störungsmanagement + Workflow |
@@ -163,16 +163,16 @@ asset_github/
 
 | Route-Key | modul | objekt_typ | require_login |
 |---|---|---|:---:|
-| `wartung.dashboard` | `wartungstool` | `dashboard` | ✅ |
-| `wartung.punkt` | `wartungstool` | `global` | ✅ |
-| `wartung.punkt_save` | `wartungstool` | `global` | ✅ |
-| `wartung.uebersicht` | `wartungstool` | `global` | ✅ |
-| `wartung.admin_punkte` | `wartungstool` | `global` | ✅ |
-| `stoerung.melden` | `stoerungstool` | `global` | ❌ (öffentlich) |
-| `stoerung.inbox` | `stoerungstool` | `global` | ✅ |
-| `stoerung.ticket` | `stoerungstool` | `global` | ✅ |
-| `admin.setup` | — | — | ❌ (Setup-Guard) |
-| `admin.users` | `admin` | `users` | ✅ + Admin-Wildcard |
-| `admin.routes` | `admin` | `routes` | ✅ + Admin-Wildcard |
-| `admin.menu` | `admin` | `menu` | ✅ + Admin-Wildcard |
-| `admin.permissions` | `admin` | `permissions` | ✅ + Admin-Wildcard |
+| `wartung.dashboard` | `wartungstool` | `dashboard` | yes |
+| `wartung.punkt` | `wartungstool` | `global` | yes |
+| `wartung.punkt_save` | `wartungstool` | `global` | yes |
+| `wartung.uebersicht` | `wartungstool` | `global` | yes |
+| `wartung.admin_punkte` | `wartungstool` | `global` | yes |
+| `stoerung.melden` | `stoerungstool` | `global` | no (öffentlich) |
+| `stoerung.inbox` | `stoerungstool` | `global` | yes |
+| `stoerung.ticket` | `stoerungstool` | `global` | yes |
+| `admin.setup` | - | - | no (Setup-Guard) |
+| `admin.users` | `admin` | `users` | yes + Admin-Wildcard |
+| `admin.routes` | `admin` | `routes` | yes + Admin-Wildcard |
+| `admin.menu` | `admin` | `menu` | yes + Admin-Wildcard |
+| `admin.permissions` | `admin` | `permissions` | yes + Admin-Wildcard |

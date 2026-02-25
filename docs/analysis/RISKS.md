@@ -1,13 +1,13 @@
-# RISKS.md – Asset KI (Stand: 2026-02-25)
+# RISKS.md - Asset KI (Stand: 2026-02-25)
 
 Risikobewertung auf Basis einer Code-Analyse des aktuellen `main`-Stands.  
 Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mittel/mittelfristig.
 
 ---
 
-## P0 – Kritisch
+## P0 - Kritisch
 
-### R-01 · CSRF-Check fehlt in `logout.php`
+### R-01 - CSRF-Check fehlt in `logout.php`
 
 **Problem:** `logout.php` akzeptiert GET-Requests ohne CSRF-Schutz. Ein Angreifer kann mit einem einfachen `<img src=".../logout.php">` einen Login-CSRF (Forced Logout) auslösen.
 
@@ -19,7 +19,7 @@ Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mitt
 
 ---
 
-### R-02 · Kein Rate-Limiting auf `login.php`
+### R-02 - Kein Rate-Limiting auf `login.php`
 
 **Problem:** `login.php` prüft Passwörter ohne Begrenzung der Versuche. Brute-Force-Angriffe auf `core_user.passwort_hash` (bcrypt) sind möglich.
 
@@ -31,7 +31,7 @@ Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mitt
 
 ---
 
-### R-03 · `config.php` darf nicht per HTTP erreichbar sein
+### R-03 - `config.php` darf nicht per HTTP erreichbar sein
 
 **Problem:** Die Konfigurationsdatei (`src/config.php`) enthält DB-Zugangsdaten, Ingest-Token und CSRF-Key. Wenn der Webserver PHP nicht ausführt oder ein Misconfiguration vorliegt, kann die Datei als Plaintext ausgegeben werden.
 
@@ -43,21 +43,21 @@ Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mitt
 
 ---
 
-## P1 – Hoch
+## P1 - Hoch
 
-### R-04 · `uploads/` ohne Download-Kontrolle
+### R-04 - `uploads/` ohne Download-Kontrolle
 
-**Problem:** Das Upload-Verzeichnis (`uploads/`) liegt per Default direkt im Projektroot (s. `src/config.default`: `'base_dir' => __DIR__ . '/../uploads'`). Hochgeladene Dateien sind damit direkt per HTTP abrufbar – ohne Auth-Prüfung.
+**Problem:** Das Upload-Verzeichnis (`uploads/`) liegt per Default direkt im Projektroot (s. `src/config.default`: `'base_dir' => __DIR__ . '/../uploads'`). Hochgeladene Dateien sind damit direkt per HTTP abrufbar - ohne Auth-Prüfung.
 
 **Betroffene Dateien:** `src/helpers.php` (`handle_upload`), `module/stoerungstool/melden.php`, `module/stoerungstool/ticket.php`
 
-**Auswirkung:** Alle hochgeladenen Dokumente (Fotos, PDFs) sind öffentlich lesbar, sobald der Pfad bekannt ist (`stoerungstool/tickets/<id>/<stored>`). Der `stored`-Name ist `date('Ymd_His') + bin2hex(random_bytes(8))` – nicht rätselbar, aber kein Auth-Schutz.
+**Auswirkung:** Alle hochgeladenen Dokumente (Fotos, PDFs) sind öffentlich lesbar, sobald der Pfad bekannt ist (`stoerungstool/tickets/<id>/<stored>`). Der `stored`-Name ist `date('Ymd_His') + bin2hex(random_bytes(8))` - nicht rätselbar, aber kein Auth-Schutz.
 
 **Gegenmaßnahme:** `uploads/` außerhalb des Document-Root legen und Downloads über einen PHP-Download-Controller (`download.php`) mit Permission-Check ausliefern. Alternativ `.htaccess` `Deny from all` in `uploads/`.
 
 ---
 
-### R-05 · `stoerung.melden` ist komplett öffentlich – kein Spam-Schutz
+### R-05 - `stoerung.melden` ist komplett öffentlich - kein Spam-Schutz
 
 **Problem:** `module/stoerungstool/melden.php` erfordert keinen Login (`require_login=0`). Jeder kann beliebig viele Tickets anlegen, optional mit Datei-Upload.
 
@@ -69,7 +69,7 @@ Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mitt
 
 ---
 
-### R-06 · Duplicate-Code: `upload_ticket_file()` und `upload_first_ticket_file()`
+### R-06 - Duplicate-Code: `upload_ticket_file()` und `upload_first_ticket_file()`
 
 **Problem:** Die Upload-Logik ist nahezu identisch in `module/stoerungstool/ticket.php` (`upload_ticket_file`) und `module/stoerungstool/melden.php` (`upload_first_ticket_file`) dupliziert. `src/helpers.php` stellt bereits `handle_upload()` bereit, wird aber von den Modul-Dateien nicht genutzt.
 
@@ -81,7 +81,7 @@ Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mitt
 
 ---
 
-### R-07 · Fehlende `telemetry`-Konfiguration führt zu Fatal Error
+### R-07 - Fehlende `telemetry`-Konfiguration führt zu Fatal Error
 
 **Problem:** `tools/runtime_ingest.php` greift auf `$cfg['telemetry']['ingest_token']` zu. Die Musterdatei `src/config.default` enthält keinen `telemetry`-Abschnitt. Bei fehlendem Schlüssel produziert PHP einen Warning oder Fatal Error.
 
@@ -99,7 +99,7 @@ Abkürzungen: **P0** = kritisch/sofort, **P1** = hoch/kurzfristig, **P2** = mitt
 
 ---
 
-### R-08 · Keine HTTP-Security-Header
+### R-08 - Keine HTTP-Security-Header
 
 **Problem:** Weder `app.php`, `login.php` noch `tools/` senden Security-Header (Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
 
@@ -117,9 +117,9 @@ Content-Security-Policy als mittelfristiges Ziel (erfordert Inline-Style-Prüfun
 
 ---
 
-## P2 – Mittel
+## P2 - Mittel
 
-### R-09 · Kein Fehlerhandling für `db()` / fehlende `config.php`
+### R-09 - Kein Fehlerhandling für `db()` / fehlende `config.php`
 
 **Problem:** Wenn `src/config.php` fehlt (z. B. nach frischem Clone), liefert `require __DIR__ . '/config.php'` in `src/db.php` einen Fatal Error ohne Benutzer-freundliche Meldung.
 
@@ -136,19 +136,19 @@ if (!file_exists($configPath)) {
 
 ---
 
-### R-10 · Legacy `src/menu.php` nicht mehr verwendet
+### R-10 - Legacy `src/menu.php` nicht mehr verwendet
 
 **Problem:** `src/menu.php` definiert eine ältere `load_menu_tree()`-Funktion ohne Parameter. Die aktuelle Version ist in `src/helpers.php` implementiert (mit `$menuName`-Parameter und Legacy-Kompatibilität). `src/menu.php` wird laut Code-Analyse nicht mehr included.
 
 **Betroffene Dateien:** `src/menu.php`
 
-**Auswirkung:** Potenzielle Verwirrung; bei versehentlichem Include könnte die Funktion überschrieben werden (obwohl `if (!function_exists(...))` fehlt hier – würde Fatal Error auslösen, wenn `helpers.php` vorher geladen wurde).
+**Auswirkung:** Potenzielle Verwirrung; bei versehentlichem Include könnte die Funktion überschrieben werden (obwohl `if (!function_exists(...))` fehlt hier - würde Fatal Error auslösen, wenn `helpers.php` vorher geladen wurde).
 
 **Gegenmaßnahme:** `src/menu.php` entfernen oder mit `@deprecated`-Kommentar versehen.
 
 ---
 
-### R-11 · `core_audit_log` wird nur punktuell genutzt
+### R-11 - `core_audit_log` wird nur punktuell genutzt
 
 **Problem:** `audit_log()` ist in `src/helpers.php` implementiert, wird aber nur in `module/wartungstool/punkt_save.php` aktiv genutzt (Annahme basierend auf Code-Analyse). Das Störungstool (`ticket.php`) und Admin-Module schreiben bei Status-/Datenänderungen keinen Audit-Eintrag.
 
@@ -160,7 +160,7 @@ if (!file_exists($configPath)) {
 
 ---
 
-### R-12 · `password_hash` ohne expliziten Algorithmus und Kosten-Faktor
+### R-12 - `password_hash` ohne expliziten Algorithmus und Kosten-Faktor
 
 **Problem:** `password_hash($pw, PASSWORD_DEFAULT)` nutzt den PHP-Default-Algorithmus (aktuell bcrypt, `cost=10`). Bei künftigen PHP-Versionen könnte `PASSWORD_DEFAULT` auf Argon2 wechseln, was zu Migration-Problemen führen kann (wenn `password_needs_rehash` nicht verwendet wird).
 
@@ -172,7 +172,7 @@ if (!file_exists($configPath)) {
 
 ---
 
-### R-13 · Keine Datenbankmigrationshistorie / kein Schema-Versions-Mechanismus
+### R-13 - Keine Datenbankmigrationshistorie / kein Schema-Versions-Mechanismus
 
 **Problem:** Das Schema liegt in `docs/db_schema_v2.sql` (IF NOT EXISTS, idempotent). Es gibt eine Migrations-Datei `docs/db_migration_permissions_v1.sql`. Ein formales Migrationsframework oder Versions-Tracking fehlt.
 
