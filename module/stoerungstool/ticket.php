@@ -90,10 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       // SLA auto-set
       $slaSet = [];
-      if ($ticketOld['status'] === 'neu' && empty($ticketOld['first_response_at'])) {
-        $slaSet[] = 'first_response_at = NOW()';
+      if (db_col_exists('stoerungstool_ticket', 'first_response_at')) {
+        $slaSet[] = 'first_response_at = COALESCE(first_response_at, NOW())';
       }
-      if ($to === 'geschlossen' && empty($ticketOld['closed_at'])) {
+      if ($to === 'geschlossen' && db_col_exists('stoerungstool_ticket', 'closed_at') && empty($ticketOld['closed_at'])) {
         $slaSet[] = 'closed_at = NOW()';
       }
       if ($slaSet) {
@@ -144,10 +144,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // SLA auto-set
         $slaSet = [];
-        if ($ticketOld['status'] === 'neu' && empty($ticketOld['first_response_at'])) {
-          $slaSet[] = 'first_response_at = NOW()';
+        if (db_col_exists('stoerungstool_ticket', 'first_response_at')) {
+          $slaSet[] = 'first_response_at = COALESCE(first_response_at, NOW())';
         }
-        if ($statusNeu === 'geschlossen' && empty($ticketOld['closed_at'])) {
+        if ($statusNeu === 'geschlossen' && db_col_exists('stoerungstool_ticket', 'closed_at') && empty($ticketOld['closed_at'])) {
           $slaSet[] = 'closed_at = NOW()';
         }
         if ($slaSet) {
