@@ -132,19 +132,19 @@ if ($action === 'edit') {
     <div class="col-6">
       <div class="card">
         <h2><?= $row['id'] ? 'Menüeintrag bearbeiten' : 'Menüeintrag anlegen' ?></h2>
-        <?php if ($ok): ?><p class="badge badge--g"><?= e($ok) ?></p><?php endif; ?>
-        <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+        <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
+        <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
         <form method="post">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="save">
           <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
 
-          <label>Label</label>
-          <input name="label" value="<?= e($row['label']) ?>" required>
+          <label for="menu_label">Label</label>
+          <input id="menu_label" name="label" value="<?= e($row['label']) ?>" required aria-required="true">
 
-          <label>Parent (optional)</label>
-          <select name="parent_id">
+          <label for="menu_parent">Parent (optional)</label>
+          <select id="menu_parent" name="parent_id">
             <option value="">— keiner —</option>
             <?php foreach ($flat as $it): ?>
               <?php if ((int)$it['id'] === (int)$row['id']) continue; ?>
@@ -154,8 +154,8 @@ if ($action === 'edit') {
             <?php endforeach; ?>
           </select>
 
-          <label>Route (empfohlen)</label>
-          <select name="route_key">
+          <label for="menu_route">Route (empfohlen)</label>
+          <select id="menu_route" name="route_key">
             <option value="">— keine —</option>
             <?php foreach ($routes as $r): ?>
               <option value="<?= e($r['route_key']) ?>" <?= (($row['route_key'] ?? '')===$r['route_key']?'selected':'') ?>>
@@ -164,20 +164,20 @@ if ($action === 'edit') {
             <?php endforeach; ?>
           </select>
 
-          <label>URL (Fallback/Legacy)</label>
-          <input name="url" value="<?= e($row['url'] ?? '') ?>" placeholder="/module/... oder /app.php?r=...">
+          <label for="menu_url">URL (Fallback/Legacy)</label>
+          <input id="menu_url" name="url" value="<?= e($row['url'] ?? '') ?>" placeholder="/module/... oder /app.php?r=...">
 
-          <label>modul (für Rechte-Filter im Menü)</label>
-          <input name="modul" value="<?= e($row['modul'] ?? '') ?>">
+          <label for="menu_modul">modul (für Rechte-Filter im Menü)</label>
+          <input id="menu_modul" name="modul" value="<?= e($row['modul'] ?? '') ?>">
 
-          <label>objekt_typ</label>
-          <input name="objekt_typ" value="<?= e($row['objekt_typ'] ?? '') ?>">
+          <label for="menu_obj_typ">objekt_typ</label>
+          <input id="menu_obj_typ" name="objekt_typ" value="<?= e($row['objekt_typ'] ?? '') ?>">
 
-          <label>objekt_id (optional)</label>
-          <input name="objekt_id" value="<?= e($row['objekt_id'] !== null ? (string)$row['objekt_id'] : '') ?>">
+          <label for="menu_obj_id">objekt_id (optional)</label>
+          <input id="menu_obj_id" name="objekt_id" value="<?= e($row['objekt_id'] !== null ? (string)$row['objekt_id'] : '') ?>">
 
-          <label>Sort</label>
-          <input name="sort" value="<?= (int)$row['sort'] ?>">
+          <label for="menu_sort">Sort</label>
+          <input id="menu_sort" name="sort" value="<?= (int)$row['sort'] ?>">
 
           <label><input type="checkbox" name="aktiv" value="1" <?= ((int)$row['aktiv']===1?'checked':'') ?>> Aktiv</label>
 
@@ -211,13 +211,13 @@ if ($action === 'edit') {
     <a class="btn" href="<?= e($base) ?>/app.php?r=admin.menu&a=edit">+ Neu</a>
   </div>
 
-  <?php if ($ok): ?><p class="badge badge--g"><?= e($ok) ?></p><?php endif; ?>
-  <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+  <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
+  <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
   <div class="tablewrap">
     <table class="table">
       <thead>
-        <tr><th>Label</th><th>Route</th><th>modul/obj</th><th>sort</th><th>aktiv</th><th></th></tr>
+        <tr><th scope="col">Label</th><th scope="col">Route</th><th scope="col">modul/obj</th><th scope="col">sort</th><th scope="col">aktiv</th><th scope="col"></th></tr>
       </thead>
       <tbody>
         <?php foreach ($flat as $it): ?>

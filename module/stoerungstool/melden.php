@@ -128,56 +128,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="card">
   <h1>Neue Meldung</h1>
 
-  <?php if ($ok): ?><p class="badge badge--g"><?= e($ok) ?></p><?php endif; ?>
-  <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+  <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
+  <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
   <form method="post" enctype="multipart/form-data">
     <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-    <label>Maschine/Anlage</label>
-    <select name="asset_id">
+    <label for="melden_asset_id">Maschine/Anlage</label>
+    <select id="melden_asset_id" name="asset_id">
       <option value="">Bitte auswählen (optional)</option>
       <?php foreach ($assets as $a): ?>
         <option value="<?= (int)$a['id'] ?>"><?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?></option>
       <?php endforeach; ?>
     </select>
 
-    <label>Meldungsart</label>
-    <select name="meldungstyp">
+    <label for="melden_typ">Meldungsart</label>
+    <select id="melden_typ" name="meldungstyp">
       <option value="Störmeldung">Störmeldung</option>
       <option value="Mängelkarte">Mängelkarte</option>
       <option value="Logeintrag">Logeintrag</option>
     </select>
 
-    <label>Fachkategorie (optional)</label>
-    <input name="fachkategorie" placeholder="z.B. Mechanik / Elektrik / Sicherheit / Qualität">
+    <label for="melden_fachkat">Fachkategorie (optional)</label>
+    <input id="melden_fachkat" name="fachkategorie" placeholder="z.B. Mechanik / Elektrik / Sicherheit / Qualität">
 
-    <label><input type="checkbox" name="maschinenstillstand" value="1"> Maschinenstillstand</label>
+    <label style="display:flex; gap:8px; align-items:center; margin:10px 0 6px;"><input type="checkbox" name="maschinenstillstand" value="1"> Maschinenstillstand</label>
 
-    <label>Name (optional)</label>
-    <input name="name" placeholder="z.B. Max Mustermann">
+    <label for="melden_name">Name (optional)</label>
+    <input id="melden_name" name="name" placeholder="z.B. Max Mustermann">
 
-    <label>Kontakt (optional)</label>
-    <input name="kontakt" placeholder="z.B. Tel / Schicht / Bereich">
+    <label for="melden_kontakt">Kontakt (optional)</label>
+    <input id="melden_kontakt" name="kontakt" placeholder="z.B. Tel / Schicht / Bereich">
 
-    <label>Ausfallzeitpunkt (optional)</label>
-    <input type="datetime-local" name="ausfallzeitpunkt">
+    <label for="melden_ausfall">Ausfallzeitpunkt (optional)</label>
+    <input id="melden_ausfall" type="datetime-local" name="ausfallzeitpunkt">
 
-    <label>Priorität</label>
-    <select name="prioritaet">
+    <label for="melden_prio">Priorität</label>
+    <select id="melden_prio" name="prioritaet">
       <option value="1">1 (hoch)</option>
       <option value="2" selected>2</option>
       <option value="3">3 (niedrig)</option>
     </select>
 
-    <label>Titel (optional)</label>
-    <input name="titel" placeholder="z.B. Palettenwechsler klemmt">
+    <label for="melden_titel">Titel (optional)</label>
+    <input id="melden_titel" name="titel" placeholder="z.B. Palettenwechsler klemmt">
 
-    <label>Fehlerbeschreibung</label>
-    <textarea name="beschreibung" required placeholder="Was ist passiert?"></textarea>
+    <label for="melden_beschreibung">Fehlerbeschreibung</label>
+    <textarea id="melden_beschreibung" name="beschreibung" required aria-required="true" placeholder="Was ist passiert?"></textarea>
 
-    <label>Foto / PDF (optional)</label>
-    <input type="file" name="file">
+    <label for="melden_file">Foto / PDF (optional)</label>
+    <input id="melden_file" type="file" name="file">
 
     <div style="margin-top:12px;">
       <button class="btn" type="submit">Absenden</button>

@@ -22,7 +22,7 @@ function render_header(string $title): void {
   <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
   <div class="app">
 
-    <aside class="sidebar">
+    <aside class="sidebar" aria-label="Seitenleiste">
       <div class="sidebar__brand">
         <a href="<?= e($base) ?>/app.php?r=<?= e(urlencode($cfg['app']['default_route'] ?? 'wartung.dashboard')) ?>">
           Instandhaltung
@@ -31,7 +31,7 @@ function render_header(string $title): void {
 
       <div class="sidebar__user">
         <?php if ($u): ?>
-          <div class="sidebar__user-name">👤 <?= e($u['anzeigename']) ?></div>
+          <div class="sidebar__user-name"><span aria-hidden="true">👤</span> <?= e($u['anzeigename']) ?></div>
           <a class="btn btn--ghost sidebar__logout" href="<?= e($base) ?>/logout.php">Logout</a>
         <?php else: ?>
           <a class="btn btn--ghost sidebar__logout" href="<?= e($base) ?>/login.php">Login</a>

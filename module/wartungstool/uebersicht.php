@@ -188,8 +188,8 @@ if ($mode === 'offen') {
     <input type="hidden" name="r" value="wartung.uebersicht">
 
     <div style="min-width:360px; flex:1;">
-      <label>Anlage auswählen</label>
-      <select name="asset_id" onchange="this.form.submit()">
+      <label for="uebersicht_asset_id">Anlage auswählen</label>
+      <select id="uebersicht_asset_id" name="asset_id" onchange="this.form.submit()">
         <?php foreach ($assets as $a): ?>
           <option value="<?= (int)$a['id'] ?>" <?= ((int)$a['id'] === $assetId ? 'selected' : '') ?>>
             <?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?>
@@ -200,8 +200,8 @@ if ($mode === 'offen') {
     </div>
 
     <div style="min-width:220px;">
-      <label>Anzeige</label>
-      <select name="mode" onchange="this.form.submit()">
+      <label for="uebersicht_mode">Anzeige</label>
+      <select id="uebersicht_mode" name="mode" onchange="this.form.submit()">
         <option value="offen" <?= $mode==='offen' ? 'selected' : '' ?>>nur offene</option>
         <option value="alle" <?= $mode==='alle' ? 'selected' : '' ?>>alle</option>
       </select>
@@ -242,13 +242,13 @@ if ($mode === 'offen') {
       <table class="table">
         <thead>
           <tr>
-            <th>Ampel</th>
-            <th>Punkt</th>
-            <th>Typ</th>
-            <th>Intervall</th>
-            <th>Fällig bei</th>
-            <th>Rest</th>
-            <th>Letzter Eintrag</th>
+            <th scope="col">Ampel</th>
+            <th scope="col">Punkt</th>
+            <th scope="col">Typ</th>
+            <th scope="col">Intervall</th>
+            <th scope="col">Fällig bei</th>
+            <th scope="col">Rest</th>
+            <th scope="col">Letzter Eintrag</th>
           </tr>
         </thead>
         <tbody>
@@ -326,12 +326,12 @@ if ($mode === 'offen') {
           <table class="table">
             <thead>
               <tr>
-                <th>Ampel</th>
-                <th>Punkt</th>
-                <th>Typ</th>
-                <th>Fällig bei</th>
-                <th>Rest</th>
-                <th>Letzter Eintrag</th>
+                <th scope="col">Ampel</th>
+                <th scope="col">Punkt</th>
+                <th scope="col">Typ</th>
+                <th scope="col">Fällig bei</th>
+                <th scope="col">Rest</th>
+                <th scope="col">Letzter Eintrag</th>
               </tr>
             </thead>
             <tbody>
