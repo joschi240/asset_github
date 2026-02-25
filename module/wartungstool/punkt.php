@@ -89,6 +89,13 @@ $ticketDefault = 0;
 if ((int)$wp['messwert_pflicht'] === 1 && ($wp['grenzwert_min'] !== null || $wp['grenzwert_max'] !== null)) {
   $ticketDefault = 1;
 }
+
+$doks = db_all("
+  SELECT *
+  FROM core_dokument
+  WHERE modul='wartungstool' AND referenz_typ='wartungspunkt' AND referenz_id=?
+  ORDER BY hochgeladen_am DESC, id DESC
+", [$wpId]);
 ?>
 
 <div class="card">
@@ -214,6 +221,40 @@ if ((int)$wp['messwert_pflicht'] === 1 && ($wp['grenzwert_min'] !== null || $wp[
               <td><?= $p['messwert'] !== null ? e((string)$p['messwert']) : '—' ?></td>
               <td><?= e($p['team_text'] ?: '—') ?></td>
               <td><?= e($p['bemerkung'] ?: '') ?></td>
+            </tr>
+          <?php endforeach; ?>
+          </tbody>
+        </table>
+      <?php endif; ?>
+    </div>
+
+    <div class="col-12" style="margin-top:16px;">
+      <h2>Dokumente</h2>
+      <?php if ($canDoWartung): ?>
+      <form method="post" enctype="multipart/form-data" action="<?= e($base) ?>/app.php?r=wartung.punkt_dokument_upload">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="wp_id" value="<?= (int)$wpId ?>">
+        <label>Datei (jpg/png/webp/pdf)</label>
+        <input type="file" name="file" required>
+        <div style="margin-top:10px;">
+          <button class="btn" type="submit">Hochladen</button>
+        </div>
+      </form>
+      <?php endif; ?>
+
+      <?php if (!$doks): ?>
+        <p class="small" style="margin-top:10px;">Keine Dokumente.</p>
+      <?php else: ?>
+        <table class="table" style="margin-top:10px;">
+          <thead><tr><th>Datum</th><th>Datei</th><th>Typ</th></tr></thead>
+          <tbody>
+          <?php foreach ($doks as $d): ?>
+            <tr>
+              <td><?= e($d['hochgeladen_am']) ?></td>
+              <td><a href="<?= e($base) ?>/uploads/<?= e($d['dateiname']) ?>" target="_blank" rel="noopener">
+                <?= e($d['originalname'] ?: $d['dateiname']) ?>
+              </a></td>
+              <td class="small"><?= e($d['mime'] ?: '') ?></td>
             </tr>
           <?php endforeach; ?>
           </tbody>
