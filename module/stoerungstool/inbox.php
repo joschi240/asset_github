@@ -32,6 +32,19 @@ function fmt_minutes(int $min): string {
   $m = $min % 60;
   return sprintf('%02d:%02d', $h, $m);
 }
+function inbox_status_url(string $base, string $newStatus, int $assetId, string $meldungstyp, string $fachkat, string $prio, string $q, int $showDone, int $showOlder, int $onlyStop, int $onlyUnassigned): string {
+  $p = ['r' => 'stoerung.inbox', 'status' => $newStatus];
+  if ($assetId > 0) $p['asset_id'] = $assetId;
+  if ($meldungstyp !== '') $p['meldungstyp'] = $meldungstyp;
+  if ($fachkat !== '') $p['fachkategorie'] = $fachkat;
+  if ($prio !== '') $p['prio'] = $prio;
+  if ($q !== '') $p['q'] = $q;
+  if ($showDone) $p['show_done'] = '1';
+  if ($showOlder) $p['show_older'] = '1';
+  if ($onlyStop) $p['only_stop'] = '1';
+  if ($onlyUnassigned) $p['only_unassigned'] = '1';
+  return $base . '/app.php?' . http_build_query($p);
+}
 
 $assets = db_all("SELECT id, code, name FROM core_asset WHERE aktiv=1 ORDER BY name ASC");
 
@@ -274,7 +287,7 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
     <tbody>
       <?php foreach ($tickets as $t): $b = badge_for_ticket_status($t['status']); ?>
       <tr>
-        <td><span class="badge <?= e($b['cls']) ?>"><?= e($b['label']) ?></span></td>
+        <td><a href="<?= e(inbox_status_url($base, $t['status'], $assetId, $meldungstyp, $fachkat, $prio, $q, $showDone, $showOlder, $onlyStop, $onlyUnassigned)) ?>" style="text-decoration:none;"><span class="badge <?= e($b['cls']) ?>"><?= e($b['label']) ?></span></a></td>
         <td>
           <?= e($t['meldungstyp'] ?: '—') ?>
           <div class="small"><?= e($t['fachkategorie'] ?: $t['kategorie'] ?: '') ?></div>

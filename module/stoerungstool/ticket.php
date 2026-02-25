@@ -370,8 +370,19 @@ $openHist   = !empty($aktionen);
         <label>Arbeitszeit (Minuten, optional)</label>
         <input name="arbeitszeit_min" inputmode="numeric" placeholder="z.B. 20">
 
+        <label>Schnelleingabe (Template)</label>
+        <select onchange="if(this.value){document.getElementById('aktion_text').value=this.value;this.selectedIndex=0;}">
+          <option value="">— Template wählen —</option>
+          <option value="Teil bestellt">Teil bestellt</option>
+          <option value="Warten auf Lieferung">Warten auf Lieferung</option>
+          <option value="Techniker unterwegs">Techniker unterwegs</option>
+          <option value="Fehler analysiert, Reparatur läuft">Fehler analysiert, Reparatur läuft</option>
+          <option value="Reparatur abgeschlossen, Funktionstest läuft">Reparatur abgeschlossen, Funktionstest läuft</option>
+          <option value="Anlage wieder in Betrieb">Anlage wieder in Betrieb</option>
+        </select>
+
         <label>Text</label>
-        <textarea name="text" required></textarea>
+        <textarea name="text" id="aktion_text" required></textarea>
 
         <div style="margin-top:10px;">
           <button class="btn" type="submit">Aktion speichern</button>
@@ -379,6 +390,32 @@ $openHist   = !empty($aktionen);
       </form>
       <?php else: ?>
       <p class="small">Kein Bearbeitungsrecht.</p>
+      <?php endif; ?>
+    </div>
+  </details>
+</div>
+
+<div class="card">
+  <details open>
+    <summary style="cursor:pointer; font-weight:600;">Timeline</summary>
+    <div style="margin-top:10px; border-left:3px solid #ccc; padding-left:16px;">
+      <?php if (!$aktionen): ?>
+        <p class="small">Noch keine Aktionen.</p>
+      <?php else: ?>
+        <?php foreach (array_reverse($aktionen) as $a): $b2 = $a['status_neu'] ? badge_for_ticket_status($a['status_neu']) : null; ?>
+        <div style="margin-bottom:14px;">
+          <div class="small" style="color:#666;">
+            <?= e($a['datum']) ?> · <b><?= e($a['anzeigename'] ?: '—') ?></b>
+            <?php if ($b2): ?>
+              &nbsp;<span class="badge <?= e($b2['cls']) ?>"><?= e($b2['label']) ?></span>
+            <?php endif; ?>
+            <?php if ($a['arbeitszeit_min'] !== null): ?>
+              &nbsp;· <?= (int)$a['arbeitszeit_min'] ?> min
+            <?php endif; ?>
+          </div>
+          <div style="margin-top:2px;"><?= e($a['text']) ?></div>
+        </div>
+        <?php endforeach; ?>
       <?php endif; ?>
     </div>
   </details>
