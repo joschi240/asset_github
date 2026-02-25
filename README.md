@@ -237,10 +237,34 @@ Das Script ist idempotent (`IF NOT EXISTS`, kein `DROP`) und kann auf bestehende
    chmod 775 uploads
    ```
 
-6. **Erstbenutzer anlegen**  
+6. **Server-Limits für Datei-Uploads anpassen** (empfohlen)
+
+   Damit das Hochladen größerer Bilder und PDFs funktioniert, müssen die Serverlimits angepasst werden:
+
+   **PHP (`php.ini`):**
+   ```ini
+   upload_max_filesize = 20M
+   post_max_size       = 25M
+   ```
+
+   **Apache (`.htaccess` oder VirtualHost):**
+   ```apache
+   php_value upload_max_filesize 20M
+   php_value post_max_size 25M
+   ```
+
+   **Nginx (`nginx.conf` oder Site-Konfiguration):**
+   ```nginx
+   client_max_body_size 25M;
+   ```
+
+   > **Hinweis:** Bei Überschreitung des Serverlimits zeigt die Anwendung die Meldung  
+   > *„Datei zu groß (Serverlimit überschritten)."* statt eines generischen Fehlers.
+
+7. **Erstbenutzer anlegen**  
    Aufruf im Browser: `http://<host>/asset_ki/app.php?r=admin.setup`
 
-7. **Telemetrie-Cron einrichten** (optional)
+8. **Telemetrie-Cron einrichten** (optional)
    ```bash
    # Rollup alle 5 Minuten ausführen
    */5 * * * * php /var/www/html/asset_ki/tools/runtime_rollup.php

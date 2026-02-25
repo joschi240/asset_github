@@ -25,8 +25,14 @@ function upload_ticket_file(int $ticketId, int $userId): void {
   $allowed = $cfg['upload']['allowed_mimes'] ?? ['image/jpeg','image/png','image/webp','application/pdf'];
   $maxBytes = (int)($cfg['upload']['max_bytes'] ?? (10*1024*1024));
 
-  if (empty($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-    throw new RuntimeException("Upload fehlgeschlagen.");
+  $uploadErr = $_FILES['file']['error'] ?? UPLOAD_ERR_NO_FILE;
+  if ($uploadErr !== UPLOAD_ERR_OK) {
+    $uploadMsg = match ($uploadErr) {
+      UPLOAD_ERR_NO_FILE                          => "Keine Datei ausgewählt.",
+      UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE   => "Datei zu groß (Serverlimit überschritten).",
+      default                                     => "Upload fehlgeschlagen (Fehlercode {$uploadErr}).",
+    };
+    throw new RuntimeException($uploadMsg);
   }
   $f = $_FILES['file'];
 

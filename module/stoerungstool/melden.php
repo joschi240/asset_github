@@ -12,13 +12,19 @@ $err = null;
 
 function upload_first_ticket_file(int $ticketId): void {
   if (empty($_FILES['file']) || $_FILES['file']['error'] === UPLOAD_ERR_NO_FILE) return; // optional
-  // reuse simple logic from ticket.php-like behavior (minimal duplicate)
   $cfg = app_cfg();
   $baseDir = $cfg['upload']['base_dir'] ?? (__DIR__ . '/../../uploads');
   $allowed = $cfg['upload']['allowed_mimes'] ?? ['image/jpeg','image/png','image/webp','application/pdf'];
   $maxBytes = (int)($cfg['upload']['max_bytes'] ?? (10*1024*1024));
 
-  if ($_FILES['file']['error'] !== UPLOAD_ERR_OK) throw new RuntimeException("Upload fehlgeschlagen.");
+  $uploadErr = $_FILES['file']['error'];
+  if ($uploadErr !== UPLOAD_ERR_OK) {
+    $uploadMsg = match ($uploadErr) {
+      UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => "Datei zu groß (Serverlimit überschritten).",
+      default                                   => "Upload fehlgeschlagen (Fehlercode {$uploadErr}).",
+    };
+    throw new RuntimeException($uploadMsg);
+  }
   $f = $_FILES['file'];
   if ($f['size'] <= 0 || $f['size'] > $maxBytes) throw new RuntimeException("Datei zu groß oder leer.");
 
