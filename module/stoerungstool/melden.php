@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <div class="card">
-  <h1>Neue Meldung</h1>
+  <div class="content__top"><h1>Neue Meldung</h1></div>
 
   <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
   <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
@@ -156,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label for="melden_fachkat">Fachkategorie (optional)</label>
     <input id="melden_fachkat" name="fachkategorie" placeholder="z.B. Mechanik / Elektrik / Sicherheit / Qualität">
 
-    <label style="display:flex; gap:8px; align-items:center; margin:10px 0 6px;"><input type="checkbox" name="maschinenstillstand" value="1"> Maschinenstillstand</label>
+    <label class="chip" style="display:flex; gap:8px; align-items:center; margin:10px 0 6px;"><input type="checkbox" name="maschinenstillstand" value="1"> Maschinenstillstand</label>
 
     <label for="melden_name">Name (optional)</label>
     <input id="melden_name" name="name" placeholder="z.B. Max Mustermann">
@@ -183,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <label for="melden_file">Foto / PDF (optional)</label>
     <input id="melden_file" type="file" name="file">
 
-    <div style="margin-top:12px;">
+    <div class="form-actions">
       <button class="btn" type="submit">Absenden</button>
     </div>
   </form>

@@ -157,149 +157,146 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
 ?>
 
 <div class="card">
-  <h1>Störungen – Inbox</h1>
+  <div class="content__top"><h1>Störungen – Inbox</h1></div>
   <p class="small">Ampel, Filter, Suche (inkl. Aktionen), Zuweisung und Status „bestellt“.</p>
 
   <details <?= $filterActive ? 'open' : '' ?>>
-    <summary style="cursor:pointer; font-weight:600;">
+    <summary class="accordion__summary">
       Filter <?= $filterActive ? '(' . (int)$activeCount . ' aktiv)' : '(keine aktiv)' ?>
     </summary>
+    <div class="accordion__body">
+      <form method="get" action="<?= e($base) ?>/app.php" class="grid">
+        <input type="hidden" name="r" value="stoerung.inbox">
 
-    <form method="get" action="<?= e($base) ?>/app.php" class="grid" style="align-items:end; margin-top:10px;">
-      <input type="hidden" name="r" value="stoerung.inbox">
+        <div class="col-6">
+          <label for="inbox_asset_id">Maschine/Anlage</label>
+          <select id="inbox_asset_id" name="asset_id">
+            <option value="0">Alle</option>
+            <?php foreach ($assets as $a): ?>
+              <option value="<?= (int)$a['id'] ?>" <?= ((int)$a['id']===$assetId?'selected':'') ?>>
+                <?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
 
-      <div class="col-6">
-        <label for="inbox_asset_id">Maschine/Anlage</label>
-        <select id="inbox_asset_id" name="asset_id">
-          <option value="0">Alle</option>
-          <?php foreach ($assets as $a): ?>
-            <option value="<?= (int)$a['id'] ?>" <?= ((int)$a['id']===$assetId?'selected':'') ?>>
-              <?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+        <div class="col-6">
+          <label for="inbox_status">Status</label>
+          <select id="inbox_status" name="status">
+            <option value="offen" <?= $status==='offen'?'selected':'' ?>>offen</option>
+            <option value="alle" <?= $status==='alle'?'selected':'' ?>>alle</option>
+            <option value="neu" <?= $status==='neu'?'selected':'' ?>>neu</option>
+            <option value="angenommen" <?= $status==='angenommen'?'selected':'' ?>>angenommen</option>
+            <option value="in_arbeit" <?= $status==='in_arbeit'?'selected':'' ?>>in Arbeit</option>
+            <option value="bestellt" <?= $status==='bestellt'?'selected':'' ?>>bestellt</option>
+            <option value="erledigt" <?= $status==='erledigt'?'selected':'' ?>>erledigt</option>
+            <option value="geschlossen" <?= $status==='geschlossen'?'selected':'' ?>>geschlossen</option>
+          </select>
+        </div>
 
-      <div class="col-6">
-        <label for="inbox_status">Status</label>
-        <select id="inbox_status" name="status">
-          <option value="offen" <?= $status==='offen'?'selected':'' ?>>offen</option>
-          <option value="alle" <?= $status==='alle'?'selected':'' ?>>alle</option>
-          <option value="neu" <?= $status==='neu'?'selected':'' ?>>neu</option>
-          <option value="angenommen" <?= $status==='angenommen'?'selected':'' ?>>angenommen</option>
-          <option value="in_arbeit" <?= $status==='in_arbeit'?'selected':'' ?>>in Arbeit</option>
-          <option value="bestellt" <?= $status==='bestellt'?'selected':'' ?>>bestellt</option>
-          <option value="erledigt" <?= $status==='erledigt'?'selected':'' ?>>erledigt</option>
-          <option value="geschlossen" <?= $status==='geschlossen'?'selected':'' ?>>geschlossen</option>
-        </select>
-      </div>
+        <div class="col-6">
+          <label for="inbox_typ">Typ (Meldungsart)</label>
+          <select id="inbox_typ" name="meldungstyp">
+            <option value="">Alle</option>
+            <?php foreach ($typRows as $r): ?>
+              <option value="<?= e($r['meldungstyp']) ?>" <?= ($meldungstyp===$r['meldungstyp']?'selected':'') ?>>
+                <?= e($r['meldungstyp']) ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
 
-      <div class="col-6">
-        <label for="inbox_typ">Typ (Meldungsart)</label>
-        <select id="inbox_typ" name="meldungstyp">
-          <option value="">Alle</option>
-          <?php foreach ($typRows as $r): ?>
-            <option value="<?= e($r['meldungstyp']) ?>" <?= ($meldungstyp===$r['meldungstyp']?'selected':'') ?>>
-              <?= e($r['meldungstyp']) ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+        <div class="col-6">
+          <label for="inbox_fachkat">Fachkategorie</label>
+          <select id="inbox_fachkat" name="fachkategorie">
+            <option value="">Alle</option>
+            <?php foreach ($katRows as $r): if (!$r['k']) continue; ?>
+              <option value="<?= e($r['k']) ?>" <?= ($fachkat===$r['k']?'selected':'') ?>><?= e($r['k']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
 
-      <div class="col-6">
-        <label for="inbox_fachkat">Fachkategorie</label>
-        <select id="inbox_fachkat" name="fachkategorie">
-          <option value="">Alle</option>
-          <?php foreach ($katRows as $r): if (!$r['k']) continue; ?>
-            <option value="<?= e($r['k']) ?>" <?= ($fachkat===$r['k']?'selected':'') ?>><?= e($r['k']) ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+        <div class="col-6">
+          <label for="inbox_prio">Priorität</label>
+          <select id="inbox_prio" name="prio">
+            <option value="">Alle</option>
+            <option value="1" <?= $prio==='1'?'selected':'' ?>>1 (hoch)</option>
+            <option value="2" <?= $prio==='2'?'selected':'' ?>>2</option>
+            <option value="3" <?= $prio==='3'?'selected':'' ?>>3 (niedrig)</option>
+          </select>
+        </div>
 
-      <div class="col-6">
-        <label for="inbox_prio">Priorität</label>
-        <select id="inbox_prio" name="prio">
-          <option value="">Alle</option>
-          <option value="1" <?= $prio==='1'?'selected':'' ?>>1 (hoch)</option>
-          <option value="2" <?= $prio==='2'?'selected':'' ?>>2</option>
-          <option value="3" <?= $prio==='3'?'selected':'' ?>>3 (niedrig)</option>
-        </select>
-      </div>
+        <div class="col-6">
+          <label for="inbox_q">Suche</label>
+          <input id="inbox_q" name="q" value="<?= e($q) ?>" placeholder="Titel, Beschreibung, Anlage, Aktionen...">
+        </div>
 
-      <div class="col-6">
-        <label for="inbox_q">Suche</label>
-        <input id="inbox_q" name="q" value="<?= e($q) ?>" placeholder="Titel, Beschreibung, Anlage, Aktionen...">
-      </div>
-
-      <div class="col-12">
-        <fieldset style="border:none; padding:0; margin:0;">
-          <legend style="font-size:13px; color:#333; margin:10px 0 6px; display:block;">Optionen</legend>
-          <div class="small">
-            <label style="display:flex; gap:8px; align-items:center; margin:0;">
-              <input type="checkbox" name="show_done" value="1" <?= $showDone?'checked':'' ?>>
-              erledigte/geschlossene anzeigen
-            </label>
-            <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
-              <input type="checkbox" name="show_older" value="1" <?= $showOlder?'checked':'' ?>>
-              älter als 30 Tage anzeigen
-            </label>
-            <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
-              <input type="checkbox" name="only_stop" value="1" <?= $onlyStop?'checked':'' ?>>
-              nur Maschinenstillstand
-            </label>
-            <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
-              <input type="checkbox" name="only_unassigned" value="1" <?= $onlyUnassigned?'checked':'' ?>>
-              nur nicht zugewiesen
-            </label>
-          </div>
-        </fieldset>
-      </div>
-
-      <div class="col-12" style="display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn" type="submit">Filtern</button>
-        <a class="btn btn--ghost" href="<?= e($base) ?>/app.php?r=stoerung.inbox">Reset</a>
-      </div>
-    </form>
+        <div class="col-12 form-actions">
+          <fieldset style="border:none; padding:0; margin:0;">
+            <legend class="small">Optionen</legend>
+            <div class="small">
+              <label class="chip" style="display:flex; gap:8px; align-items:center; margin:0;">
+                <input type="checkbox" name="show_done" value="1" <?= $showDone?'checked':'' ?>>
+                erledigte/geschlossene anzeigen
+              </label>
+              <label class="chip" style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
+                <input type="checkbox" name="show_older" value="1" <?= $showOlder?'checked':'' ?>>
+                älter als 30 Tage anzeigen
+              </label>
+              <label class="chip" style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
+                <input type="checkbox" name="only_stop" value="1" <?= $onlyStop?'checked':'' ?>>
+                nur Maschinenstillstand
+              </label>
+              <label class="chip" style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
+                <input type="checkbox" name="only_unassigned" value="1" <?= $onlyUnassigned?'checked':'' ?>>
+                nur nicht zugewiesen
+              </label>
+            </div>
+          </fieldset>
+        </div>
+      </form>
+    </div>
   </details>
 </div>
 
 <div class="card">
-  <h2>Tickets (<?= count($tickets) ?>)</h2>
-
-  <table class="table">
-    <thead>
-      <tr>
-        <th scope="col">Ampel</th>
-        <th scope="col">Typ</th>
-        <th scope="col">Erfasst am</th>
-        <th scope="col">Anlage</th>
-        <th scope="col">Melder</th>
-        <th scope="col">Bemerkung</th>
-        <th scope="col">Instandh Name</th>
-        <th scope="col">Dauer</th>
-        <th scope="col">Bearbeiten</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php foreach ($tickets as $t): $b = badge_for_ticket_status($t['status']); ?>
-      <tr>
-        <td><a href="<?= e(inbox_status_url($base, $t['status'], $assetId, $meldungstyp, $fachkat, $prio, $q, $showDone, $showOlder, $onlyStop, $onlyUnassigned)) ?>" style="text-decoration:none;"><span class="badge <?= e($b['cls']) ?>"><?= e($b['label']) ?></span></a></td>
-        <td>
-          <?= e($t['meldungstyp'] ?: '—') ?>
-          <div class="small"><?= e($t['fachkategorie'] ?: $t['kategorie'] ?: '') ?></div>
-        </td>
-        <td><?= e($t['ausfallzeitpunkt'] ?: $t['created_at']) ?></td>
-        <td><?= e(trim(($t['asset_code'] ?: '').' '.($t['asset_name'] ?: ''))) ?: '—' ?></td>
-        <td><?= e($t['gemeldet_von'] ?: '—') ?></td>
-        <td><?= e(short_text($t['last_action_text'] ?? $t['beschreibung'] ?? '', 90)) ?></td>
-        <td><?= e($t['assigned_name'] ?: $t['last_action_user_name'] ?: '—') ?></td>
-        <td><?= e(fmt_minutes((int)($t['sum_min'] ?? 0))) ?></td>
-        <td><a class="btn btn--ghost" href="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$t['id'] ?>"><?= $canEdit ? 'Bearbeiten' : 'Ansehen' ?></a></td>
-      </tr>
-      <?php endforeach; ?>
-      <?php if (!$tickets): ?>
-      <tr><td colspan="9" class="small">Keine Tickets gefunden.</td></tr>
-      <?php endif; ?>
-    </tbody>
-  </table>
+  <div class="content__top"><h2>Tickets (<?= count($tickets) ?>)</h2></div>
+  <div class="tablewrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th scope="col">Ampel</th>
+          <th scope="col">Typ</th>
+          <th scope="col">Erfasst am</th>
+          <th scope="col">Anlage</th>
+          <th scope="col">Melder</th>
+          <th scope="col">Bemerkung</th>
+          <th scope="col">Instandh Name</th>
+          <th scope="col">Dauer</th>
+          <th scope="col">Bearbeiten</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($tickets as $t): $b = badge_for_ticket_status($t['status']); ?>
+        <tr>
+          <td><a href="<?= e(inbox_status_url($base, $t['status'], $assetId, $meldungstyp, $fachkat, $prio, $q, $showDone, $showOlder, $onlyStop, $onlyUnassigned)) ?>"><span class="badge <?= e($b['cls']) ?>"><?= e($b['label']) ?></span></a></td>
+          <td>
+            <?= e($t['meldungstyp'] ?: '—') ?>
+            <div class="small"><?= e($t['fachkategorie'] ?: $t['kategorie'] ?: '') ?></div>
+          </td>
+          <td><?= e($t['ausfallzeitpunkt'] ?: $t['created_at']) ?></td>
+          <td><?= e(trim(($t['asset_code'] ?: '').' '.($t['asset_name'] ?: ''))) ?: '—' ?></td>
+          <td><?= e($t['gemeldet_von'] ?: '—') ?></td>
+          <td><?= e(short_text($t['last_action_text'] ?? $t['beschreibung'] ?? '', 90)) ?></td>
+          <td><?= e($t['assigned_name'] ?: $t['last_action_user_name'] ?: '—') ?></td>
+          <td><?= e(fmt_minutes((int)($t['sum_min'] ?? 0))) ?></td>
+          <td><a class="btn btn--ghost" href="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$t['id'] ?>"><?= $canEdit ? 'Bearbeiten' : 'Ansehen' ?></a></td>
+        </tr>
+        <?php endforeach; ?>
+        <?php if (!$tickets): ?>
+        <tr><td colspan="9" class="small">Keine Tickets gefunden.</td></tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
 </div>
