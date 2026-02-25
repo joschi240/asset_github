@@ -88,6 +88,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($assign !== null) db_exec("UPDATE stoerungstool_ticket SET status=?, assigned_user_id=?, updated_at=NOW() WHERE id=?", [$to, $assign, $id]);
       else db_exec("UPDATE stoerungstool_ticket SET status=?, updated_at=NOW() WHERE id=?", [$to, $id]);
 
+      // SLA auto-set
+      $slaSet = [];
+      if ($ticketOld['status'] === 'neu' && empty($ticketOld['first_response_at'])) {
+        $slaSet[] = 'first_response_at = NOW()';
+      }
+      if ($to === 'geschlossen' && empty($ticketOld['closed_at'])) {
+        $slaSet[] = 'closed_at = NOW()';
+      }
+      if ($slaSet) {
+        db_exec("UPDATE stoerungstool_ticket SET " . implode(', ', $slaSet) . " WHERE id=?", [$id]);
+      }
+
       db_exec("INSERT INTO stoerungstool_aktion (ticket_id, datum, user_id, text, status_neu, arbeitszeit_min)
                VALUES (?, NOW(), ?, ?, ?, NULL)",
               [$id, $userId ?: null, "Status gesetzt: {$to}", $to]);
@@ -129,6 +141,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       if ($statusNeu !== '') {
         db_exec("UPDATE stoerungstool_ticket SET status=?, updated_at=NOW() WHERE id=?", [$statusNeu, $id]);
+
+        // SLA auto-set
+        $slaSet = [];
+        if ($ticketOld['status'] === 'neu' && empty($ticketOld['first_response_at'])) {
+          $slaSet[] = 'first_response_at = NOW()';
+        }
+        if ($statusNeu === 'geschlossen' && empty($ticketOld['closed_at'])) {
+          $slaSet[] = 'closed_at = NOW()';
+        }
+        if ($slaSet) {
+          db_exec("UPDATE stoerungstool_ticket SET " . implode(', ', $slaSet) . " WHERE id=?", [$id]);
+        }
+
+        audit_log('stoerungstool', 'ticket', $id, 'STATUS',
+          ['status'=>$ticketOld['status']],
+          ['status'=>$statusNeu],
+          $userId, $actor
+        );
       } else {
         db_exec("UPDATE stoerungstool_ticket SET updated_at=NOW() WHERE id=?", [$id]);
       }
