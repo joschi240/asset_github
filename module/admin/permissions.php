@@ -124,13 +124,13 @@ foreach ($existing as $p) {
 <div class="card">
   <h2>Berechtigungen</h2>
 
-  <?php if ($ok): ?><p class="badge badge--g"><?= e($ok) ?></p><?php endif; ?>
-  <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+  <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
+  <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
   <form method="get" style="margin-bottom:10px;">
     <input type="hidden" name="r" value="admin.permissions">
-    <label>User auswählen</label>
-    <select name="user_id" onchange="this.form.submit()">
+    <label for="perm_user_id">User auswählen</label>
+    <select id="perm_user_id" name="user_id" onchange="this.form.submit()">
       <?php foreach ($users as $usr): ?>
         <option value="<?= (int)$usr['id'] ?>" <?= ((int)$usr['id']===$selected?'selected':'') ?>>
           <?= e($usr['benutzername'] . ' — ' . ($usr['anzeigename'] ?? '')) ?>
@@ -149,7 +149,7 @@ foreach ($existing as $p) {
       <table class="table">
         <thead>
           <tr>
-            <th>Route</th><th>modul/obj</th><th>Sehen</th><th>Ändern</th><th>Löschen</th>
+            <th scope="col">Route</th><th scope="col">modul/obj</th><th scope="col">Sehen</th><th scope="col">Ändern</th><th scope="col">Löschen</th>
           </tr>
         </thead>
         <tbody>
@@ -161,9 +161,9 @@ foreach ($existing as $p) {
             <tr>
               <td><code><?= e($r['route_key']) ?></code><div class="small"><?= e($r['titel']) ?></div></td>
               <td><?= e($r['modul'].' / '.$r['objekt_typ']) ?></td>
-              <td><input type="checkbox" name="see[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_sehen']===1)?'checked':'' ?>></td>
-              <td><input type="checkbox" name="chg[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_aendern']===1)?'checked':'' ?>></td>
-              <td><input type="checkbox" name="del[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_loeschen']===1)?'checked':'' ?>></td>
+              <td><input type="checkbox" name="see[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_sehen']===1)?'checked':'' ?> aria-label="<?= e($r['titel']) ?> sehen"></td>
+              <td><input type="checkbox" name="chg[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_aendern']===1)?'checked':'' ?> aria-label="<?= e($r['titel']) ?> ändern"></td>
+              <td><input type="checkbox" name="del[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_loeschen']===1)?'checked':'' ?> aria-label="<?= e($r['titel']) ?> löschen"></td>
             </tr>
           <?php endforeach; ?>
         </tbody>

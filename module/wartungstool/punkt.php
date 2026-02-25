@@ -111,8 +111,8 @@ $doks = db_all("
     </div>
   </div>
 
-  <?php if ($ok): ?><p class="badge badge--g">Gespeichert.</p><?php endif; ?>
-  <?php if ($err !== ''): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+  <?php if ($ok): ?><p class="badge badge--g" role="status">Gespeichert.</p><?php endif; ?>
+  <?php if ($err !== ''): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
   <div class="grid" style="margin-top:8px;">
     <div class="col-6">
@@ -161,11 +161,11 @@ $doks = db_all("
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="wp_id" value="<?= (int)$wpId ?>">
 
-          <label>Team (wird gemerkt)</label>
-          <input name="team_text" value="<?= e($defaultTeam) ?>" placeholder="z.B. Team A / Schicht 2">
+          <label for="punkt_team">Team (wird gemerkt)</label>
+          <input id="punkt_team" name="team_text" value="<?= e($defaultTeam) ?>" placeholder="z.B. Team A / Schicht 2">
 
           <?php if ((int)$wp['messwert_pflicht'] === 1): ?>
-            <label>Messwert <?= $wp['einheit'] ? '(' . e($wp['einheit']) . ')' : '' ?></label>
+            <label for="messwert">Messwert <?= $wp['einheit'] ? '(' . e($wp['einheit']) . ')' : '' ?></label>
             <input
               id="messwert"
               name="messwert"
@@ -177,14 +177,14 @@ $doks = db_all("
             <div id="mw_hint" class="small" style="margin-top:6px;"></div>
           <?php endif; ?>
 
-          <label>Status</label>
+          <label for="status">Status</label>
           <select id="status" name="status">
             <option value="ok">ok</option>
             <option value="abweichung">abweichung</option>
           </select>
 
-          <label>Bemerkung</label>
-          <textarea name="bemerkung" placeholder="Kurz notieren was gemacht wurde / Auffälligkeiten..."></textarea>
+          <label for="punkt_bemerkung">Bemerkung</label>
+          <textarea id="punkt_bemerkung" name="bemerkung" placeholder="Kurz notieren was gemacht wurde / Auffälligkeiten..."></textarea>
 
           <?php if ($canCreateTicket): ?>
             <label>
@@ -210,7 +210,7 @@ $doks = db_all("
         <table class="table">
           <thead>
             <tr>
-              <th>Datum</th><th>Status</th><th>Messwert</th><th>Team</th><th>Bemerkung</th>
+              <th scope="col">Datum</th><th scope="col">Status</th><th scope="col">Messwert</th><th scope="col">Team</th><th scope="col">Bemerkung</th>
             </tr>
           </thead>
           <tbody>
@@ -234,8 +234,8 @@ $doks = db_all("
       <form method="post" enctype="multipart/form-data" action="<?= e($base) ?>/app.php?r=wartung.punkt_dokument_upload">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="wp_id" value="<?= (int)$wpId ?>">
-        <label>Datei (jpg/png/webp/pdf)</label>
-        <input type="file" name="file" required>
+        <label for="punkt_doc_file">Datei (jpg/png/webp/pdf)</label>
+        <input id="punkt_doc_file" type="file" name="file" required>
         <div style="margin-top:10px;">
           <button class="btn" type="submit">Hochladen</button>
         </div>
@@ -246,7 +246,7 @@ $doks = db_all("
         <p class="small" style="margin-top:10px;">Keine Dokumente.</p>
       <?php else: ?>
         <table class="table" style="margin-top:10px;">
-          <thead><tr><th>Datum</th><th>Datei</th><th>Typ</th></tr></thead>
+          <thead><tr><th scope="col">Datum</th><th scope="col">Datei</th><th scope="col">Typ</th></tr></thead>
           <tbody>
           <?php foreach ($doks as $d): ?>
             <tr>
@@ -294,9 +294,9 @@ $doks = db_all("
     if (max !== null && v > max) oob = true;
 
     if (min !== null || max !== null) {
-      hint.textContent = oob
-        ? ('⚠ Messwert außerhalb Grenzwerte (' + fmt(min) + ' bis ' + fmt(max) + ').')
-        : ('✓ Messwert innerhalb Grenzwerte (' + fmt(min) + ' bis ' + fmt(max) + ').');
+      hint.innerHTML = oob
+        ? ('<span aria-hidden="true">⚠</span> <span role="alert">Messwert außerhalb Grenzwerte (' + fmt(min) + ' bis ' + fmt(max) + ').</span>')
+        : ('<span aria-hidden="true">✓</span> Messwert innerhalb Grenzwerte (' + fmt(min) + ' bis ' + fmt(max) + ').');
     } else hint.textContent = '';
 
     if (oob) { status.value = 'abweichung'; ticket.checked = true; }

@@ -175,8 +175,8 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
       <input type="hidden" name="r" value="stoerung.inbox">
 
       <div class="col-6">
-        <label>Maschine/Anlage</label>
-        <select name="asset_id">
+        <label for="inbox_asset_id">Maschine/Anlage</label>
+        <select id="inbox_asset_id" name="asset_id">
           <option value="0">Alle</option>
           <?php foreach ($assets as $a): ?>
             <option value="<?= (int)$a['id'] ?>" <?= ((int)$a['id']===$assetId?'selected':'') ?>>
@@ -187,8 +187,8 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
       </div>
 
       <div class="col-6">
-        <label>Status</label>
-        <select name="status">
+        <label for="inbox_status">Status</label>
+        <select id="inbox_status" name="status">
           <option value="offen" <?= $status==='offen'?'selected':'' ?>>offen</option>
           <option value="alle" <?= $status==='alle'?'selected':'' ?>>alle</option>
           <option value="neu" <?= $status==='neu'?'selected':'' ?>>neu</option>
@@ -201,8 +201,8 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
       </div>
 
       <div class="col-6">
-        <label>Typ (Meldungsart)</label>
-        <select name="meldungstyp">
+        <label for="inbox_typ">Typ (Meldungsart)</label>
+        <select id="inbox_typ" name="meldungstyp">
           <option value="">Alle</option>
           <?php foreach ($typRows as $r): ?>
             <option value="<?= e($r['meldungstyp']) ?>" <?= ($meldungstyp===$r['meldungstyp']?'selected':'') ?>>
@@ -213,8 +213,8 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
       </div>
 
       <div class="col-6">
-        <label>Fachkategorie</label>
-        <select name="fachkategorie">
+        <label for="inbox_fachkat">Fachkategorie</label>
+        <select id="inbox_fachkat" name="fachkategorie">
           <option value="">Alle</option>
           <?php foreach ($katRows as $r): if (!$r['k']) continue; ?>
             <option value="<?= e($r['k']) ?>" <?= ($fachkat===$r['k']?'selected':'') ?>><?= e($r['k']) ?></option>
@@ -223,8 +223,8 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
       </div>
 
       <div class="col-6">
-        <label>Priorität</label>
-        <select name="prio">
+        <label for="inbox_prio">Priorität</label>
+        <select id="inbox_prio" name="prio">
           <option value="">Alle</option>
           <option value="1" <?= $prio==='1'?'selected':'' ?>>1 (hoch)</option>
           <option value="2" <?= $prio==='2'?'selected':'' ?>>2</option>
@@ -233,30 +233,32 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
       </div>
 
       <div class="col-6">
-        <label>Suche</label>
-        <input name="q" value="<?= e($q) ?>" placeholder="Titel, Beschreibung, Anlage, Aktionen...">
+        <label for="inbox_q">Suche</label>
+        <input id="inbox_q" name="q" value="<?= e($q) ?>" placeholder="Titel, Beschreibung, Anlage, Aktionen...">
       </div>
 
       <div class="col-12">
-        <label>Optionen</label>
-        <div class="small">
-          <label style="display:flex; gap:8px; align-items:center; margin:0;">
-            <input type="checkbox" name="show_done" value="1" <?= $showDone?'checked':'' ?>>
-            erledigte/geschlossene anzeigen
-          </label>
-          <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
-            <input type="checkbox" name="show_older" value="1" <?= $showOlder?'checked':'' ?>>
-            älter als 30 Tage anzeigen
-          </label>
-          <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
-            <input type="checkbox" name="only_stop" value="1" <?= $onlyStop?'checked':'' ?>>
-            nur Maschinenstillstand
-          </label>
-          <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
-            <input type="checkbox" name="only_unassigned" value="1" <?= $onlyUnassigned?'checked':'' ?>>
-            nur nicht zugewiesen
-          </label>
-        </div>
+        <fieldset style="border:none; padding:0; margin:0;">
+          <legend style="font-size:13px; color:#333; margin:10px 0 6px; display:block;">Optionen</legend>
+          <div class="small">
+            <label style="display:flex; gap:8px; align-items:center; margin:0;">
+              <input type="checkbox" name="show_done" value="1" <?= $showDone?'checked':'' ?>>
+              erledigte/geschlossene anzeigen
+            </label>
+            <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
+              <input type="checkbox" name="show_older" value="1" <?= $showOlder?'checked':'' ?>>
+              älter als 30 Tage anzeigen
+            </label>
+            <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
+              <input type="checkbox" name="only_stop" value="1" <?= $onlyStop?'checked':'' ?>>
+              nur Maschinenstillstand
+            </label>
+            <label style="display:flex; gap:8px; align-items:center; margin:6px 0 0;">
+              <input type="checkbox" name="only_unassigned" value="1" <?= $onlyUnassigned?'checked':'' ?>>
+              nur nicht zugewiesen
+            </label>
+          </div>
+        </fieldset>
       </div>
 
       <div class="col-12" style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -273,15 +275,15 @@ foreach ([$assetId>0,$status!=='offen',$meldungstyp!=='',$fachkat!=='',$prio!=='
   <table class="table">
     <thead>
       <tr>
-        <th>Ampel</th>
-        <th>Typ</th>
-        <th>Erfasst am</th>
-        <th>Anlage</th>
-        <th>Melder</th>
-        <th>Bemerkung</th>
-        <th>Instandh Name</th>
-        <th>Dauer</th>
-        <th>Bearbeiten</th>
+        <th scope="col">Ampel</th>
+        <th scope="col">Typ</th>
+        <th scope="col">Erfasst am</th>
+        <th scope="col">Anlage</th>
+        <th scope="col">Melder</th>
+        <th scope="col">Bemerkung</th>
+        <th scope="col">Instandh Name</th>
+        <th scope="col">Dauer</th>
+        <th scope="col">Bearbeiten</th>
       </tr>
     </thead>
     <tbody>

@@ -129,8 +129,49 @@ h2 { font-size: 16px; margin: 0 0 10px; }
   line-height: 1.1;
 }
 .badge--g { background: #e8f7ee; border-color: #bfe7cd; color: #0b5d2a; }
+.badge--g::before { content: "✓ "; font-weight: 700; speak: none; }
 .badge--y { background: #fff7e6; border-color: #ffe0a3; color: #7a4b00; }
+.badge--y::before { content: "⚠ "; speak: none; }
 .badge--r { background: #ffe9e9; border-color: #ffb8b8; color: #7a0b0b; }
+.badge--r::before { content: "✕ "; font-weight: 700; speak: none; }
+
+/* Focus styles (A11Y – Issue #3) */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+.btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(37,99,235,.2);
+}
+.navitem:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  background: rgba(255,255,255,.18);
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Screen-reader only utility (A11Y) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* Forms */
 label { display: block; font-size: 13px; color: #333; margin: 10px 0 6px; }

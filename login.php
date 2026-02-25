@@ -25,16 +25,16 @@ render_header('Login');
   <div class="col-6">
     <div class="card">
       <h2>Login</h2>
-      <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+      <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
       <form method="post">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
         <label for="benutzername">Benutzername</label>
-        <input id="benutzername" name="benutzername" autocomplete="username" required>
+        <input id="benutzername" name="benutzername" autocomplete="username" required aria-required="true">
 
         <label for="passwort">Passwort</label>
-        <input id="passwort" name="passwort" type="password" autocomplete="current-password" required>
+        <input id="passwort" name="passwort" type="password" autocomplete="current-password" required aria-required="true">
 
         <div style="margin-top:12px;">
           <button class="btn" type="submit">Einloggen</button>

@@ -65,23 +65,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card">
       <h2>Erstuser / Admin anlegen</h2>
 
-      <?php if ($ok): ?><p class="badge badge--g"><?= e($ok) ?></p><?php endif; ?>
-      <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+      <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
+      <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
       <form method="post">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <label>Benutzername</label>
-        <input name="benutzername" required>
+        <label for="setup_benutzername">Benutzername</label>
+        <input id="setup_benutzername" name="benutzername" required aria-required="true">
 
-        <label>Anzeigename (optional)</label>
-        <input name="anzeigename">
+        <label for="setup_anzeigename">Anzeigename (optional)</label>
+        <input id="setup_anzeigename" name="anzeigename">
 
-        <label>Passwort</label>
-        <input type="password" name="passwort" required>
+        <label for="setup_passwort">Passwort</label>
+        <input id="setup_passwort" type="password" name="passwort" required aria-required="true">
 
-        <label>Passwort wiederholen</label>
-        <input type="password" name="passwort2" required>
+        <label for="setup_passwort2">Passwort wiederholen</label>
+        <input id="setup_passwort2" type="password" name="passwort2" required aria-required="true">
 
         <div style="margin-top:12px;">
           <button class="btn" type="submit">Admin erstellen</button>

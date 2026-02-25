@@ -264,8 +264,8 @@ $openHist   = !empty($aktionen);
     </div>
   </div>
 
-  <?php if ($ok): ?><p class="badge badge--g">Gespeichert.</p><?php endif; ?>
-  <?php if ($err !== ''): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+  <?php if ($ok): ?><p class="badge badge--g" role="status">Gespeichert.</p><?php endif; ?>
+  <?php if ($err !== ''): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
   <div class="small" style="margin-top:10px;">
     Anlage: <b><?= e(trim(($ticket['asset_code'] ?: '').' '.($ticket['asset_name'] ?: ''))) ?: '—' ?></b>
@@ -303,8 +303,8 @@ $openHist   = !empty($aktionen);
       <form method="post" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="assign">
-        <label>Instandhalter</label>
-        <select name="assigned_user_id">
+        <label for="ticket_assign_user">Instandhalter</label>
+        <select id="ticket_assign_user" name="assigned_user_id">
           <option value="0">— niemand —</option>
           <?php foreach ($users as $uu): ?>
             <option value="<?= (int)$uu['id'] ?>" <?= ((int)$ticket['assigned_user_id']===(int)$uu['id']?'selected':'') ?>>
@@ -332,8 +332,8 @@ $openHist   = !empty($aktionen);
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="update_ticket">
 
-        <label>Anlage</label>
-        <select name="asset_id">
+        <label for="ticket_asset_id">Anlage</label>
+        <select id="ticket_asset_id" name="asset_id">
           <option value="0">— ohne Anlage —</option>
           <?php foreach ($assets as $a): ?>
             <option value="<?= (int)$a['id'] ?>" <?= ((int)$ticket['asset_id']===(int)$a['id']?'selected':'') ?>>
@@ -342,14 +342,14 @@ $openHist   = !empty($aktionen);
           <?php endforeach; ?>
         </select>
 
-        <label>Meldungsart (Typ)</label>
-        <input name="meldungstyp" value="<?= e($ticket['meldungstyp'] ?? '') ?>">
+        <label for="ticket_meldungstyp">Meldungsart (Typ)</label>
+        <input id="ticket_meldungstyp" name="meldungstyp" value="<?= e($ticket['meldungstyp'] ?? '') ?>">
 
-        <label>Fachkategorie</label>
-        <input name="fachkategorie" value="<?= e($ticket['fachkategorie'] ?? '') ?>">
+        <label for="ticket_fachkat">Fachkategorie</label>
+        <input id="ticket_fachkat" name="fachkategorie" value="<?= e($ticket['fachkategorie'] ?? '') ?>">
 
-        <label>Priorität</label>
-        <select name="prioritaet">
+        <label for="ticket_prio">Priorität</label>
+        <select id="ticket_prio" name="prioritaet">
           <option value="1" <?= ((int)$ticket['prioritaet']===1?'selected':'') ?>>1</option>
           <option value="2" <?= ((int)$ticket['prioritaet']===2?'selected':'') ?>>2</option>
           <option value="3" <?= ((int)$ticket['prioritaet']===3?'selected':'') ?>>3</option>
@@ -357,14 +357,14 @@ $openHist   = !empty($aktionen);
 
         <label><input type="checkbox" name="maschinenstillstand" value="1" <?= ((int)$ticket['maschinenstillstand']===1?'checked':'') ?>> Maschinenstillstand</label>
 
-        <label>Ausfallzeitpunkt</label>
-        <input type="datetime-local" name="ausfallzeitpunkt" value="<?= $ticket['ausfallzeitpunkt'] ? e(str_replace(' ','T', substr($ticket['ausfallzeitpunkt'],0,16))) : '' ?>">
+        <label for="ticket_ausfall">Ausfallzeitpunkt</label>
+        <input id="ticket_ausfall" type="datetime-local" name="ausfallzeitpunkt" value="<?= $ticket['ausfallzeitpunkt'] ? e(str_replace(' ','T', substr($ticket['ausfallzeitpunkt'],0,16))) : '' ?>">
 
-        <label>Titel</label>
-        <input name="titel" required value="<?= e($ticket['titel']) ?>">
+        <label for="ticket_titel">Titel</label>
+        <input id="ticket_titel" name="titel" required aria-required="true" value="<?= e($ticket['titel']) ?>">
 
-        <label>Beschreibung</label>
-        <textarea name="beschreibung" required><?= e($ticket['beschreibung']) ?></textarea>
+        <label for="ticket_beschreibung">Beschreibung</label>
+        <textarea id="ticket_beschreibung" name="beschreibung" required aria-required="true"><?= e($ticket['beschreibung']) ?></textarea>
 
         <div style="margin-top:10px;">
           <button class="btn" type="submit">Speichern</button>
@@ -386,8 +386,8 @@ $openHist   = !empty($aktionen);
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="add_action">
 
-        <label>Status ändern (optional)</label>
-        <select name="status_neu">
+        <label for="ticket_status_neu">Status ändern (optional)</label>
+        <select id="ticket_status_neu" name="status_neu">
           <option value="">— keine Änderung —</option>
           <option value="neu">neu</option>
           <option value="angenommen">angenommen</option>
@@ -397,8 +397,8 @@ $openHist   = !empty($aktionen);
           <option value="geschlossen">geschlossen</option>
         </select>
 
-        <label>Arbeitszeit (Minuten, optional)</label>
-        <input name="arbeitszeit_min" inputmode="numeric" placeholder="z.B. 20">
+        <label for="ticket_arbeitszeit">Arbeitszeit (Minuten, optional)</label>
+        <input id="ticket_arbeitszeit" name="arbeitszeit_min" inputmode="numeric" placeholder="z.B. 20">
 
         <label>Schnelleingabe (Template)</label>
         <select onchange="if(this.value){document.getElementById('aktion_text').value=this.value;this.selectedIndex=0;}">
@@ -411,8 +411,8 @@ $openHist   = !empty($aktionen);
           <option value="Anlage wieder in Betrieb">Anlage wieder in Betrieb</option>
         </select>
 
-        <label>Text</label>
-        <textarea name="text" id="aktion_text" required></textarea>
+        <label for="aktion_text">Text</label>
+        <textarea id="aktion_text" name="text" required aria-required="true"></textarea>
 
         <div style="margin-top:10px;">
           <button class="btn" type="submit">Aktion speichern</button>
@@ -459,8 +459,8 @@ $openHist   = !empty($aktionen);
       <form method="post" enctype="multipart/form-data" action="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$id ?>">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="upload_doc">
-        <label>Datei (jpg/png/webp/pdf)</label>
-        <input type="file" name="file" required>
+        <label for="ticket_doc_file">Datei (jpg/png/webp/pdf)</label>
+        <input id="ticket_doc_file" type="file" name="file" required>
         <div style="margin-top:10px;">
           <button class="btn" type="submit">Hochladen</button>
         </div>
@@ -471,7 +471,7 @@ $openHist   = !empty($aktionen);
         <p class="small" style="margin-top:10px;">Keine Dokumente.</p>
       <?php else: ?>
         <table class="table" style="margin-top:10px;">
-          <thead><tr><th>Datum</th><th>Datei</th><th>Typ</th></tr></thead>
+          <thead><tr><th scope="col">Datum</th><th scope="col">Datei</th><th scope="col">Typ</th></tr></thead>
           <tbody>
           <?php foreach ($doks as $d): ?>
             <tr>
@@ -497,7 +497,7 @@ $openHist   = !empty($aktionen);
         <p class="small">Noch keine Aktionen.</p>
       <?php else: ?>
         <table class="table">
-          <thead><tr><th>Datum</th><th>User</th><th>Status</th><th>Min</th><th>Text</th></tr></thead>
+          <thead><tr><th scope="col">Datum</th><th scope="col">User</th><th scope="col">Status</th><th scope="col">Min</th><th scope="col">Text</th></tr></thead>
           <tbody>
           <?php foreach ($aktionen as $a): ?>
             <tr>

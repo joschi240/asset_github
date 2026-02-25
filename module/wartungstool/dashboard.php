@@ -130,13 +130,13 @@ function renderTable(array $rows, string $title, string $base, bool $canSeePunkt
     <table class="table">
       <thead>
         <tr>
-          <th>Ampel</th>
-          <th>Anlage</th>
-          <th>Nächster Wartungspunkt</th>
-          <th>Rest (h)</th>
-          <th>KW</th>
-          <th>Schnitt (h/W)</th>
-          <th>Trend</th>
+          <th scope="col">Ampel</th>
+          <th scope="col">Anlage</th>
+          <th scope="col">Nächster Wartungspunkt</th>
+          <th scope="col">Rest (h)</th>
+          <th scope="col">KW</th>
+          <th scope="col">Schnitt (h/W)</th>
+          <th scope="col">Trend</th>
         </tr>
       </thead>
       <tbody>
@@ -178,7 +178,7 @@ function renderTable(array $rows, string $title, string $base, bool $canSeePunkt
 
           <td><?= e($r['kw']) ?></td>
           <td><?= number_format((float)$r['schnitt'], 1, ',', '.') ?></td>
-          <td style="font-size:16px;"><?= e($r['trend']) ?></td>
+          <td style="font-size:16px;"><span aria-hidden="true"><?= e($r['trend']) ?></span><span class="sr-only"><?= e($r['trend'] === '▲' ? 'steigend' : ($r['trend'] === '▼' ? 'fallend' : 'gleichbleibend')) ?></span></td>
         </tr>
       <?php endforeach; ?>
       </tbody>

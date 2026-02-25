@@ -92,19 +92,19 @@ if ($action === 'edit' && $id > 0) {
       <div class="card">
         <h2>Benutzer bearbeiten: <?= e($userRow['benutzername']) ?></h2>
 
-        <?php if ($ok): ?><p class="badge badge--g"><?= e($ok) ?></p><?php endif; ?>
-        <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+        <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
+        <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
         <form method="post">
           <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
           <input type="hidden" name="action" value="update">
           <input type="hidden" name="id" value="<?= (int)$userRow['id'] ?>">
 
-          <label>Anzeigename</label>
-          <input name="anzeigename" value="<?= e($userRow['anzeigename'] ?? '') ?>">
+          <label for="anzeigename_edit">Anzeigename</label>
+          <input id="anzeigename_edit" name="anzeigename" value="<?= e($userRow['anzeigename'] ?? '') ?>">
 
-          <label>Neues Passwort (optional)</label>
-          <input type="password" name="passwort" placeholder="leer lassen = unverändert">
+          <label for="passwort_edit">Neues Passwort (optional)</label>
+          <input id="passwort_edit" type="password" name="passwort" placeholder="leer lassen = unverändert">
 
           <label><input type="checkbox" name="aktiv" value="1" <?= ((int)$userRow['aktiv'] === 1 ? 'checked' : '') ?>> Aktiv</label>
 
@@ -135,21 +135,21 @@ $users = db_all("SELECT id, benutzername, anzeigename, aktiv, created_at, last_l
     <div class="card">
       <h2>Neuen Benutzer anlegen</h2>
 
-      <?php if ($ok): ?><p class="badge badge--g"><?= e($ok) ?></p><?php endif; ?>
-      <?php if ($err): ?><p class="badge badge--r"><?= e($err) ?></p><?php endif; ?>
+      <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
+      <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
       <form method="post">
         <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="create">
 
-        <label>Benutzername</label>
-        <input name="benutzername" required>
+        <label for="benutzername_create">Benutzername</label>
+        <input id="benutzername_create" name="benutzername" required aria-required="true">
 
-        <label>Anzeigename (optional)</label>
-        <input name="anzeigename">
+        <label for="anzeigename_create">Anzeigename (optional)</label>
+        <input id="anzeigename_create" name="anzeigename">
 
-        <label>Passwort</label>
-        <input type="password" name="passwort" required>
+        <label for="passwort_create">Passwort</label>
+        <input id="passwort_create" type="password" name="passwort" required aria-required="true">
 
         <label><input type="checkbox" name="aktiv" value="1" checked> Aktiv</label>
 
@@ -166,7 +166,7 @@ $users = db_all("SELECT id, benutzername, anzeigename, aktiv, created_at, last_l
       <div class="tablewrap">
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>User</th><th>Name</th><th>Aktiv</th><th>Aktion</th></tr>
+            <tr><th scope="col">ID</th><th scope="col">User</th><th scope="col">Name</th><th scope="col">Aktiv</th><th scope="col">Aktion</th></tr>
           </thead>
           <tbody>
             <?php foreach ($users as $ur): ?>
