@@ -88,7 +88,7 @@ $assets = db_all("... LIMIT $maxAssets");
 $samples = db_all("... LIMIT $limitSamplesPerAsset", ...);
 ```
 
-Der Webzugriff ist durch den CLI-Guard (Zeile 2) gesperrt. Da `$_GET` im CLI-Modus leer ist, erhalten die Variablen immer die Defaultwerte. Die SQL-Interpolation ist damit aktuell **nicht** ausnutzbar.
+Der Webzugriff ist durch den CLI-Guard in Zeile 2 gesperrt (`if (php_sapi_name() !== 'cli') { http_response_code(403); exit('Forbidden'); }`). Da `$_GET` im CLI-Modus leer ist, erhalten die Variablen immer die Defaultwerte. Die SQL-Interpolation ist damit aktuell **nicht** ausnutzbar.
 
 **Latentes Risiko:** Sollte der CLI-Guard versehentlich entfernt werden oder das Skript via PHP-CGI/PHP-FPM aufgerufen werden können, besteht ein Integer-Overflow-Risiko im LIMIT-Ausdruck.
 
@@ -302,9 +302,9 @@ Es gibt keine Unit-Tests, Integrations-Tests oder End-to-End-Tests.
 
 Konfiguration läuft über `src/config.php`. Es gibt kein `.env`-basiertes System. Deployments in verschiedene Umgebungen (dev/staging/prod) erfordern manuelle Kopien.
 
-**Zusätzlich:** `src/config.php` ist nicht in `.gitignore` aufgelistet (Annahme: es gibt keine `.gitignore`-Überprüfung für diese Datei).
+**Hinweis:** `/src/config.php` ist bereits in `.gitignore` eingetragen – Credentials werden damit nicht versehentlich versioniert. ✓
 
-**Gegenmaßnahme:** `vlucas/phpdotenv` einführen oder natives `$_ENV`-basiertes System. Sicherstellen, dass `src/config.php` in `.gitignore` steht.
+**Gegenmaßnahme:** `vlucas/phpdotenv` einführen oder natives `$_ENV`-basiertes System, um Umgebungsvariablen sauber zu trennen.
 
 ---
 
