@@ -36,6 +36,13 @@ Format:
   - require_login: 1
   - sort: 111
 
+- `wartung.punkt_dokument_upload`
+  - Titel: Wartungspunkt – Dokument hochladen
+  - Datei: module/wartungstool/punkt_dokument_upload.php
+  - modul/objekt_typ/objekt_id: wartungstool / global / NULL
+  - require_login: 1
+  - sort: 112
+
 - `wartung.uebersicht`
   - Titel: Wartung – Übersicht
   - Datei: module/wartungstool/uebersicht.php
