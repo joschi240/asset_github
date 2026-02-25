@@ -45,14 +45,12 @@ function can(string $modul, string $recht): bool {
   if (!$u) return false;
   $userId = (int)$u['id'];
 
-  // Admin wildcard
-  if (is_admin_user($userId)) return true;
-
   // Whitelist column names to prevent any SQL injection
   $allowedCols = ['sehen' => 'darf_sehen', 'aendern' => 'darf_aendern', 'loeschen' => 'darf_loeschen'];
   if (!isset($allowedCols[$recht])) return false;
   $col = $allowedCols[$recht];
 
+  // Fallback: exakt (modul) oder wildcard (modul='*')
   $row = db_one(
     "SELECT MAX($col) AS ok FROM core_permission
      WHERE user_id=? AND (modul=? OR modul='*')

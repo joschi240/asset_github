@@ -45,27 +45,21 @@ function user_can_see(?int $userId, ?string $modul, ?string $objektTyp, ?int $ob
   if (!$modul || !$objektTyp) return true;
   if (!$userId) return false;
 
-  $admin = db_one(
-    "SELECT 1 FROM core_permission
-     WHERE user_id=? AND modul='*' AND darf_sehen=1
-     LIMIT 1",
-    [$userId]
-  );
-  if ($admin) return true;
-
+  // Fallback-Reihenfolge: exakt → global objekt_id → objekt_typ='global' → wildcard
   $row = db_one(
-    "SELECT 1
+    "SELECT MAX(darf_sehen) AS ok
      FROM core_permission
      WHERE user_id=?
-       AND modul=?
-       AND objekt_typ=?
-       AND darf_sehen=1
-       AND (objekt_id IS NULL OR objekt_id = ?)
-     LIMIT 1",
-    [$userId, $modul, $objektTyp, $objektId]
+       AND (
+         (modul=? AND objekt_typ=? AND (objekt_id IS NULL OR objekt_id=?))
+         OR (modul=? AND objekt_typ='global')
+         OR (modul='*' AND objekt_typ='*')
+         OR (modul='*' AND objekt_typ='global')
+       )",
+    [$userId, $modul, $objektTyp, $objektId, $modul]
   );
 
-  return (bool)$row;
+  return (int)($row['ok'] ?? 0) === 1;
 }
 
 /**
