@@ -121,16 +121,21 @@ if (!function_exists('user_can_flag')) {
     // Objekt-ID optional (NULL => global)
     $objektId = ($objektId === null) ? null : (int)$objektId;
 
-    // Matching: entweder spezifisches Objekt oder global (objekt_id IS NULL)
-    // MAX() gibt 1 zurück, wenn irgendein passender Eintrag 1 ist.
+    // Matching-Priorität (alle Varianten in einer Abfrage via OR, MAX gibt 1 wenn irgendeine greift):
+    // 1. Exakt: (modul, objekt_typ, objekt_id oder global)
+    // 2. Modul + objekt_typ='global' (objekt_id NULL)
+    // 3. Wildcard: modul='*' AND objekt_typ='*' (objekt_id NULL)
+    // 4. Wildcard: modul='*' AND objekt_typ='global' (objekt_id NULL)
     $row = db_one(
       "SELECT MAX($flagCol) AS ok
        FROM core_permission
        WHERE user_id=?
-         AND modul=?
-         AND objekt_typ=?
-         AND (objekt_id IS NULL OR objekt_id=?)",
-      [$userId, $modul, $objektTyp, $objektId]
+         AND (
+           (modul=? AND objekt_typ=? AND (objekt_id IS NULL OR objekt_id=?))
+           OR (modul=? AND objekt_typ='global' AND objekt_id IS NULL)
+           OR (modul='*' AND objekt_typ IN ('*','global') AND objekt_id IS NULL)
+         )",
+      [$userId, $modul, $objektTyp, $objektId, $modul]
     );
 
     return (int)($row['ok'] ?? 0) === 1;

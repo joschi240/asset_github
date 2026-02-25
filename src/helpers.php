@@ -47,7 +47,7 @@ function user_can_see(?int $userId, ?string $modul, ?string $objektTyp, ?int $ob
 
   $admin = db_one(
     "SELECT 1 FROM core_permission
-     WHERE user_id=? AND modul='*' AND darf_sehen=1
+     WHERE user_id=? AND modul='*' AND objekt_typ IN ('*','global') AND darf_sehen=1
      LIMIT 1",
     [$userId]
   );
@@ -57,12 +57,12 @@ function user_can_see(?int $userId, ?string $modul, ?string $objektTyp, ?int $ob
     "SELECT 1
      FROM core_permission
      WHERE user_id=?
-       AND modul=?
-       AND objekt_typ=?
-       AND darf_sehen=1
-       AND (objekt_id IS NULL OR objekt_id = ?)
+       AND (
+         (modul=? AND objekt_typ=? AND darf_sehen=1 AND (objekt_id IS NULL OR objekt_id = ?))
+         OR (modul=? AND objekt_typ='global' AND darf_sehen=1 AND objekt_id IS NULL)
+       )
      LIMIT 1",
-    [$userId, $modul, $objektTyp, $objektId]
+    [$userId, $modul, $objektTyp, $objektId, $modul]
   );
 
   return (bool)$row;
@@ -78,7 +78,7 @@ function has_any_user(): bool {
 function is_admin_user(?int $userId): bool {
   if (!$userId) return false;
   return (bool)db_one(
-    "SELECT 1 FROM core_permission WHERE user_id=? AND modul='*' AND darf_sehen=1 LIMIT 1",
+    "SELECT 1 FROM core_permission WHERE user_id=? AND modul='*' AND objekt_typ IN ('*','global') AND darf_sehen=1 LIMIT 1",
     [$userId]
   );
 }
