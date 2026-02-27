@@ -1,0 +1,32 @@
+/* UI v2 Base (scoped) */
+
+body.ui-v2 {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body.ui-v2 a {
+  color: inherit;
+}
+
+body.ui-v2 .ui-muted {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+body.ui-v2 .ui-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--s-5);
+}
+
+body.ui-v2 .ui-page-title {
+  font-size: var(--fs-xl);
+  letter-spacing: -0.2px;
+  margin: 0 0 var(--s-2);
+}
+
+body.ui-v2 .ui-page-subtitle {
+  margin: 0 0 var(--s-5);
+  color: var(--text-muted);
+}

@@ -9,6 +9,14 @@ function render_header(string $title): void {
 
   $menu = load_menu_tree('main');
 
+  // Route aus Query (für UI-Schalter / CSS-Scoping)
+  $route = (string)($_GET['r'] ?? '');
+  $isWartung = str_starts_with($route, 'wartung.');
+  $isTicket  = str_starts_with($route, 'stoerung.') || $route === 'ticket' || str_contains($route, 'ticket');
+
+  // UI v2: Seiten wie wartung.* rendern ihren eigenen Page Header → Layout-Titel ausblenden
+  $hideLayoutTitle = $isWartung;
+
   ?>
   <!doctype html>
   <html lang="de">
@@ -16,10 +24,22 @@ function render_header(string $title): void {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= e($title) ?></title>
-    <link rel="stylesheet" href="<?= e($base) ?>/src/css/main.css">
-    <link rel="stylesheet" href="<?= e($base) ?>/src/css/ticket.css">
+
+    <!-- legacy -->
+    <link rel="stylesheet" href="<?= e($base) ?>/src/css/main.css?v=<?= (int)@filemtime(__DIR__ . '/css/main.css') ?>">
+
+    <?php if ($isTicket): ?>
+      <link rel="stylesheet" href="<?= e($base) ?>/src/css/ticket.css?v=<?= (int)@filemtime(__DIR__ . '/css/ticket.css') ?>">
+    <?php endif; ?>
+
+    <!-- UI v2 foundation (loaded after main.css so it can override) -->
+    <link rel="stylesheet" href="<?= e($base) ?>/src/css/ui-v2/tokens.css?v=<?= (int)@filemtime(__DIR__ . '/css/ui-v2/tokens.css') ?>">
+    <link rel="stylesheet" href="<?= e($base) ?>/src/css/ui-v2/base.css?v=<?= (int)@filemtime(__DIR__ . '/css/ui-v2/base.css') ?>">
+    <link rel="stylesheet" href="<?= e($base) ?>/src/css/ui-v2/components.css?v=<?= (int)@filemtime(__DIR__ . '/css/ui-v2/components.css') ?>">
+    <link rel="stylesheet" href="<?= e($base) ?>/src/css/ui-v2/layout.css?v=<?= (int)@filemtime(__DIR__ . '/css/ui-v2/layout.css') ?>">
   </head>
-  <body>
+
+  <body class="ui-v2">
   <a class="skip-link" href="#main-content">Zum Inhalt springen</a>
   <div class="app">
 
@@ -80,9 +100,12 @@ function render_header(string $title): void {
     </aside>
 
     <main class="content" id="main-content" tabindex="-1">
-      <div class="content__top">
-        <h1><?= e($title) ?></h1>
-      </div>
+      <?php if (!$hideLayoutTitle): ?>
+        <div class="content__top">
+          <h1><?= e($title) ?></h1>
+        </div>
+      <?php endif; ?>
+
       <div class="content__body">
   <?php
 }

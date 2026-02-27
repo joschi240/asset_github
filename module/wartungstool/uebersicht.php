@@ -30,20 +30,35 @@ if ($assetId <= 0 && !empty($assets)) {
 }
 
 // Hilfsfunktionen
-function ampel_from_rest(?float $restHours, float $intervalHours): array {
-  if ($restHours === null) return ['cls'=>'', 'label'=>'Neu/Unbekannt'];
-  if ($restHours < 0) return ['cls'=>'badge--r','label'=>'Überfällig'];
-  $ratio = $intervalHours > 0 ? ($restHours / $intervalHours) : 1.0;
-  if ($ratio <= 0.20) return ['cls'=>'badge--y','label'=>'Bald fällig'];
-  return ['cls'=>'badge--g','label'=>'OK'];
+function ratio_limit(?float $soonRatio): float {
+  // soon_ratio = Anteil vom Intervall (z.B. 0.2 = 20%)
+  if ($soonRatio === null) return 0.20;
+  $v = (float)$soonRatio;
+  if ($v <= 0) return 0.20;
+  if ($v > 1.0) return 1.0; // clamp
+  return $v;
 }
 
-function is_open_item(?float $restHours, float $intervalHours): bool {
+function ampel_from_rest(?float $restHours, float $intervalHours, ?float $soonRatio = null): array {
+  if ($restHours === null) return ['cls'=>'ui-badge', 'label'=>'Neu/Unbekannt'];
+  if ($restHours < 0) return ['cls'=>'ui-badge ui-badge--danger','label'=>'Überfällig'];
+
+  $ratio = $intervalHours > 0 ? ($restHours / $intervalHours) : 1.0;
+  $limit = ratio_limit($soonRatio);
+
+  if ($ratio <= $limit) return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig'];
+  return ['cls'=>'ui-badge ui-badge--ok','label'=>'OK'];
+}
+
+function is_open_item(?float $restHours, float $intervalHours, ?float $soonRatio = null): bool {
   // "offen" = überfällig oder bald fällig oder unbekannt (initiale Wartung)
   if ($restHours === null) return true;
   if ($restHours < 0) return true;
+
   $ratio = $intervalHours > 0 ? ($restHours / $intervalHours) : 1.0;
-  return ($ratio <= 0.20);
+  $limit = ratio_limit($soonRatio);
+
+  return ($ratio <= $limit);
 }
 
 function extract_ticket_marker(?string $bemerkung): ?int {
@@ -80,6 +95,7 @@ if ($assetId > 0) {
     SELECT
       wp.id, wp.asset_id, wp.text_kurz, wp.text_lang,
       wp.intervall_typ, wp.plan_interval, wp.letzte_wartung, wp.datum,
+      wp.soon_ratio,
       wp.messwert_pflicht, wp.grenzwert_min, wp.grenzwert_max, wp.einheit,
       lp.datum AS last_datum,
       lp.status AS last_status,
@@ -127,8 +143,10 @@ if ($assetId > 0) {
       }
     }
 
-    $ampel = ampel_from_rest($restHours, $interval);
-    $open = is_open_item($restHours, $interval);
+    $sr = ($wp['soon_ratio'] !== null ? (float)$wp['soon_ratio'] : null);
+
+    $ampel = ampel_from_rest($restHours, $interval, $sr);
+    $open  = is_open_item($restHours, $interval, $sr);
 
     // optional: Ticket Marker aus letzter Bemerkung
     $ticketId = extract_ticket_marker($wp['last_bemerkung'] ?? null);
@@ -172,50 +190,53 @@ if ($mode === 'offen') {
 }
 ?>
 
-<div class="card">
-  <h1>Wartung – Übersicht (pro Anlage)</h1>
-  <p class="small">
-    Oben Anlage wählen. Unten: Wartungspunkte sortiert nach Fälligkeit. „OK“ wird eingeklappt.
-  </p>
+<div class="ui-container">
 
-  <form method="get" action="<?= e($base) ?>/app.php" style="margin-top:10px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
-    <input type="hidden" name="r" value="wartung.uebersicht">
-
-    <div style="min-width:360px; flex:1;">
-      <label for="uebersicht_asset_id">Anlage auswählen</label>
-      <select id="uebersicht_asset_id" name="asset_id" onchange="this.form.submit()">
-        <?php foreach ($assets as $a): ?>
-          <option value="<?= (int)$a['id'] ?>" <?= ((int)$a['id'] === $assetId ? 'selected' : '') ?>>
-            <?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?>
-            <?= e(' · ' . ($a['kategorie_name'] ?: '—') . ' · Krit ' . (int)$a['kritischkeitsstufe']) ?>
-          </option>
-        <?php endforeach; ?>
-      </select>
-    </div>
-
-    <div style="min-width:220px;">
-      <label for="uebersicht_mode">Anzeige</label>
-      <select id="uebersicht_mode" name="mode" onchange="this.form.submit()">
-        <option value="offen" <?= $mode==='offen' ? 'selected' : '' ?>>nur offene</option>
-        <option value="alle" <?= $mode==='alle' ? 'selected' : '' ?>>alle</option>
-      </select>
-    </div>
-
-    <noscript>
-      <div style="margin-top:10px;">
-        <button class="btn" type="submit">Anzeigen</button>
-      </div>
-    </noscript>
-  </form>
-</div>
+  <div class="ui-page-header" style="margin: 0 0 var(--s-5) 0;">
+    <h1 class="ui-page-title">Wartung – Übersicht</h1>
+    <p class="ui-page-subtitle ui-muted">
+      Anlage wählen, Wartungspunkte nach Fälligkeit prüfen. „OK“ kann optional eingeklappt werden.
+    </p>
+  </div>
 
 <?php if (!$asset): ?>
-  <div class="card">
+  <div class="ui-card">
     <h2>Keine Anlage gefunden</h2>
     <p class="small">Bitte Anlage auswählen.</p>
   </div>
 <?php else: ?>
-  <div class="card">
+
+  <div class="ui-card ui-filterbar">
+    <form method="get" action="<?= e($base) ?>/app.php" class="ui-filterbar__form">
+      <input type="hidden" name="r" value="wartung.uebersicht">
+
+      <div class="ui-filterbar__group">
+        <label for="uebersicht_asset_id">Anlage</label>
+        <select id="uebersicht_asset_id" name="asset_id">
+          <?php foreach ($assets as $a): ?>
+            <option value="<?= (int)$a['id'] ?>" <?= ((int)$a['id'] === $assetId ? 'selected' : '') ?>>
+              <?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?>
+              <?= e(' · ' . ($a['kategorie_name'] ?: '—') . ' · Krit ' . (int)$a['kritischkeitsstufe']) ?>
+            </option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+
+      <div class="ui-filterbar__group">
+        <label for="uebersicht_mode">Anzeige</label>
+        <select id="uebersicht_mode" name="mode">
+          <option value="offen" <?= $mode==='offen' ? 'selected' : '' ?>>nur offene</option>
+          <option value="alle" <?= $mode==='alle' ? 'selected' : '' ?>>alle</option>
+        </select>
+      </div>
+
+      <div class="ui-filterbar__actions">
+        <button class="ui-btn ui-btn--primary" type="submit">Filter anwenden</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="ui-card">
     <h2><?= e(($asset['code'] ? $asset['code'].' — ' : '') . $asset['name']) ?></h2>
     <div class="small">
       <?= e($asset['asset_typ'] ?: '') ?>
@@ -227,13 +248,13 @@ if ($mode === 'offen') {
     </div>
   </div>
 
-  <div class="card">
+  <div class="ui-card">
     <h2><?= $mode === 'offen' ? 'Offene Wartungen' : 'Wartungspunkte (sortiert)' ?></h2>
 
     <?php if (empty($punkteToShow)): ?>
       <p class="small">Keine passenden Wartungspunkte.</p>
     <?php else: ?>
-      <table class="table">
+      <table class="ui-table">
         <thead>
           <tr>
             <th scope="col">Ampel</th>
@@ -250,10 +271,10 @@ if ($mode === 'offen') {
             $wp = $p['wp'];
           ?>
           <tr>
-            <td><span class="badge <?= e($p['ampel']['cls']) ?>"><?= e($p['ampel']['label']) ?></span></td>
+            <td><span class="<?= e($p['ampel']['cls']) ?>"><?= e($p['ampel']['label']) ?></span></td>
 
             <td>
-              <a href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wp['id'] ?>">
+              <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wp['id'] ?>">
                 <?= e($wp['text_kurz']) ?>
               </a>
               <div class="small">WP #<?= (int)$wp['id'] ?></div>
@@ -283,7 +304,7 @@ if ($mode === 'offen') {
               <?php endif; ?>
             </td>
 
-            <td class="small">
+            <td class="small ui-last-entry">
               <?php if (!empty($wp['last_datum'])): ?>
                 <div>
                   <b><?= e($wp['last_status']) ?></b>
@@ -297,7 +318,7 @@ if ($mode === 'offen') {
                   <div><?= e(short_text($wp['last_bemerkung'], 100)) ?></div>
                 <?php endif; ?>
                 <?php if ($p['ticket_id']): ?>
-                  <div><span class="badge">Ticket <?= (int)$p['ticket_id'] ?></span></div>
+                  <div><span class="ui-badge">Ticket <?= (int)$p['ticket_id'] ?></span></div>
                 <?php endif; ?>
               <?php else: ?>
                 —
@@ -310,51 +331,6 @@ if ($mode === 'offen') {
     <?php endif; ?>
   </div>
 
-  <?php if ($mode === 'alle' && count($okList) > 0): ?>
-    <div class="card">
-      <details>
-        <summary style="cursor:pointer; font-weight:600;">
-          OK Punkte einklappen/anzeigen (<?= count($okList) ?>)
-        </summary>
-        <div style="margin-top:10px;">
-          <table class="table">
-            <thead>
-              <tr>
-                <th scope="col">Ampel</th>
-                <th scope="col">Punkt</th>
-                <th scope="col">Typ</th>
-                <th scope="col">Fällig bei</th>
-                <th scope="col">Rest</th>
-                <th scope="col">Letzter Eintrag</th>
-              </tr>
-            </thead>
-            <tbody>
-              <?php foreach ($okList as $p):
-                $wp = $p['wp'];
-              ?>
-              <tr>
-                <td><span class="badge <?= e($p['ampel']['cls']) ?>"><?= e($p['ampel']['label']) ?></span></td>
-                <td>
-                  <a href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wp['id'] ?>"><?= e($wp['text_kurz']) ?></a>
-                  <div class="small">WP #<?= (int)$wp['id'] ?></div>
-                </td>
-                <td><?= e($wp['intervall_typ']) ?></td>
-                <td><?= e($p['due']) ?></td>
-                <td><?= $p['rest'] === null ? '—' : number_format((float)$p['rest'], 1, ',', '.') . ' h' ?></td>
-                <td class="small">
-                  <?php if (!empty($wp['last_datum'])): ?>
-                    <b><?= e($wp['last_status']) ?></b> · <?= e($wp['last_datum']) ?>
-                  <?php else: ?>
-                    —
-                  <?php endif; ?>
-                </td>
-              </tr>
-              <?php endforeach; ?>
-            </tbody>
-          </table>
-        </div>
-      </details>
-    </div>
-  <?php endif; ?>
-
 <?php endif; ?>
+
+</div>

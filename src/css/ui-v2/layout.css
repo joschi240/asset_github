@@ -1,0 +1,123 @@
+/* UI v2 Layout (scoped) */
+
+body.ui-v2 .app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar shell */
+body.ui-v2 .sidebar {
+  width: 260px;
+  padding: 18px 14px;
+  background: linear-gradient(180deg, #0b1220 0%, #0a1020 100%);
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+/* Brand */
+body.ui-v2 .sidebar__brand a {
+  display: block;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+/* User box */
+body.ui-v2 .sidebar__user {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+body.ui-v2 .sidebar__user-name {
+  color: rgba(255,255,255,0.92);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+/* Make legacy buttons look like subtle sidebar actions */
+body.ui-v2 .sidebar__logout.btn,
+body.ui-v2 .sidebar__logout {
+  display: inline-flex;
+  justify-content: center;
+  width: 100%;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: rgba(255,255,255,0.92);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Nav */
+body.ui-v2 .sidebar__nav {
+  margin-top: 14px;
+}
+
+/* Group labels */
+body.ui-v2 .navgroup {
+  margin-top: 14px;
+  padding: 8px 12px;
+  color: rgba(255,255,255,0.55);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.ui-v2 .navsub {
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+/* Nav items */
+body.ui-v2 .navitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  color: rgba(255,255,255,0.86);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+body.ui-v2 .navitem:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+body.ui-v2 .navitem--sub {
+  margin-left: 10px;
+  padding-left: 12px;
+  color: rgba(255,255,255,0.76);
+}
+
+/* Active state */
+body.ui-v2 .navitem--active {
+  background: rgba(37, 99, 235, 0.22);
+  border: 1px solid rgba(37, 99, 235, 0.30);
+  color: #fff;
+}
+
+/* Content area */
+body.ui-v2 .content {
+  flex: 1;
+  padding: 24px 26px;
+}
+
+/* Remove legacy top padding blocks if present */
+body.ui-v2 .content__top {
+  margin-bottom: 18px;
+}
+
+body.ui-v2 .content__body {
+  padding: 0;
+}
