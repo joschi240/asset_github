@@ -293,6 +293,12 @@ CREATE TABLE IF NOT EXISTS wartungstool_wartungspunkt (
   text_lang TEXT DEFAULT NULL,
   intervall_typ ENUM('zeit','produktiv') NOT NULL DEFAULT 'zeit',
   plan_interval DOUBLE NOT NULL,
+
+  -- "Bald fällig" Schwelle: Gewinner = das Feld, das NICHT NULL ist
+  -- soon_hours gewinnt vor soon_ratio
+  soon_ratio DOUBLE DEFAULT NULL,
+  soon_hours DOUBLE DEFAULT NULL,
+
   letzte_wartung DOUBLE DEFAULT NULL,
   datum DATETIME DEFAULT NULL,
   messwert_pflicht TINYINT(1) NOT NULL DEFAULT 0,
@@ -306,6 +312,10 @@ CREATE TABLE IF NOT EXISTS wartungstool_wartungspunkt (
   KEY idx_asset (asset_id),
   KEY idx_aktiv (aktiv),
   KEY idx_intervall (intervall_typ),
+
+  -- optional: hilft bei Overview/Due-Queries
+  KEY idx_wp_asset_aktiv_typ (asset_id, aktiv, intervall_typ),
+
   CONSTRAINT fk_wp_asset FOREIGN KEY (asset_id) REFERENCES core_asset (id)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -10,9 +10,9 @@ $u = current_user();
 $userId = (int)($u['id'] ?? 0);
 
 // Rechte
-$canSeePunkt      = user_can_see($userId, 'wartungstool', 'global', null);
+$canSeePunkt = user_can_see($userId, 'wartungstool', 'global', null);
 $canSeeUebersicht = user_can_see($userId, 'wartungstool', 'global', null);
-$canAdmin         = user_can_edit($userId, 'wartungstool', 'global', null);
+$canAdmin = user_can_edit($userId, 'wartungstool', 'global', null);
 
 // Filter: all | due | soon | critical
 $f = (string)($_GET['f'] ?? 'all');
@@ -38,22 +38,23 @@ function rest_label(?float $rest): string {
   return number_format((float)$rest, 1, ',', '.') . ' h';
 }
 
-function clamp_ratio(?float $v): float {
-  if ($v === null) return 0.20;
-  $x = (float)$v;
-  if ($x <= 0) return 0.20;
-  if ($x > 1.0) return 1.0;
-  return $x;
-}
-
 function ui_badge_for(?float $rest, float $interval, ?float $soonRatio = null): array {
-  if ($rest === null) return ['cls'=>'ui-badge', 'label'=>'Keine Punkte', 'type'=>'none'];
-  if ($rest < 0) return ['cls'=>'ui-badge ui-badge--danger','label'=>'Überfällig', 'type'=>'due'];
+
+  if ($rest === null)
+    return ['cls'=>'ui-badge', 'label'=>'Keine Punkte', 'type'=>'none'];
+
+  if ($rest < 0)
+    return ['cls'=>'ui-badge ui-badge--danger','label'=>'Überfällig', 'type'=>'due'];
+
+  $ratioLimit = ($soonRatio !== null && $soonRatio > 0)
+    ? $soonRatio
+    : 0.20; // Fallback
 
   $ratio = $interval > 0 ? ($rest / $interval) : 1.0;
-  $limit = clamp_ratio($soonRatio);
 
-  if ($ratio <= $limit) return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig', 'type'=>'soon'];
+  if ($ratio <= $ratioLimit)
+    return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig', 'type'=>'soon'];
+
   return ['cls'=>'ui-badge ui-badge--ok','label'=>'OK', 'type'=>'ok'];
 }
 
@@ -65,6 +66,7 @@ function trend_badge(string $trend): array {
 
 function pct_label(?float $pct): string {
   if ($pct === null) return '—';
+  // Cap-Anzeige nicer
   if ($pct >= 999.0) return '≥ 999%';
   if ($pct <= -999.0) return '≤ -999%';
   return number_format((float)$pct, 1, ',', '.') . '%';
@@ -196,15 +198,9 @@ function berechneDashboard(int $assetId): array {
   ];
 }
 
-// URL-Helper: behält f + q, aber erlaubt override via $params['q']
 function dash_url(string $base, string $f, string $q, array $params = []): string {
   $query = array_merge(['r' => 'wartung.dashboard', 'f' => $f], $params);
-
-  // nur übernehmen, wenn noch kein override gesetzt wurde
-  if (!array_key_exists('q', $query) && $q !== '') {
-    $query['q'] = $q;
-  }
-
+  if ($q !== '') $query['q'] = $q;
   return $base . '/app.php?' . http_build_query($query);
 }
 
@@ -235,14 +231,15 @@ function renderSimpleTable(array $rows, string $title, string $base, bool $canSe
           <?php else: ?>
             <?php foreach ($rows as $r): ?>
               <?php
-                $interval = ($r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0);
+                $interval = isset($r['wp_interval']) && $r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0;
                 $ampel = ui_badge_for($r['rest'], $interval, $r['soon_ratio'] ?? null);
-
-                $assetLabel  = (($r['code'] ? $r['code'].' — ' : '') . ($r['name'] ?? ''));
+                $assetLabel = (($r['code'] ? $r['code'].' — ' : '') . ($r['name'] ?? ''));
                 $assetSearch = (string)($r['code'] ?: ($r['name'] ?? ''));
               ?>
               <tr>
-                <td><span class="<?= e($ampel['cls']) ?>"><?= e($ampel['label']) ?></span></td>
+                <td>
+                  <span class="<?= e($ampel['cls']) ?>"><?= e($ampel['label']) ?></span>
+                </td>
 
                 <td>
                   <div>
@@ -275,11 +272,15 @@ function renderSimpleTable(array $rows, string $title, string $base, bool $canSe
                   <?php endif; ?>
                 </td>
 
-                <td><strong><?= e(rest_label($r['rest'])) ?></strong></td>
+                <td>
+                  <strong><?= e(rest_label($r['rest'])) ?></strong>
+                </td>
 
                 <td class="ui-td-actions">
                   <?php if (!empty($r['wp_id']) && $canSeePunkt): ?>
-                    <a class="ui-btn ui-btn--sm ui-btn--primary" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$r['wp_id'] ?>">Öffnen</a>
+                    <a class="ui-btn ui-btn--sm ui-btn--primary" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$r['wp_id'] ?>">
+                      Öffnen
+                    </a>
                   <?php else: ?>
                     <span class="ui-muted small">—</span>
                   <?php endif; ?>
@@ -319,8 +320,8 @@ usort($unwichtig, $sortFn);
 
 // KPI counts + Filter-Logik
 $kritischCount = count($wichtig);
-$weitereCount  = count($unwichtig);
-$gesamtCount   = $kritischCount + $weitereCount;
+$weitereCount = count($unwichtig);
+$gesamtCount = $kritischCount + $weitereCount;
 
 $ueberfaellig = 0;
 $bald = 0;
@@ -328,7 +329,7 @@ $bald = 0;
 $allRows = array_merge($wichtig, $unwichtig);
 
 foreach ($allRows as $r) {
-  $interval = ($r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0);
+  $interval = isset($r['wp_interval']) && $r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0;
   $ampel = ui_badge_for($r['rest'], $interval, $r['soon_ratio'] ?? null);
   if ($ampel['type'] === 'due') $ueberfaellig++;
   if ($ampel['type'] === 'soon') $bald++;
@@ -337,13 +338,15 @@ foreach ($allRows as $r) {
 // Apply filter
 $filterFn = function($r) use ($f, $qNorm) {
   $krit = (int)($r['kritischkeitsstufe'] ?? 1);
-  $interval = ($r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0);
+  $interval = isset($r['wp_interval']) && $r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0;
   $ampel = ui_badge_for($r['rest'], $interval, $r['soon_ratio'] ?? null);
 
+  // f-Filter
   if ($f === 'critical' && $krit < 3) return false;
   if ($f === 'due' && $ampel['type'] !== 'due') return false;
   if ($f === 'soon' && $ampel['type'] !== 'soon') return false;
 
+  // q-Filter (substring match)
   if ($qNorm !== '') {
     $hay = [
       (string)($r['code'] ?? ''),
@@ -357,15 +360,16 @@ $filterFn = function($r) use ($f, $qNorm) {
 
   return true;
 };
-
-$wichtigF  = array_values(array_filter($wichtig, $filterFn));
+// gefilterte Listen
+$wichtigF = array_values(array_filter($wichtig, $filterFn));
 $unwichtigF = array_values(array_filter($unwichtig, $filterFn));
 
-// Trend Insights
+// Trend Insights: Δh primary
 $rowsWithTrend = array_filter($allRows, fn($r) => isset($r['trend_delta_h']));
 
 $topUp = $rowsWithTrend;
 usort($topUp, function($a, $b) {
+  // 'neu' zuerst nach Δh, sonst nach %
   $am = $a['trend_mode'] ?? 'pct';
   $bm = $b['trend_mode'] ?? 'pct';
 
@@ -375,6 +379,7 @@ usort($topUp, function($a, $b) {
   if ($am === 'neu' && $bm === 'neu') {
     return ((float)($b['trend_delta_h'] ?? 0)) <=> ((float)($a['trend_delta_h'] ?? 0));
   }
+
   return ((float)($b['trend_pct'] ?? 0)) <=> ((float)($a['trend_pct'] ?? 0));
 });
 $topUp = array_slice($topUp, 0, 5);
@@ -384,6 +389,7 @@ usort($topDown, function($a, $b) {
   $am = $a['trend_mode'] ?? 'pct';
   $bm = $b['trend_mode'] ?? 'pct';
 
+  // 'neu' ist quasi steigend => bei fallend ans Ende
   if ($am === 'neu' && $bm !== 'neu') return 1;
   if ($bm === 'neu' && $am !== 'neu') return -1;
 
@@ -426,20 +432,16 @@ if ($sumOld > 0) {
 $gBadge = trend_badge($globalTrend);
 
 // KPI URLs (behält q)
-$mkUrl = function(string $f2) use ($base, $q) {
-  $url = $base . '/app.php?r=wartung.dashboard&f=' . urlencode($f2);
+$mkUrl = function(string $fTarget) use ($base, $q) {
+  $url = $base . '/app.php?r=wartung.dashboard&f=' . urlencode($fTarget);
   if ($q !== '') $url .= '&q=' . urlencode($q);
   return $url;
 };
 
-// generischer URL-Builder (behält f + q, aber erlaubt override)
+// generischer URL-Builder (behält f + q)
 $mkDashUrl = function(array $params = []) use ($base, $f, $q) {
   $query = array_merge(['r' => 'wartung.dashboard', 'f' => $f], $params);
-
-  if (!array_key_exists('q', $query) && $q !== '') {
-    $query['q'] = $q;
-  }
-
+  if ($q !== '') $query['q'] = $q;
   return $base . '/app.php?' . http_build_query($query);
 };
 ?>
@@ -578,7 +580,7 @@ $mkDashUrl = function(array $params = []) use ($base, $f, $q) {
                 <div style="min-width:0;">
                   <div>
                     <strong>
-                      <a class="ui-link" href="<?= e($mkDashUrl(['q' => ($r['code'] ?: $r['name'])])) ?>">
+                      <a class="ui-link" href="<?= e($mkDashUrl(['q' => $r['code'] ?: $r['name']])) ?>">
                         <?= e(($r['code'] ? $r['code'].' — ' : '') . $r['name']) ?>
                       </a>
                     </strong>
@@ -616,7 +618,7 @@ $mkDashUrl = function(array $params = []) use ($base, $f, $q) {
                 <div style="min-width:0;">
                   <div>
                     <strong>
-                      <a class="ui-link" href="<?= e($mkDashUrl(['q' => ($r['code'] ?: $r['name'])])) ?>">
+                      <a class="ui-link" href="<?= e($mkDashUrl(['q' => $r['code'] ?: $r['name']])) ?>">
                         <?= e(($r['code'] ? $r['code'].' — ' : '') . $r['name']) ?>
                       </a>
                     </strong>

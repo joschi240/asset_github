@@ -8,6 +8,14 @@ Dieses UI ist **Desktop-first** (typische 2026-Monitore), aber so gebaut, dass e
 - Tabellen liegen in `.ui-table-wrap` (horizontal scroll möglich)
 - Komponenten sind wiederverwendbar (Cards, Badges, Buttons, Filterbar, KPI)
 
+### Wichtig: `main.css` ist veraltet
+
+- **Bitte nichts an `main.css` ändern.**
+- Neue/umgebaute Seiten nutzen ausschließlich das **UI-v2 Template** (Klassen mit Prefix `ui-…`).
+- Alt-Seiten werden schrittweise migriert. Während der Migration gilt:
+  - Neue Komponenten/Seiten: **UI-v2**
+  - Bestehende Alt-Seiten: bleiben bis zur Umstellung unverändert
+
 ---
 
 ## 1) Grundlayout
