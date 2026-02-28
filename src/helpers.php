@@ -75,10 +75,22 @@ function is_admin_user(?int $userId): bool {
   );
 }
 
+function audit_json($value): ?string {
+  if ($value === null) return null;
+  $flags = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+         | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR;
+  $encoded = json_encode($value, $flags);
+  if ($encoded === false) {
+    error_log('audit_json: json_encode failed – ' . json_last_error_msg());
+    return null;
+  }
+  return $encoded;
+}
+
 function audit_log(string $modul, string $entityType, int $entityId, string $action, $old = null, $new = null, ?int $actorUserId = null, ?string $actorText = null): void {
   $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-  $oldJson = $old !== null ? json_encode($old, JSON_UNESCAPED_UNICODE) : null;
-  $newJson = $new !== null ? json_encode($new, JSON_UNESCAPED_UNICODE) : null;
+  $oldJson = audit_json($old);
+  $newJson = audit_json($new);
 
   db_exec(
     "INSERT INTO core_audit_log (modul, entity_type, entity_id, action, actor_user_id, actor_text, ip_addr, old_json, new_json)
