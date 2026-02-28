@@ -158,6 +158,11 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
   ```
 - Kein `LIMIT 1` per Asset, kein Typ-Filter auf `intervall_typ`.
 
+> **TODO:** Dashboard-Darstellung umstellen auf:
+> - Pro Asset nur **eine Zeile** anzeigen.
+> - Wartungspunkte mit demselben Fälligkeitszeitpunkt gruppieren.
+> - Trendberechnung (basierend auf `core_runtime_agg_day`) wieder einbauen.
+
 ### Filter & Scope
 
 (Quelle: `module/wartungstool/dashboard.php:17–25`)
@@ -166,6 +171,23 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
 - Status-Filter: `?f=all|due|soon|ok|new|planned` (GET-Parameter)
 - Suche `?q=...` (serverseitig, sucht in Code/Name/Kategorie/WP)
 - Geplant-Flag: `?f=planned` zeigt alle WP mit `planned_at IS NOT NULL`
+
+### Trend-Berechnung (TODO – noch nicht implementiert)
+
+> **TODO:** Trendberechnung in `dashboard.php` noch einzubauen.  
+> Datenbasis: `core_runtime_agg_day` (letzte 28 Tage)
+
+```
+h14_new = SUM(run_seconds)/3600 der letzten 14 Tage
+h14_old = SUM(run_seconds)/3600 der 14 Tage davor
+
+Trend:
+  ▲ steigend: h14_new > h14_old * 1.10  (>+10%)
+  ▼ fallend:  h14_new < h14_old * 0.90  (<-10%)
+  ➝ stabil:  sonst
+
+wochenschnitt = h28 / 4   (Stunden/Woche Durchschnitt über 4 Wochen)
+```
 
 ---
 

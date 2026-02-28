@@ -69,6 +69,24 @@ Das Dashboard zeigt **alle** aktiven Wartungspunkte aller Anlagen (sowohl `zeit`
 
 ---
 
-## Trend
+## Trend (4-Wochen-Proxy)
 
-> Hinweis: Die Trend-Berechnung (basierend auf `core_runtime_agg_day`) wurde aus dem Dashboard entfernt. `dashboard.php` wertet `core_runtime_agg_day` aktuell nicht aus.
+> **TODO:** Trend-Berechnung wieder in das Dashboard einbauen.  
+> Geplantes Verhalten:
+> - Pro Asset wird nur **ein** Eintrag angezeigt.
+> - Wartungspunkte mit demselben Fälligkeitszeitpunkt werden gruppiert.
+> - Trendberechnung basierend auf `core_runtime_agg_day`.
+
+Datenbasis: `core_runtime_agg_day`
+
+Vergleich:
+- Summe Laufzeit der **letzten 14 Tage** vs. **davorliegende 14 Tage**
+
+Trend-Symbol:
+- ▲ steigend: `new > old * 1.10`
+- ▼ fallend: `new < old * 0.90`
+- ➝ stabil: sonst
+
+Zusätzlich:
+- Δh = `new - old` (primär stabil)
+- % = `(Δh / old) * 100` (sekundär, capped)

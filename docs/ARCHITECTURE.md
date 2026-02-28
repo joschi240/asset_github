@@ -153,6 +153,7 @@ tools/runtime_rollup.php
     ↓ → core_runtime_agg_day (run/stop/gaps pro Tag)
          ↑
          Verwendet von: uebersicht.php, punkt.php (Fälligkeit)
+         TODO: dashboard.php (Trend – geplant, noch nicht implementiert)
 ```
 
 ### Rollup-Logik (Zusammenfassung)
