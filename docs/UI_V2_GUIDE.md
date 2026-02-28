@@ -1,6 +1,6 @@
 # UI v2 Guide (Design System & Seiten-Patterns)
 
-Stand: 2026-02-27 (Europe/Berlin)  
+Stand: 2026-02-28 (aktualisiert; ursprünglich: 2026-02-27)  
 Ziel: Einheitliches UI für alle Module (Wartung / Störung / Admin) als Grundlage für weitere Seiten.
 
 Dieses UI ist **Desktop-first** (typische 2026-Monitore), aber so gebaut, dass ein späterer Mobile/Tablet-Step möglich ist:
@@ -8,13 +8,23 @@ Dieses UI ist **Desktop-first** (typische 2026-Monitore), aber so gebaut, dass e
 - Tabellen liegen in `.ui-table-wrap` (horizontal scroll möglich)
 - Komponenten sind wiederverwendbar (Cards, Badges, Buttons, Filterbar, KPI)
 
-### Wichtig: `main.css` ist veraltet
+### Wichtig: `main.css` ist veraltet (Legacy)
 
 - **Bitte nichts an `main.css` ändern.**
 - Neue/umgebaute Seiten nutzen ausschließlich das **UI-v2 Template** (Klassen mit Prefix `ui-…`).
 - Alt-Seiten werden schrittweise migriert. Während der Migration gilt:
   - Neue Komponenten/Seiten: **UI-v2**
   - Bestehende Alt-Seiten: bleiben bis zur Umstellung unverändert
+
+**Migrationsstatus (repo-verifiziert, Stand 2026-02-28):**
+(Quelle: `docs/PRIJECT_CONTEXT_v2.md`, Abschnitt „Migrationsstatus")
+
+| Seite | Status |
+|---|---|
+| `wartung.dashboard` (`module/wartungstool/dashboard.php`) | ✅ UI v2 |
+| `wartung.uebersicht` (`module/wartungstool/uebersicht.php`) | ✅ UI v2 |
+| `wartung.admin_punkte` (`module/wartungstool/admin_punkte.php`) | ✅ UI v2 |
+| `wartung.punkt` (`module/wartungstool/punkt.php`) | ⚠ UI v2 TODO |
 
 ---
 

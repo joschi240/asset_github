@@ -1,7 +1,7 @@
 # KNOWN_ROUTE_KEYS.md (DB-validiert)
 
-Stand: 24.02.2026  
-Quelle: `core_route` Dump (asset_ki)
+Stand: 2026-02-28 (aktualisiert; ursprünglich: 24.02.2026)  
+Quelle: `core_route` Dump (asset_ki) + `module/wartungstool/` Dateisystem-Verifikation
 
 Format:
 - route_key
@@ -42,6 +42,7 @@ Format:
   - modul/objekt_typ/objekt_id: wartungstool / global / NULL
   - require_login: 1
   - sort: 112
+  - (Quelle: Datei existiert: `module/wartungstool/punkt_dokument_upload.php`)
 
 - `wartung.uebersicht`
   - Titel: Wartung – Übersicht

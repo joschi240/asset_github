@@ -1,6 +1,7 @@
 # Audit-Log Analyse (Branch: ui_v2)
 
 > Nur Fakten. Keine Fixes. Jede Aussage mit Datei + Zeilen belegt.
+> Stand: 2026-02-28 (aktualisiert: Abschnitt 1 Hinweis auf `audit_json()` Änderung ergänzt).
 
 ---
 
@@ -33,14 +34,14 @@ function audit_log(
 | `actor_user_id` | Parameter `$actorUserId`                          |
 | `actor_text`    | Parameter `$actorText`                            |
 | `ip_addr`       | `$_SERVER['REMOTE_ADDR']` (Zeile 79)              |
-| `old_json`      | `json_encode($old, JSON_UNESCAPED_UNICODE)` (Zeile 80) — NULL wenn `$old === null`; bei Encoding-Fehler liefert `json_encode()` `false` (wird dann als Nicht-NULL-Wert übergeben) |
-| `new_json`      | `json_encode($new, JSON_UNESCAPED_UNICODE)` (Zeile 81) — NULL wenn `$new === null`; bei Encoding-Fehler liefert `json_encode()` `false` (wird dann als Nicht-NULL-Wert übergeben) |
+| `old_json`      | `json_encode($old, JSON_UNESCAPED_UNICODE)` — **Legacy-Hinweis:** Diese Datei dokumentiert eine frühere Version. Aktuelle Implementierung (`src/helpers.php:78–88`) nutzt `audit_json()` mit zusätzlichen Flags `JSON_UNESCAPED_SLASHES \| JSON_INVALID_UTF8_SUBSTITUTE \| JSON_PARTIAL_OUTPUT_ON_ERROR` und gibt `NULL` bei Fehler zurück (mit `error_log`). |
+| `new_json`      | `json_encode($new, JSON_UNESCAPED_UNICODE)` — Gleiche Anmerkung wie `old_json`. |
 
 ---
 
 ## 2) Schema `core_audit_log`
 
-**Datei:** `docs/db_schema.sql`, Zeilen 145–162  
+**Datei:** `docs/db_schema.sql`, Zeilen 145–162 
 (Identisch auch in `docs/db_schema_v2.sql` Zeilen 122–143 und `docs/asset_github_schema.sql` Zeilen 46–59)
 
 ```sql

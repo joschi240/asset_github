@@ -3,7 +3,7 @@
 
 > Hinweis: Das aktuelle Datenbankschema befindet sich in **asset_github_schema.sql**. Testdaten/Seeds sind in **asset_github_seed_testdaten.sql** zu finden.
 
-Stand: 24.02.2026  
+Stand: 2026-02-28 (aktualisiert; ursprünglich: 24.02.2026)  
 Ziel: Schnell verstehen, welche Tabellen „Core“ sind (stabil) und welche pro Modul flexibel verändert werden dürfen.
 
 ---
@@ -66,6 +66,10 @@ Diese Tabellen sind Grundlage für Wartungs-Fälligkeit und Prognosen.
   - intervall_typ: zeit|produktiv
   - plan_interval (h), letzte_wartung (bei produktiv), datum (bei zeit)
   - messwert_pflicht + grenzwerte + einheit
+  - **soon_ratio** (DOUBLE NULL): relativer Schwellwert für "Bald fällig" (0..1)
+  - **soon_hours** (DOUBLE NULL): absoluter Schwellwert in Stunden (hat Vorrang vor soon_ratio)
+  - Fallback: wenn beide NULL → Code-Default 0.20 (20 %)
+  - (Quelle: `docs/db_schema_v2.sql:298–300`, `module/wartungstool/punkt.php:50–74`)
   - aktiv
 
 - `wartungstool_protokoll`
