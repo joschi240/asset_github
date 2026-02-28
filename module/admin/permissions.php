@@ -56,16 +56,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $adminRow = perm_row($userId, '*', '*', null);
     if ($wantAdmin) {
       if ($adminRow) {
+        $oldPerm = $adminRow;
         db_exec("UPDATE core_permission SET darf_sehen=1, darf_aendern=1, darf_loeschen=1 WHERE id=?", [(int)$adminRow['id']]);
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+        audit_log('admin', 'permission', (int)$adminRow['id'], 'UPDATE', $oldPerm, $newPerm, $u['id'], $u['benutzername']);
       } else {
         db_exec(
           "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
            VALUES (?,?,?,?,1,1,1)",
           [$userId, '*', '*', null]
         );
+        $newId = (int)db()->lastInsertId();
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [$newId]);
+        audit_log('admin', 'permission', $newId, 'CREATE', null, $newPerm, $u['id'], $u['benutzername']);
       }
     } else {
-      if ($adminRow) db_exec("DELETE FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+      if ($adminRow) {
+        $oldPerm = $adminRow;
+        db_exec("DELETE FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+        audit_log('admin', 'permission', (int)$adminRow['id'], 'DELETE', $oldPerm, null, $u['id'], $u['benutzername']);
+      }
     }
 
     // Route-Permissions
@@ -84,21 +94,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $row = perm_row($userId, $modul, $objt, $oid);
 
       if ($see === 0 && $chg === 0 && $del === 0) {
-        if ($row) db_exec("DELETE FROM core_permission WHERE id=?", [(int)$row['id']]);
+        if ($row) {
+          $oldPerm = $row;
+          db_exec("DELETE FROM core_permission WHERE id=?", [(int)$row['id']]);
+          audit_log('admin', 'permission', (int)$row['id'], 'DELETE', $oldPerm, null, $u['id'], $u['benutzername']);
+        }
         continue;
       }
 
       if ($row) {
+        $oldPerm = $row;
         db_exec(
           "UPDATE core_permission SET darf_sehen=?, darf_aendern=?, darf_loeschen=? WHERE id=?",
           [$see, $chg, $del, (int)$row['id']]
         );
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [(int)$row['id']]);
+        audit_log('admin', 'permission', (int)$row['id'], 'UPDATE', $oldPerm, $newPerm, $u['id'], $u['benutzername']);
       } else {
         db_exec(
           "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
            VALUES (?,?,?,?,?,?,?)",
           [$userId, $modul, $objt, $oid, $see, $chg, $del]
         );
+        $newId = (int)db()->lastInsertId();
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [$newId]);
+        audit_log('admin', 'permission', $newId, 'CREATE', null, $newPerm, $u['id'], $u['benutzername']);
       }
     }
 

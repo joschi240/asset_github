@@ -74,12 +74,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $url = ($url === '') ? null : $url;
 
       if ($iid > 0) {
+        $oldItem = db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, $mid]);
         db_exec(
           "UPDATE core_menu_item
            SET parent_id=?, label=?, route_key=?, url=?, modul=?, objekt_typ=?, objekt_id=?, sort=?, aktiv=?
            WHERE id=? AND menu_id=?",
           [$parent_id, $label, $route_key, $url, $modul, $objekt_typ, $objekt_id, $sort, $aktiv, $iid, $mid]
         );
+        $newItem = db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, $mid]);
+        audit_log('admin', 'menu_item', $iid, 'UPDATE', $oldItem ?: null, $newItem ?: null, $u['id'], $u['benutzername']);
         $ok = 'Menüeintrag gespeichert.';
       } else {
         db_exec(
@@ -87,12 +90,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            VALUES (?,?,?,?,?,?,?,?,?,?)",
           [$mid, $parent_id, $label, $route_key, $url, $modul, $objekt_typ, $objekt_id, $sort, $aktiv]
         );
+        $newId = (int)db()->lastInsertId();
+        $newItem = db_one("SELECT * FROM core_menu_item WHERE id=?", [$newId]);
+        audit_log('admin', 'menu_item', $newId, 'CREATE', null, $newItem ?: null, $u['id'], $u['benutzername']);
         $ok = 'Menüeintrag angelegt.';
       }
 
     } elseif ($postAction === 'delete') {
       $iid = (int)$_POST['id'];
+      $oldItem = db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, (int)$menu['id']]);
       db_exec("DELETE FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, (int)$menu['id']]);
+      audit_log('admin', 'menu_item', $iid, 'DELETE', $oldItem ?: null, null, $u['id'], $u['benutzername']);
       $ok = 'Menüeintrag gelöscht.';
     }
   } catch (Throwable $e) {
