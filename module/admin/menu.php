@@ -18,6 +18,9 @@ if (!is_admin_user($u['id'] ?? null)) {
   return;
 }
 
+$actorUserId = (int)($u['id'] ?? 0);
+$actorText = $u['anzeigename'] ?? $u['benutzername'] ?? 'admin';
+
 $menu = db_one("SELECT id, name FROM core_menu WHERE name='main' LIMIT 1");
 if (!$menu) {
   echo '<div class="ui-container"><div class="ui-card"><h2>Menü fehlt</h2><p class="small ui-muted">core_menu main existiert nicht.</p></div></div>';
@@ -68,12 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $url = ($url === '') ? null : $url;
 
       if ($iid > 0) {
+        $old = db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, $mid]);
         db_exec(
           "UPDATE core_menu_item
            SET parent_id=?, label=?, route_key=?, url=?, modul=?, objekt_typ=?, objekt_id=?, sort=?, aktiv=?
            WHERE id=? AND menu_id=?",
           [$parent_id, $label, $route_key, $url, $modul, $objekt_typ, $objekt_id, $sort, $aktiv, $iid, $mid]
         );
+        $new = db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, $mid]);
+        audit_log('admin', 'menu_item', $iid, 'UPDATE', $old, $new, $actorUserId ?: null, $actorText);
         $ok = 'Menüeintrag gespeichert.';
       } else {
         db_exec(
@@ -81,12 +87,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            VALUES (?,?,?,?,?,?,?,?,?,?)",
           [$mid, $parent_id, $label, $route_key, $url, $modul, $objekt_typ, $objekt_id, $sort, $aktiv]
         );
+        $newId = (int)db()->lastInsertId();
+        $new = db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$newId, $mid]);
+        audit_log('admin', 'menu_item', $newId, 'CREATE', null, $new, $actorUserId ?: null, $actorText);
         $ok = 'Menüeintrag angelegt.';
       }
 
     } elseif ($postAction === 'delete') {
       $iid = (int)$_POST['id'];
+      $old = db_one("SELECT * FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, (int)$menu['id']]);
       db_exec("DELETE FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, (int)$menu['id']]);
+      audit_log('admin', 'menu_item', $iid, 'DELETE', $old, null, $actorUserId ?: null, $actorText);
       $ok = 'Menüeintrag gelöscht.';
     }
   } catch (Throwable $e) {

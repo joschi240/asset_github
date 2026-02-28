@@ -53,6 +53,18 @@ function upload_first_ticket_file(int $ticketId): void {
      VALUES ('stoerungstool','ticket',?,?,?,?,?,?, NOW(), ?)",
     [$ticketId, $relPath, $orig, $mime, (int)$f['size'], $sha, $userId ?: null]
   );
+  $dokId = (int)db()->lastInsertId();
+  $actor = $u['anzeigename'] ?? $u['benutzername'] ?? 'public';
+  audit_log(
+    'stoerungstool',
+    'dokument',
+    $dokId,
+    'CREATE',
+    null,
+    ['referenz_typ' => 'ticket', 'referenz_id' => $ticketId, 'dateiname' => $relPath],
+    $userId ?: null,
+    $actor
+  );
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -85,6 +97,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $err = "Bitte Fehlerbeschreibung eingeben.";
   } else {
     if ($titel === '') $titel = $meldungstyp . ($still ? ' (Stillstand)' : '');
+    $u = current_user();
+    $actorUserId = (int)($u['id'] ?? 0);
+    $actorText = $u['anzeigename'] ?? $u['benutzername'] ?? ($name !== '' ? $name : 'public');
 
     try {
       $pdo = db();
@@ -109,11 +124,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]
       );
       $ticketId = (int)$pdo->lastInsertId();
+      audit_log(
+        'stoerungstool',
+        'ticket',
+        $ticketId,
+        'CREATE',
+        null,
+        [
+          'asset_id' => $assetId,
+          'titel' => $titel,
+          'meldungstyp' => $meldungstyp,
+          'fachkategorie' => $fachkategorie,
+          'prioritaet' => $prio,
+          'status' => 'neu',
+          'maschinenstillstand' => $still,
+          'ausfallzeitpunkt' => $ausfall
+        ],
+        $actorUserId ?: null,
+        $actorText
+      );
 
       db_exec(
         "INSERT INTO stoerungstool_aktion (ticket_id, datum, user_id, text, status_neu, arbeitszeit_min)
          VALUES (?, NOW(), NULL, 'Meldung erfasst', 'neu', NULL)",
         [$ticketId]
+      );
+      $aktionId = (int)$pdo->lastInsertId();
+      audit_log(
+        'stoerungstool',
+        'aktion',
+        $aktionId,
+        'CREATE',
+        null,
+        ['ticket_id' => $ticketId, 'status_neu' => 'neu', 'text' => 'Meldung erfasst'],
+        $actorUserId ?: null,
+        $actorText
       );
 
       // optional Foto/PDF

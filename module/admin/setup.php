@@ -54,12 +54,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         [$user, $hash, ($name ?: null)]
       );
       $uid = (int)db()->lastInsertId();
+      audit_log(
+        'admin',
+        'user',
+        $uid,
+        'CREATE',
+        null,
+        ['benutzername' => $user, 'anzeigename' => ($name ?: null), 'aktiv' => 1],
+        null,
+        $user
+      );
 
       // Wildcard Admin
       db_exec(
         "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
          VALUES (?,?,?,?,1,1,1)",
         [$uid, '*', '*', null]
+      );
+      $permId = (int)db()->lastInsertId();
+      audit_log(
+        'admin',
+        'permission',
+        $permId,
+        'CREATE',
+        null,
+        ['user_id' => $uid, 'modul' => '*', 'objekt_typ' => '*', 'objekt_id' => null, 'darf_sehen' => 1, 'darf_aendern' => 1, 'darf_loeschen' => 1],
+        $uid,
+        $user
       );
 
       $ok = "Admin-User angelegt: {$user}. Du kannst dich jetzt einloggen.";

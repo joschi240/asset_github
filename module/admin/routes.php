@@ -18,6 +18,9 @@ if (!is_admin_user($u['id'] ?? null)) {
   return;
 }
 
+$actorUserId = (int)($u['id'] ?? 0);
+$actorText = $u['anzeigename'] ?? $u['benutzername'] ?? 'admin';
+
 $action = (string)($_GET['a'] ?? '');
 $id = (int)($_GET['id'] ?? 0);
 
@@ -48,10 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $objekt_typ = ($objekt_typ === '') ? null : $objekt_typ;
 
       if ($rid > 0) {
+        $old = db_one("SELECT * FROM core_route WHERE id=?", [$rid]);
         db_exec(
           "UPDATE core_route SET route_key=?, titel=?, file_path=?, modul=?, objekt_typ=?, objekt_id=?, require_login=?, aktiv=?, sort=? WHERE id=?",
           [$route_key, $titel, $file_path, $modul, $objekt_typ, $objekt_id, $require_login, $aktiv, $sort, $rid]
         );
+        $new = db_one("SELECT * FROM core_route WHERE id=?", [$rid]);
+        audit_log('admin', 'route', $rid, 'UPDATE', $old, $new, $actorUserId ?: null, $actorText);
         $ok = 'Route gespeichert.';
       } else {
         db_exec(
@@ -59,12 +65,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            VALUES (?,?,?,?,?,?,?,?,?)",
           [$route_key, $titel, $file_path, $modul, $objekt_typ, $objekt_id, $require_login, $aktiv, $sort]
         );
+        $newId = (int)db()->lastInsertId();
+        $new = db_one("SELECT * FROM core_route WHERE id=?", [$newId]);
+        audit_log('admin', 'route', $newId, 'CREATE', null, $new, $actorUserId ?: null, $actorText);
         $ok = 'Route angelegt.';
       }
 
     } elseif ($postAction === 'delete') {
       $rid = (int)$_POST['id'];
+      $old = db_one("SELECT * FROM core_route WHERE id=?", [$rid]);
       db_exec("DELETE FROM core_route WHERE id=?", [$rid]);
+      audit_log('admin', 'route', $rid, 'DELETE', $old, null, $actorUserId ?: null, $actorText);
       $ok = 'Route gelöscht.';
     }
   } catch (Throwable $e) {

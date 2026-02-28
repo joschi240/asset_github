@@ -40,6 +40,10 @@ function perm_row(int $userId, string $modul, string $objektTyp, $objektId) {
   );
 }
 
+function perm_scope_key(string $modul, string $objektTyp, $objektId): string {
+  return $modul . '|' . $objektTyp . '|' . (($objektId === null) ? 'null' : (string)(int)$objektId);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   csrf_check($_POST['csrf'] ?? null);
 
@@ -53,9 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($wantAdmin) {
       if ($adminRow) {
         $oldPerm = $adminRow;
-        db_exec("UPDATE core_permission SET darf_sehen=1, darf_aendern=1, darf_loeschen=1 WHERE id=?", [(int)$adminRow['id']]);
-        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
-        audit_log('admin', 'permission', (int)$adminRow['id'], 'UPDATE', $oldPerm, $newPerm, $u['id'] ?? null, $u['benutzername'] ?? null);
+        $oldSee = (int)($adminRow['darf_sehen'] ?? 0);
+        $oldChg = (int)($adminRow['darf_aendern'] ?? 0);
+        $oldDel = (int)($adminRow['darf_loeschen'] ?? 0);
+        if (!($oldSee === 1 && $oldChg === 1 && $oldDel === 1)) {
+          db_exec("UPDATE core_permission SET darf_sehen=1, darf_aendern=1, darf_loeschen=1 WHERE id=?", [(int)$adminRow['id']]);
+          $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+          audit_log('admin', 'permission', (int)$adminRow['id'], 'UPDATE', $oldPerm, $newPerm, $u['id'] ?? null, $u['benutzername'] ?? null);
+        }
       } else {
         db_exec(
           "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
@@ -74,17 +83,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
+    $desiredByScope = [];
     foreach ($routes as $r) {
       if (empty($r['modul']) || empty($r['objekt_typ'])) continue;
 
-      $key = $r['route_key'];
+      $key = (string)$r['route_key'];
+      $modul = (string)$r['modul'];
+      $objt  = (string)$r['objekt_typ'];
+      $oid   = ($r['objekt_id'] !== null) ? (int)$r['objekt_id'] : null;
+      $scopeKey = perm_scope_key($modul, $objt, $oid);
+
       $see = !empty($_POST['see'][$key]) ? 1 : 0;
       $chg = !empty($_POST['chg'][$key]) ? 1 : 0;
       $del = !empty($_POST['del'][$key]) ? 1 : 0;
 
-      $modul = (string)$r['modul'];
-      $objt  = (string)$r['objekt_typ'];
-      $oid   = ($r['objekt_id'] !== null) ? (int)$r['objekt_id'] : null;
+      if (!isset($desiredByScope[$scopeKey])) {
+        $desiredByScope[$scopeKey] = [
+          'modul' => $modul,
+          'objekt_typ' => $objt,
+          'objekt_id' => $oid,
+          'see' => 0,
+          'chg' => 0,
+          'del' => 0,
+        ];
+      }
+
+      if ($see === 1) $desiredByScope[$scopeKey]['see'] = 1;
+      if ($chg === 1) $desiredByScope[$scopeKey]['chg'] = 1;
+      if ($del === 1) $desiredByScope[$scopeKey]['del'] = 1;
+    }
+
+    foreach ($desiredByScope as $scope) {
+      $modul = (string)$scope['modul'];
+      $objt  = (string)$scope['objekt_typ'];
+      $oid   = $scope['objekt_id'];
+      $see   = (int)$scope['see'];
+      $chg   = (int)$scope['chg'];
+      $del   = (int)$scope['del'];
 
       $row = perm_row($userId, $modul, $objt, $oid);
 
@@ -98,6 +133,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
 
       if ($row) {
+        $oldSee = (int)($row['darf_sehen'] ?? 0);
+        $oldChg = (int)($row['darf_aendern'] ?? 0);
+        $oldDel = (int)($row['darf_loeschen'] ?? 0);
+        if ($oldSee === $see && $oldChg === $chg && $oldDel === $del) {
+          continue;
+        }
         $oldPerm = $row;
         db_exec(
           "UPDATE core_permission SET darf_sehen=?, darf_aendern=?, darf_loeschen=? WHERE id=?",
@@ -130,7 +171,7 @@ $isAdmin = (bool)db_one("SELECT 1 FROM core_permission WHERE user_id=? AND modul
 $permMap = [];
 $rows = db_all("SELECT modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen FROM core_permission WHERE user_id=?", [$selected]);
 foreach ($rows as $pr) {
-  $k = ($pr['modul'] ?? '') . '|' . ($pr['objekt_typ'] ?? '') . '|' . (($pr['objekt_id'] === null) ? 'null' : (string)$pr['objekt_id']);
+  $k = perm_scope_key((string)($pr['modul'] ?? ''), (string)($pr['objekt_typ'] ?? ''), $pr['objekt_id']);
   $permMap[$k] = $pr;
 }
 ?>
@@ -196,7 +237,7 @@ foreach ($rows as $pr) {
               <?php if (empty($r['modul']) || empty($r['objekt_typ'])) continue; ?>
               <?php
                 $key = $r['route_key'];
-                $k = ($r['modul'] ?? '') . '|' . ($r['objekt_typ'] ?? '') . '|' . (($r['objekt_id'] === null) ? 'null' : (string)$r['objekt_id']);
+                $k = perm_scope_key((string)($r['modul'] ?? ''), (string)($r['objekt_typ'] ?? ''), $r['objekt_id']);
                 $pr = $permMap[$k] ?? null;
 
                 $see = !empty($pr['darf_sehen']) ? 'checked' : '';

@@ -18,6 +18,9 @@ if (!is_admin_user($u['id'] ?? null)) {
   return;
 }
 
+$actorUserId = (int)($u['id'] ?? 0);
+$actorText = $u['anzeigename'] ?? $u['benutzername'] ?? 'admin';
+
 $action = (string)($_GET['a'] ?? '');
 $id = (int)($_GET['id'] ?? 0);
 
@@ -43,6 +46,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         "INSERT INTO core_user (benutzername, passwort_hash, anzeigename, aktiv) VALUES (?,?,?,?)",
         [$bn, $hash, ($an ?: null), $aktiv]
       );
+      $newId = (int)db()->lastInsertId();
+      audit_log(
+        'admin',
+        'user',
+        $newId,
+        'CREATE',
+        null,
+        ['benutzername' => $bn, 'anzeigename' => ($an ?: null), 'aktiv' => $aktiv],
+        $actorUserId ?: null,
+        $actorText
+      );
       $ok = 'Benutzer erstellt.';
 
     } elseif ($postAction === 'update') {
@@ -51,19 +65,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $aktiv = !empty($_POST['aktiv']) ? 1 : 0;
       $pw = (string)($_POST['passwort'] ?? '');
 
+      $old = db_one("SELECT id, benutzername, anzeigename, aktiv FROM core_user WHERE id=?", [$uid]);
+
       db_exec("UPDATE core_user SET anzeigename=?, aktiv=? WHERE id=?", [($an ?: null), $aktiv, $uid]);
+
+      $passwordChanged = false;
 
       if ($pw !== '') {
         if (strlen($pw) < 8) throw new RuntimeException('Passwort min. 8 Zeichen.');
         $hash = password_hash($pw, PASSWORD_DEFAULT);
         db_exec("UPDATE core_user SET passwort_hash=? WHERE id=?", [$hash, $uid]);
+        $passwordChanged = true;
       }
+
+      $new = db_one("SELECT id, benutzername, anzeigename, aktiv FROM core_user WHERE id=?", [$uid]);
+      audit_log(
+        'admin',
+        'user',
+        $uid,
+        'UPDATE',
+        $old,
+        ['user' => $new, 'passwort_geaendert' => $passwordChanged],
+        $actorUserId ?: null,
+        $actorText
+      );
 
       $ok = 'Benutzer gespeichert.';
 
     } elseif ($postAction === 'disable') {
       $uid = (int)$_POST['id'];
+      $old = db_one("SELECT id, benutzername, anzeigename, aktiv FROM core_user WHERE id=?", [$uid]);
       db_exec("UPDATE core_user SET aktiv=0 WHERE id=?", [$uid]);
+      $new = db_one("SELECT id, benutzername, anzeigename, aktiv FROM core_user WHERE id=?", [$uid]);
+      audit_log(
+        'admin',
+        'user',
+        $uid,
+        'STATUS',
+        $old,
+        $new,
+        $actorUserId ?: null,
+        $actorText
+      );
       $ok = 'Benutzer deaktiviert.';
     }
   } catch (Throwable $e) {

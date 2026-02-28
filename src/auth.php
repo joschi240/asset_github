@@ -59,8 +59,16 @@ function login(string $benutzername, string $passwort): bool {
     [$benutzername]
   );
 
-  if (!$u || (int)$u['aktiv'] !== 1) return false;
-  if (!password_verify($passwort, $u['passwort_hash'])) return false;
+  // Generischer Fehlerpfad (keine Unterscheidung nach Grund)
+  if (
+    !$u
+    || (int)$u['aktiv'] !== 1
+    || !password_verify($passwort, (string)$u['passwort_hash'])
+  ) {
+    // kleine konstante Verzögerung gegen Brute-Force/Enumeration
+    usleep(500000);
+    return false;
+  }
 
   session_regenerate_id(true);
 

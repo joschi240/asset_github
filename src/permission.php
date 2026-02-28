@@ -39,13 +39,18 @@ function user_permissions(): array {
 /**
  * Prüft ob der aktuelle User für ein Modul ein bestimmtes Recht hat.
  * $recht: 'sehen' | 'aendern' | 'loeschen'
+ *
+ * Hinweis:
+ * - Primäres System ist user_can_flag/user_can_see (objekt_typ/objekt_id aware).
+ * - can() ist ein Modul-Shortcut (global), versucht zuerst 'global' über user_can_flag,
+ *   und fällt dann auf legacy modul-only zurück.
  */
 function can(string $modul, string $recht): bool {
   $u = current_user();
   if (!$u) return false;
   $userId = (int)$u['id'];
 
-  // Admin wildcard
+  // Admin wildcard (schnell)
   if (is_admin_user($userId)) return true;
 
   // Whitelist column names to prevent any SQL injection
@@ -53,6 +58,14 @@ function can(string $modul, string $recht): bool {
   if (!isset($allowedCols[$recht])) return false;
   $col = $allowedCols[$recht];
 
+  // 1) Prefer zentraler Resolver: modul + objekt_typ='global' + objekt_id=NULL
+  if (function_exists('user_can_flag')) {
+    if (user_can_flag($userId, $modul, 'global', null, $col)) {
+      return true;
+    }
+  }
+
+  // 2) Legacy fallback: modul-only bzw. modul='*'
   $row = db_one(
     "SELECT MAX($col) AS ok FROM core_permission
      WHERE user_id=? AND (modul=? OR modul='*')
