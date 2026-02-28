@@ -206,13 +206,14 @@ function audit_json($value): ?string
 (Quelle: `docs/audit_log_analyse.md`)
 
 - ✅ `wartungstool/admin_punkte.php`: alle CRUD-Pfade
-- ✅ `wartungstool/punkt_save.php`: Protokoll + WP-Update
-- ✅ `stoerungstool/ticket.php`: Status-Änderungen, Zuweisung, Dokument-Upload
+- ✅ `wartungstool/punkt_save.php`: Protokoll + WP-Update + TICKET:DENIED-Marker + Ticket-Link-Marker
+- ✅ `stoerungstool/ticket.php`: Status-Änderungen, Zuweisung, Aktion-INSERTs, Dokument-Upload
 - ✅ `module/admin/permissions.php`: alle Schreibpfade mit audit_log abgedeckt
 - ✅ `module/admin/routes.php`: alle 3 Schreibpfade (UPDATE/INSERT/DELETE) mit audit_log
 - ✅ `module/admin/users.php`: CREATE + UPDATE + Deaktivieren mit audit_log
 - ✅ `stoerungstool/melden.php`: Ticket-CREATE, Aktion-INSERT, Dokument-INSERT mit audit_log
-- ⚠ `module/admin/menu.php`, `admin/setup.php`: ohne audit_log (~5 Schreibpfade)
+- ✅ `module/admin/menu.php`: alle 3 Schreibpfade (UPDATE/INSERT/DELETE auf `core_menu_item`) mit audit_log
+- ✅ `module/admin/setup.php`: beide Schreibpfade (INSERT auf `core_user` und `core_permission`) mit audit_log
 
 ---
 

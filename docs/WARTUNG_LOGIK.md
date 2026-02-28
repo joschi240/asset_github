@@ -49,61 +49,52 @@ rest  [in Stunden]     = (dueTs - time()) / 3600
 
 ### Status-Bestimmung (vollständig, exakt)
 
-**In `module/wartungstool/punkt.php:50–124` (Detail-Seite):**
+Die Statuslogik ist vollständig in `src/helpers.php` in der Funktion `wartung_status_from_rest()` zentralisiert.
+Alle drei Seiten (Dashboard, Übersicht, Detail) delegieren dorthin.
+
+**Zentralisierte Funktion `wartung_status_from_rest()` in `src/helpers.php`:**
 
 ```
-Initialisierung:
-  soonHours = wp.soon_hours wenn > 0, sonst NULL           (Zeile 52, 58)
-  soonRatio = wp.soon_ratio wenn > 0 und <= 1, sonst NULL  (Zeile 53–57)
-  Falls BEIDE null → soonRatio = 0.20 (Fallback)            (Zeile 74)
+Parameter: $restHours, $intervalHours, $soonRatio, $soonHours
 
-Status:
-  1) Kein Startwert (datum/letzte_wartung fehlt)
-     → "Nicht initialisiert"                                 (Zeile 122–123)
+1) $restHours === null
+   → "Neu/Unbekannt" (ui-badge)
 
-  2) rest < 0
-     → "Überfällig" (ui-badge--danger)                       (Zeile 87–88)
+2) $restHours < 0
+   → "Überfällig" (ui-badge--danger)
 
-  3) Bald-Prüfung:
-     if soonHours !== null:
-       isSoon = (rest <= soonHours)                          (Zeile 91–92)
-     else:
-       isSoon = (rest <= planInterval * soonRatio)           (Zeile 94)
-     if isSoon → "Bald fällig" (ui-badge--warn)              (Zeile 96)
+3) Bald-Prüfung:
+   $soonHours = wartung_normalize_soon_hours($soonHours)
+   $soonRatio = wartung_normalize_soon_ratio($soonRatio)
+   Falls BEIDE null → $soonRatio = 0.20 (Fallback)
 
-  4) sonst → "OK" (ui-badge--ok)
+   if $soonHours !== null:
+     isSoon = ($restHours <= $soonHours)
+   else:
+     limit = ($intervalHours > 0) ? $intervalHours * $soonRatio : 0
+     isSoon = ($intervalHours > 0) ? ($restHours <= $limit) : false
+   if isSoon → "Bald fällig" (ui-badge--warn)
+
+4) sonst → "OK" (ui-badge--ok)
 ```
 
-**In `module/wartungstool/dashboard.php:60–86` (Dashboard, Funktion `status_for()`):**
+**In `module/wartungstool/punkt.php` (Detail-Seite):**
 
-```
-  1) rest === null → "Neu/Unbekannt"
-  2) rest < 0     → "Überfällig"
-  3) soonHours = clamp_soon_hours(wp.soon_hours)              (Zeile 69)
-     soonRatio = clamp_soon_ratio(wp.soon_ratio)              (Zeile 70)
-     Falls BEIDE null → soonRatio = 0.20 (Fallback)           (Zeile 71)
-     if soonHours !== null:
-       isSoon = (rest <= soonHours)                           (Zeile 74–75)
-     else:
-       limit = interval * soonRatio
-       isSoon = (rest <= limit)                               (Zeile 77–78)
-     if isSoon → "Bald fällig"                                (Zeile 82)
-  4) sonst → "OK"
-```
+Ruft `wartung_status_from_rest($restVal, $planInterval, $soonRatio, $soonHours)` auf.
+Bei Rückgabe `type='new'` wird das Label auf `'Nicht initialisiert'` überschrieben.
 
-**In `module/wartungstool/uebersicht.php:43–58` (Übersicht, Funktion `ampel_from_rest()`):**
+**In `module/wartungstool/dashboard.php`:**
 
-```
-  1) restHours === null → "Neu/Unbekannt"
-  2) restHours < 0     → "Überfällig"
-  3) if soonHours !== null && soonHours > 0:
-       isSoon = (restHours <= soonHours)            (Zeile 47–49)
-     else:
-       ratioLimit = soonRatio wenn > 0, sonst 0.20 (Fallback)
-       ratio = restHours / intervalHours
-       if ratio <= ratioLimit → "Bald fällig"
-  4) sonst → "OK"
-```
+Ruft `wartung_status_from_rest($rest, $interval, $wp['soon_ratio'], $wp['soon_hours'])` auf.
+
+**In `module/wartungstool/uebersicht.php`:**
+
+Ruft `wartung_status_from_rest($restHours, $interval, $soonRatio, $soonHours)` auf,
+wobei `$soonRatio` und `$soonHours` zuvor via `wartung_normalize_soon_ratio()` / `wartung_normalize_soon_hours()` normalisiert wurden.
+
+**Normalisierungsfunktionen in `src/helpers.php`:**
+- `wartung_normalize_soon_ratio(?float $ratio): ?float` — gibt NULL zurück wenn `<= 0` oder `> 1`
+- `wartung_normalize_soon_hours(?float $hours): ?float` — gibt NULL zurück wenn `<= 0`
 
 ---
 
@@ -121,15 +112,14 @@ soon_hours DOUBLE DEFAULT NULL,
 
 ### Fallback-Wert `0.20`
 
-Der Fallback `0.20` (20 % des Intervalls) ist an drei unabhängigen Stellen definiert:
+Der Fallback `0.20` (20 % des Intervalls) ist **einmalig** in `src/helpers.php` in `wartung_status_from_rest()` definiert.
+Alle drei Seiten (Dashboard, Übersicht, Detail) rufen diese Funktion auf und erben den Fallback.
 
-| Datei | Zeile | Kontext |
-|---|---|---|
-| `module/wartungstool/dashboard.php` | 71 | `status_for()` |
-| `module/wartungstool/uebersicht.php` | 37 | `ampel_from_rest()` |
-| `module/wartungstool/punkt.php` | 74 | inline (Detail-Seite) |
+| Datei | Kontext |
+|---|---|
+| `src/helpers.php` | `wartung_status_from_rest()` — einzige Definition des Fallback-Werts |
 
-Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRatio <= 0`
+Bedingung für Fallback: `$soonHours === null && $soonRatio === null`
 
 ### Abweichungen zwischen den Seiten
 
@@ -141,7 +131,7 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
 | `rest === null` → Keine Punkte | ✅ (als "Neu/Unbekannt") | ✅ (als "Neu/Unbekannt") | ✅ (als "Nicht initialisiert") |
 | Dashboard-spezifisch: zeigt alle aktiven WP (zeit + produktiv) | ✅ | — | — |
 
-**Fazit:** `soon_hours` wird in `punkt.php` (Detail-Seite), `dashboard.php` und `uebersicht.php` korrekt berücksichtigt.
+**Fazit:** Die gesamte `soon_hours`/`soon_ratio`/Fallback-Logik ist in `src/helpers.php::wartung_status_from_rest()` zentralisiert und wird von allen drei Seiten korrekt aufgerufen.
 
 ---
 
