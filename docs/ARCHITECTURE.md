@@ -152,7 +152,7 @@ tools/runtime_rollup.php
     ↓ → core_runtime_counter (productive_hours pro Asset)
     ↓ → core_runtime_agg_day (run/stop/gaps pro Tag)
          ↑
-         Verwendet von: dashboard.php (Trend), uebersicht.php, punkt.php (Fälligkeit)
+         Verwendet von: uebersicht.php, punkt.php (Fälligkeit)
 ```
 
 ### Rollup-Logik (Zusammenfassung)
@@ -206,10 +206,10 @@ function audit_json($value): ?string
 
 - ✅ `wartungstool/admin_punkte.php`: alle CRUD-Pfade
 - ✅ `wartungstool/punkt_save.php`: Protokoll + WP-Update
-- ✅ `stoerungstool/ticket.php`: Status-Änderungen, Zuweisung
-- ⚠ `module/admin/*`: **vollständig ohne** audit_log (18 Schreibpfade)
+- ✅ `stoerungstool/ticket.php`: Status-Änderungen, Zuweisung, Dokument-Upload
+- ✅ `module/admin/permissions.php`: alle Schreibpfade mit audit_log abgedeckt
+- ⚠ `module/admin/routes.php`, `admin/menu.php`, `admin/users.php`, `admin/setup.php`: ohne audit_log (~12 Schreibpfade)
 - ⚠ `stoerungstool/melden.php`: Ticket-CREATE ohne audit_log
-- ⚠ `stoerungstool/ticket.php`: `update_ticket` ohne audit_log
 
 ---
 
