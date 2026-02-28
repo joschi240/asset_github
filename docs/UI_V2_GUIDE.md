@@ -24,7 +24,7 @@ Dieses UI ist **Desktop-first** (typische 2026-Monitore), aber so gebaut, dass e
 | `wartung.dashboard` (`module/wartungstool/dashboard.php`) | ✅ UI v2 |
 | `wartung.uebersicht` (`module/wartungstool/uebersicht.php`) | ✅ UI v2 |
 | `wartung.admin_punkte` (`module/wartungstool/admin_punkte.php`) | ✅ UI v2 |
-| `wartung.punkt` (`module/wartungstool/punkt.php`) | ⚠ UI v2 TODO |
+| `wartung.punkt` (`module/wartungstool/punkt.php`) | ✅ UI v2 |
 
 ---
 

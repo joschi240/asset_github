@@ -3,7 +3,7 @@
 ## Überblick
 
 Das Wartungstool bietet:
-- **Dashboard**: Anlagen-Übersicht nach Kritikalität inkl. nächstem Wartungspunkt (produktiv-basiert) und Trend-Auswertung.
+- **Dashboard**: Anlagen-Übersicht inkl. aller Wartungspunkte (zeit- und produktiv-basiert).
 - **Übersicht**: Detailübersicht pro Anlage inkl. aller Wartungspunkte (Zeit- und Produktiv-Intervall).
 - **Wartungspunkt-Detail**: Erfassung/Protokollierung und Bewertung (Messwert, Status etc.).
 
@@ -61,17 +61,21 @@ Berechnung:
 ## Dashboard
 
 ### Filter
-- `f=all|due|soon|critical`
-- `q=...` (Suche in Code/Name/Kategorie/Next WP)
+- `f=all|due|soon|ok|new|planned`
+- `scope=heute|woche|alle` (begrenzt nach Reststunden: heute ≤ 8h, woche ≤ 40h)
+- `q=...` (Suche in Code/Name/Kategorie/WP)
 
-KPI-Karten sind klickbar und setzen `f`. Der aktuelle Suchbegriff `q` bleibt erhalten.
-
-### „Nächster Punkt“
-Das Dashboard zeigt pro Anlage den **nächst fälligen produktiv-basierten** Wartungspunkt (`intervall_typ='produktiv'`), sofern `letzte_wartung` gesetzt ist.
+Das Dashboard zeigt **alle** aktiven Wartungspunkte aller Anlagen (sowohl `zeit`- als auch `produktiv`-basierte).
 
 ---
 
 ## Trend (4-Wochen-Proxy)
+
+> **TODO:** Trend-Berechnung wieder in das Dashboard einbauen.  
+> Geplantes Verhalten:
+> - Pro Asset wird nur **ein** Eintrag angezeigt.
+> - Wartungspunkte mit demselben Fälligkeitszeitpunkt werden gruppiert.
+> - Trendberechnung basierend auf `core_runtime_agg_day`.
 
 Datenbasis: `core_runtime_agg_day`
 
