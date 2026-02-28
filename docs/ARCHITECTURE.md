@@ -102,7 +102,7 @@ HTTP-Request → app.php
 
 ### `user_can_flag()` Fallback-Priorität
 
-(Quelle: `src/auth.php:116–120`)
+(Quelle: `src/auth.php:123–131`)
 
 ```
 a) (user_id, modul, objekt_typ, objekt_id)  ← exakt

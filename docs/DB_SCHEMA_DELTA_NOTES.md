@@ -66,10 +66,10 @@ Diese Tabellen sind Grundlage für Wartungs-Fälligkeit und Prognosen.
   - intervall_typ: zeit|produktiv
   - plan_interval (h), letzte_wartung (bei produktiv), datum (bei zeit)
   - messwert_pflicht + grenzwerte + einheit
-  - **soon_ratio** (DOUBLE NULL): relativer Schwellwert für "Bald fällig" (0..1)
-  - **soon_hours** (DOUBLE NULL): absoluter Schwellwert in Stunden (hat Vorrang vor soon_ratio)
-  - Fallback: wenn beide NULL → Code-Default 0.20 (20 %)
-  - (Quelle: `docs/db_schema_v2.sql:298–300`, `module/wartungstool/punkt.php:50–74`)
+  - **soon_ratio** (`decimal(5,4) DEFAULT 0.2000`): relativer Schwellwert für "Bald fällig" (0..1); DB-Default 0.2000 entspricht 20 % (Quelle: `docs/asset_github_schema_v3.sql`)
+  - **soon_hours** (`decimal(10,2) DEFAULT NULL`): absoluter Schwellwert in Stunden (hat Vorrang vor soon_ratio)
+  - Fallback: wenn beide NULL → Code-Default 0.20 (20 %); da DB `soon_ratio DEFAULT 0.2000` setzt, greift der Code-Fallback nur bei explizit NULL-gesetzten Feldern
+  - (Quelle: `docs/asset_github_schema_v3.sql`, `module/wartungstool/punkt.php:50–74`)
   - aktiv
 
 - `wartungstool_protokoll`
@@ -114,9 +114,10 @@ Warum so?
 - laufen über `core_dokument`:
   - modul='stoerungstool', referenz_typ='ticket', referenz_id=ticket.id
 
-### SLA (vorbereitet, später)
-- geplant: `first_response_at`, `closed_at` in `stoerungstool_ticket`
-- Backfill aus Aktionen möglich, Auto-Set beim Statuswechsel
+### SLA (in Schema vorhanden, Code-Nutzung ausstehend)
+- `first_response_at` und `closed_at` existieren bereits in `stoerungstool_ticket` (Quelle: `docs/asset_github_schema_v3.sql:214–215`, Migration: `docs/db_migration_sla_v1.sql`)
+- Code setzt diese Felder noch nicht automatisch beim Statuswechsel (TODO: Auto-Set in ticket.php)
+- Backfill aus `stoerungstool_aktion` ist via `db_migration_sla_v1.sql` vorbereitet
 
 ---
 
