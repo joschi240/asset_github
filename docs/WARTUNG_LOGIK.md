@@ -102,13 +102,15 @@ wobei `$soonRatio` und `$soonHours` zuvor via `wartung_normalize_soon_ratio()` /
 
 ### Felder in `wartungstool_wartungspunkt`
 
-(Quelle: `docs/db_schema_v2.sql:298–300`)
+(Quelle: `docs/asset_github_schema_v3.sql:237–238`)
 
 ```sql
--- soon_hours gewinnt vor soon_ratio  (Kommentar in db_schema_v2.sql:298)
-soon_ratio DOUBLE DEFAULT NULL,
-soon_hours DOUBLE DEFAULT NULL,
+-- soon_hours hat Vorrang vor soon_ratio
+soon_ratio decimal(5,4) DEFAULT 0.2000,  -- DB-Default 0.2000 = 20 %
+soon_hours decimal(10,2) DEFAULT NULL,
 ```
+
+**Hinweis zu Typen:** Im älteren `db_schema_v2.sql` waren beide Felder als `DOUBLE DEFAULT NULL` definiert. Das aktuelle Schema (`asset_github_schema_v3.sql`) verwendet `decimal(5,4) DEFAULT 0.2000` für `soon_ratio` und `decimal(10,2) DEFAULT NULL` für `soon_hours`.
 
 ### Fallback-Wert `0.20`
 
@@ -117,9 +119,11 @@ Alle drei Seiten (Dashboard, Übersicht, Detail) rufen diese Funktion auf und er
 
 | Datei | Kontext |
 |---|---|
-| `src/helpers.php` | `wartung_status_from_rest()` — einzige Definition des Fallback-Werts |
+| `src/helpers.php` | `wartung_status_from_rest()` — einzige Definition des Code-Fallback-Werts |
 
-Bedingung für Fallback: `$soonHours === null && $soonRatio === null`
+Bedingung für Code-Fallback: `$soonHours === null && $soonRatio === null`
+
+**Hinweis:** Da `soon_ratio` in `asset_github_schema_v3.sql` mit `DEFAULT 0.2000` definiert ist, liefert die DB bei neuen Zeilen automatisch `0.2000`. Der Code-Fallback greift daher in der Praxis nur wenn `soon_ratio` explizit auf NULL gesetzt wurde.
 
 ### Abweichungen zwischen den Seiten
 
