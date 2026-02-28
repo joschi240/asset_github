@@ -243,18 +243,19 @@ Regel:
 - Ticket: kleine Timeline-Ansicht aus Aktionen (ohne neue Tabellen)
 - Ticket: Standardtexte / Templates für Aktionen (z.B. „Teil bestellt“, „Warten auf Lieferung“)
 
-### Next 3: Wartung – Dokumente an Wartungspunkten
-- `core_dokument` auch für `wartungspunkt` nutzen
-- Upload in `wartung.punkt` (oder eigener Tab)
-- Anzeige im Detail (PDF/Foto)
+### ✅ Next 3: Wartung – Dokumente an Wartungspunkten (DONE 2026-02-25)
+- `core_dokument` für `wartungspunkt` implementiert (`referenz_typ='wartungspunkt'`)
+- Upload via eigener Route `wartung.punkt_dokument_upload` (`module/wartungstool/punkt_dokument_upload.php`)
+- Anzeige in `wartung.punkt` (PDF/Foto)
+- Migration: `docs/db_migration_wartungspunkt_dokument_v1.sql` (Route-Seed)
 
-### Next 4: SLA vorbereiten (später aktivieren, aber geplant)
+### ✅ Next 4: SLA vorbereiten (DONE 2026-02-25)
 DB (stoerungstool_ticket):
-- `first_response_at`, `closed_at`
-Scripts:
-- Migration + Backfill
+- `first_response_at`, `closed_at` – Spalten vorhanden (via `docs/db_migration_sla_v1.sql`)
+Migration:
+- `docs/db_migration_sla_v1.sql` – ALTER + Backfill aus Aktionen
 Code:
-- Auto-Set beim Statuswechsel
+- Auto-Set in `ticket.php` beim Statuswechsel (Zeilen 93–101, 147–155)
 
 ### Next 5: Reports (Audit/ISO)
 - CSV Export: Tickets im Zeitraum + Reaktionszeiten + Durchlaufzeiten

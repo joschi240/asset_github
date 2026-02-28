@@ -1,6 +1,7 @@
 
 -- Hinweis: Das aktuelle Datenbankschema befindet sich in asset_github_schema.sql. Testdaten/Seeds sind in asset_github_seed_testdaten.sql zu finden.
 --  - stoerungstool_aktion: status_neu ENUM ergänzt um 'bestellt'
+--  - stoerungstool_ticket: first_response_at + closed_at (SLA) via db_migration_sla_v1.sql
 --
 -- WICHTIG (Design-Regeln):
 --  - Möglichst additive Erweiterungen (neue Tabellen/Spalten), keine Breaking Changes.
@@ -366,6 +367,8 @@ CREATE TABLE IF NOT EXISTS stoerungstool_ticket (
   assigned_user_id INT(11) DEFAULT NULL,         -- v2: FK zu core_user
   created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
   updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  first_response_at DATETIME DEFAULT NULL,       -- SLA: Zeitpunkt der ersten Reaktion (db_migration_sla_v1.sql)
+  closed_at DATETIME DEFAULT NULL,               -- SLA: Zeitpunkt der Schließung (db_migration_sla_v1.sql)
   PRIMARY KEY (id),
   KEY idx_asset (asset_id),
   KEY idx_status (status),

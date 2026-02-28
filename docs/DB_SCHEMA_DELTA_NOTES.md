@@ -110,9 +110,10 @@ Warum so?
 - laufen über `core_dokument`:
   - modul='stoerungstool', referenz_typ='ticket', referenz_id=ticket.id
 
-### SLA (vorbereitet, später)
-- geplant: `first_response_at`, `closed_at` in `stoerungstool_ticket`
-- Backfill aus Aktionen möglich, Auto-Set beim Statuswechsel
+### SLA (implementiert, db_migration_sla_v1.sql)
+- `first_response_at`, `closed_at` in `stoerungstool_ticket` vorhanden
+- Backfill aus Aktionen: in `docs/db_migration_sla_v1.sql` enthalten
+- Auto-Set beim Statuswechsel: aktiv in `module/stoerungstool/ticket.php`
 
 ---
 
