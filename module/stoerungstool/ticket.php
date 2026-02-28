@@ -62,6 +62,11 @@ function upload_ticket_file(int $ticketId, int $userId): void {
      VALUES ('stoerungstool','ticket',?,?,?,?,?,?, NOW(), ?)",
     [$ticketId, $relPath, $orig, $mime, (int)$f['size'], $sha, $userId ?: null]
   );
+  $dokId = (int)db()->lastInsertId();
+  audit_log('stoerungstool', 'dokument', $dokId, 'CREATE', null,
+    ['referenz_typ'=>'ticket','referenz_id'=>$ticketId,'dateiname'=>$relPath,'originalname'=>$orig,'mime'=>$mime],
+    $userId ?: null
+  );
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -190,6 +195,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    maschinenstillstand=?, ausfallzeitpunkt=?, updated_at=NOW()
                WHERE id=?",
               [$assetId, $titel, $beschreibung, $meldungstyp, $fachkategorie, $prior, $still, $ausfall, $id]);
+
+      audit_log('stoerungstool', 'ticket', $id, 'UPDATE',
+        ['titel'=>$ticketOld['titel'],'beschreibung'=>$ticketOld['beschreibung'],'asset_id'=>$ticketOld['asset_id'],'meldungstyp'=>$ticketOld['meldungstyp'],'fachkategorie'=>$ticketOld['fachkategorie'],'prioritaet'=>$ticketOld['prioritaet'],'maschinenstillstand'=>$ticketOld['maschinenstillstand'],'ausfallzeitpunkt'=>$ticketOld['ausfallzeitpunkt']],
+        ['titel'=>$titel,'beschreibung'=>$beschreibung,'asset_id'=>$assetId,'meldungstyp'=>$meldungstyp,'fachkategorie'=>$fachkategorie,'prioritaet'=>$prior,'maschinenstillstand'=>$still,'ausfallzeitpunkt'=>$ausfall],
+        $userId, $actor
+      );
 
     } elseif ($action === 'upload_doc') {
       upload_ticket_file($id, $userId);
