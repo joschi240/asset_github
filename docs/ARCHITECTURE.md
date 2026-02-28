@@ -227,7 +227,7 @@ function audit_json($value): ?string
   - `referenz_typ` (z.B. `'ticket'`, `'wartungspunkt'`)
   - `referenz_id` (ID des referenzierten Datensatzes)
   - `dateiname` = relativer Pfad unter `/uploads/`
-  - Optional: `sha256`, mime, size, originalname
+  - Optional: `sha256`, `mime`, `size_bytes`, `originalname`, `hochgeladen_am`, `hochgeladen_von_user_id`
 - Download-Link: `<base>/uploads/<dateiname>`
 
 ---
