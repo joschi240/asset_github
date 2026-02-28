@@ -88,9 +88,9 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 
 | Datei | Zeile | Modul | entity_type | action |
 |-------|-------|-------|-------------|--------|
-| `module/stoerungstool/ticket.php` | 107 | `'stoerungstool'` | `'ticket'` | `'STATUS'` |
-| `module/stoerungstool/ticket.php` | 122 | `'stoerungstool'` | `'ticket'` | `'UPDATE'` |
-| `module/stoerungstool/ticket.php` | 157 | `'stoerungstool'` | `'ticket'` | `'STATUS'` |
+| `module/stoerungstool/ticket.php` | 46 | `'stoerungstool'` | `'ticket'` | `'STATUS'` |
+| `module/stoerungstool/ticket.php` | 58 | `'stoerungstool'` | `'ticket'` | `'UPDATE'` |
+| `module/stoerungstool/ticket.php` | 95 | `'stoerungstool'` | `'dokument'` | `'CREATE'` |
 | `module/wartungstool/punkt_dokument_upload.php` | 70 | `'wartungstool'` | `'dokument'` | `'CREATE'` |
 | `module/wartungstool/admin_punkte.php` | 144 | `'wartungstool'` | `'wartungspunkt'` | `'CREATE'` |
 | `module/wartungstool/admin_punkte.php` | 207 | `'wartungstool'` | `'wartungspunkt'` | `'UPDATE'` |
@@ -102,6 +102,12 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 | `module/wartungstool/punkt_save.php` | 115 | `'wartungstool'` | `'protokoll'` | `'CREATE'` |
 | `module/wartungstool/punkt_save.php` | 125 | `'wartungstool'` | `'wartungspunkt'` | `'UPDATE'` |
 | `module/wartungstool/punkt_save.php` | 170 | `'stoerungstool'` | `'ticket'` | `'CREATE'` |
+| `module/admin/permissions.php` | 58 | `'admin'` | `'permission'` | `'UPDATE'` |
+| `module/admin/permissions.php` | 67 | `'admin'` | `'permission'` | `'CREATE'` |
+| `module/admin/permissions.php` | 73 | `'admin'` | `'permission'` | `'DELETE'` |
+| `module/admin/permissions.php` | 95 | `'admin'` | `'permission'` | `'DELETE'` |
+| `module/admin/permissions.php` | 107 | `'admin'` | `'permission'` | `'UPDATE'` |
+| `module/admin/permissions.php` | 116 | `'admin'` | `'permission'` | `'CREATE'` |
 
 ---
 
@@ -111,12 +117,12 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 
 | Datei | Zeile | SQL-Typ | Tabelle | audit_log vorhanden |
 |-------|-------|---------|---------|---------------------|
-| `module/admin/permissions.php` | 59 | UPDATE | `core_permission` | **nein** |
-| `module/admin/permissions.php` | 62–65 | INSERT | `core_permission` | **nein** |
-| `module/admin/permissions.php` | 68 | DELETE | `core_permission` | **nein** |
-| `module/admin/permissions.php` | 87 | DELETE | `core_permission` | **nein** |
-| `module/admin/permissions.php` | 93–95 | UPDATE | `core_permission` | **nein** |
-| `module/admin/permissions.php` | 98–101 | INSERT | `core_permission` | **nein** |
+| `module/admin/permissions.php` | 58 | UPDATE | `core_permission` | **ja** |
+| `module/admin/permissions.php` | 60–67 | INSERT | `core_permission` | **ja** |
+| `module/admin/permissions.php` | 72–73 | DELETE | `core_permission` | **ja** |
+| `module/admin/permissions.php` | 94–95 | DELETE | `core_permission` | **ja** |
+| `module/admin/permissions.php` | 106–107 | UPDATE | `core_permission` | **ja** |
+| `module/admin/permissions.php` | 114–116 | INSERT | `core_permission` | **ja** |
 | `module/admin/menu.php` | 78–82 | UPDATE | `core_menu_item` | **nein** |
 | `module/admin/menu.php` | 86–89 | INSERT | `core_menu_item` | **nein** |
 | `module/admin/menu.php` | 95 | DELETE | `core_menu_item` | **nein** |
@@ -155,31 +161,30 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 | `module/stoerungstool/melden.php` | 49–54 | INSERT | `core_dokument` (optional, via upload_first_ticket_file) | **nein** |
 | `module/stoerungstool/melden.php` | 92–109 | INSERT | `stoerungstool_ticket` | **nein** |
 | `module/stoerungstool/melden.php` | 112–116 | INSERT | `stoerungstool_aktion` | **nein** |
-| `module/stoerungstool/ticket.php` | 59–64 | INSERT | `core_dokument` (via upload_ticket_file) | **nein** |
-| `module/stoerungstool/ticket.php` | 88–89 | UPDATE | `stoerungstool_ticket` (action=set_status) | **ja** (Zeile 107) |
-| `module/stoerungstool/ticket.php` | 100 | UPDATE | `stoerungstool_ticket` (SLA-Felder, Teilpfad von set_status) | **ja (teilweise)** (Zeile 107 vorhanden, aber SLA-Spalten `first_response_at`/`closed_at` werden in old/new JSON nicht erfasst) |
-| `module/stoerungstool/ticket.php` | 103–105 | INSERT | `stoerungstool_aktion` | **nein** |
-| `module/stoerungstool/ticket.php` | 117 | UPDATE | `stoerungstool_ticket` (action=assign) | **ja** (Zeile 122) |
-| `module/stoerungstool/ticket.php` | 118–120 | INSERT | `stoerungstool_aktion` | **nein** |
-| `module/stoerungstool/ticket.php` | 138–140 | INSERT | `stoerungstool_aktion` (action=add_action) | **nein** |
-| `module/stoerungstool/ticket.php` | 143 | UPDATE | `stoerungstool_ticket` (Statuswechsel via add_action) | **ja** (Zeile 157) |
-| `module/stoerungstool/ticket.php` | 154 | UPDATE | `stoerungstool_ticket` (SLA-Felder via add_action) | **ja (teilweise)** (Zeile 157 vorhanden, aber SLA-Spalten `first_response_at`/`closed_at` werden in old/new JSON nicht erfasst) |
-| `module/stoerungstool/ticket.php` | 163 | UPDATE | `stoerungstool_ticket` (updated_at, kein Status-Wechsel) | **nein** |
-| `module/stoerungstool/ticket.php` | 188–192 | UPDATE | `stoerungstool_ticket` (action=update_ticket, Felder-Edit) | **nein** |
+| `module/stoerungstool/ticket.php` | 40 | UPDATE | `stoerungstool_ticket` (action=set_status) | **ja** (Zeile 46) |
+| `module/stoerungstool/ticket.php` | 41–45 | INSERT | `stoerungstool_aktion` (set_status) | **nein** |
+| `module/stoerungstool/ticket.php` | 52 | UPDATE | `stoerungstool_ticket` (action=assign) | **ja** (Zeile 58) |
+| `module/stoerungstool/ticket.php` | 53–57 | INSERT | `stoerungstool_aktion` (assign) | **nein** |
+| `module/stoerungstool/ticket.php` | 66–70 | INSERT | `stoerungstool_aktion` (action=add_action) | **nein** |
+| `module/stoerungstool/ticket.php` | 88–93 | INSERT | `core_dokument` (action=upload_doc) | **ja** (Zeile 95) |
 
 ---
 
 ## Zusammenfassung: Lücken ohne audit_log
 
-### module/admin/* — vollständig ohne audit_log
+### module/admin/* — teilweise ohne audit_log
 
-Alle 18 Schreibpfade in `admin/` (permissions, menu, routes, users, setup) haben **kein** audit_log.
+`module/admin/permissions.php` hat für alle 6 Schreibpfade audit_log. Ohne audit_log:
+- `admin/menu.php` (3 Pfade: UPDATE/INSERT/DELETE auf `core_menu_item`)
+- `admin/routes.php` (3 Pfade: UPDATE/INSERT/DELETE auf `core_route`)
+- `admin/users.php` (4 Pfade: INSERT + 3× UPDATE auf `core_user`)
+- `admin/setup.php` (2 Pfade: INSERT auf `core_user` und `core_permission`)
 
 ### module/stoerungstool/* — teilweise ohne audit_log
 
 Folgende Pfade ohne audit_log:
 - `melden.php`: Ticket-CREATE, Aktion-INSERT, Dokument-INSERT (3 Pfade)
-- `ticket.php`: `update_ticket`-UPDATE, `updated_at`-UPDATE ohne Statuswechsel, alle `stoerungstool_aktion`-INSERTs, `core_dokument`-INSERT
+- `ticket.php`: `updated_at`-UPDATE ohne Statuswechsel, alle `stoerungstool_aktion`-INSERTs
 
 ### module/wartungstool/* — gut abgedeckt, wenige Lücken
 

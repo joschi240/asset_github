@@ -74,20 +74,24 @@ Status:
   4) sonst → "OK" (ui-badge--ok)
 ```
 
-**In `module/wartungstool/dashboard.php:41–58` (Dashboard, Funktion `ui_badge_for()`):**
+**In `module/wartungstool/dashboard.php:60–86` (Dashboard, Funktion `status_for()`):**
 
 ```
-  1) rest === null → "Keine Punkte"
+  1) rest === null → "Neu/Unbekannt"
   2) rest < 0     → "Überfällig"
-  3) ratioLimit = soonRatio wenn > 0, sonst 0.20 (Fallback)  (Zeile 49–51)
-     ratio = rest / interval (wenn interval > 0, sonst 1.0)  (Zeile 53)
-     if ratio <= ratioLimit → "Bald fällig"                   (Zeile 55–56)
+  3) soonHours = clamp_soon_hours(wp.soon_hours)              (Zeile 69)
+     soonRatio = clamp_soon_ratio(wp.soon_ratio)              (Zeile 70)
+     Falls BEIDE null → soonRatio = 0.20 (Fallback)           (Zeile 71)
+     if soonHours !== null:
+       isSoon = (rest <= soonHours)                           (Zeile 74–75)
+     else:
+       limit = interval * soonRatio
+       isSoon = (rest <= limit)                               (Zeile 77–78)
+     if isSoon → "Bald fällig"                                (Zeile 82)
   4) sonst → "OK"
-
-  HINWEIS: soon_hours wird NICHT berücksichtigt.
 ```
 
-**In `module/wartungstool/uebersicht.php:34–50` (Übersicht, Funktion `ampel_from_rest()`):**
+**In `module/wartungstool/uebersicht.php:43–49` (Übersicht, Funktion `ampel_from_rest()`):**
 
 ```
   1) restHours === null → "Neu/Unbekannt"
@@ -120,7 +124,7 @@ Der Fallback `0.20` (20 % des Intervalls) ist an drei unabhängigen Stellen defi
 
 | Datei | Zeile | Kontext |
 |---|---|---|
-| `module/wartungstool/dashboard.php` | 51 | `ui_badge_for()` |
+| `module/wartungstool/dashboard.php` | 71 | `status_for()` |
 | `module/wartungstool/uebersicht.php` | 37 | `ampel_from_rest()` |
 | `module/wartungstool/punkt.php` | 74 | inline (Detail-Seite) |
 
@@ -132,11 +136,11 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
 |---|:---:|:---:|:---:|
 | `soon_ratio` → `ratioLimit` | ✅ | ✅ | ✅ |
 | Fallback `0.20` | ✅ | ✅ | ✅ |
-| `soon_hours` (absolut) | ❌ **nicht** | ❌ **nicht** | ✅ |
-| `rest === null` → Keine Punkte | ✅ | ✅ (als "Neu/Unbekannt") | ✅ (als "Nicht initialisiert") |
-| Dashboard-spezifisch: zeigt nur produktiv-WP | ✅ (`intervall_typ='produktiv'`) | — | — |
+| `soon_hours` (absolut) | ✅ | ❌ **nicht** | ✅ |
+| `rest === null` → Keine Punkte | ✅ (als "Neu/Unbekannt") | ✅ (als "Neu/Unbekannt") | ✅ (als "Nicht initialisiert") |
+| Dashboard-spezifisch: zeigt alle aktiven WP (zeit + produktiv) | ✅ | — | — |
 
-**Fazit:** `soon_hours` wird nur in `punkt.php` (Detail-Seite) korrekt berücksichtigt. Dashboard und Übersicht ignorieren `soon_hours`.
+**Fazit:** `soon_hours` wird in `punkt.php` (Detail-Seite) und `dashboard.php` korrekt berücksichtigt. `uebersicht.php` ignoriert `soon_hours` (nur `soon_ratio`).
 
 > TODO: Logik vollständig zentralisieren.  
 > (Quelle: `docs/PRIJECT_CONTEXT_v2.md`, Abschnitt „Wartungssystem – Bald-fällig Logik")
@@ -145,23 +149,35 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
 
 ## 5) Dashboard: Besonderheiten
 
-(Quelle: `module/wartungstool/dashboard.php:135–197`)
+(Quelle: `module/wartungstool/dashboard.php:17–25`, `module/wartungstool/dashboard.php:103–130`)
 
-- Das Dashboard zeigt pro Asset **nur den nächst fälligen produktiv-basierten** WP:
+- Das Dashboard zeigt **alle** aktiven WP aller Assets (sowohl `zeit` als auch `produktiv`):
   ```sql
-  WHERE wp.aktiv=1 AND wp.intervall_typ='produktiv' AND wp.letzte_wartung IS NOT NULL
-  ORDER BY (wp.letzte_wartung + wp.plan_interval) ASC
-  LIMIT 1
+  WHERE wp.aktiv = 1 AND a.aktiv = 1
+  ORDER BY a.name ASC, wp.text_kurz ASC
   ```
-- Zeit-basierte WP erscheinen **nicht** in der Dashboard-Haupttabelle
+- Kein `LIMIT 1` per Asset, kein Typ-Filter auf `intervall_typ`.
 
-### Trend-Berechnung
+> **TODO:** Dashboard-Darstellung umstellen auf:
+> - Pro Asset nur **eine Zeile** anzeigen.
+> - Wartungspunkte mit demselben Fälligkeitszeitpunkt gruppieren.
+> - Trendberechnung (basierend auf `core_runtime_agg_day`) wieder einbauen.
 
-(Quelle: `module/wartungstool/dashboard.php:90–133`)
+### Filter & Scope
+
+(Quelle: `module/wartungstool/dashboard.php:17–25`)
+
+- Scope-Filter: `?scope=heute|woche|alle` – begrenzt nach Reststunden (heute ≤ 8h, woche ≤ 40h, alle unbegrenzt)
+- Status-Filter: `?f=all|due|soon|ok|new|planned` (GET-Parameter)
+- Suche `?q=...` (serverseitig, sucht in Code/Name/Kategorie/WP)
+- Geplant-Flag: `?f=planned` zeigt alle WP mit `planned_at IS NOT NULL`
+
+### Trend-Berechnung (TODO – noch nicht implementiert)
+
+> **TODO:** Trendberechnung in `dashboard.php` noch einzubauen.  
+> Datenbasis: `core_runtime_agg_day` (letzte 28 Tage)
 
 ```
-Datenbasis: core_runtime_agg_day (letzte 28 Tage)
-
 h14_new = SUM(run_seconds)/3600 der letzten 14 Tage
 h14_old = SUM(run_seconds)/3600 der 14 Tage davor
 
@@ -172,14 +188,6 @@ Trend:
 
 wochenschnitt = h28 / 4   (Stunden/Woche Durchschnitt über 4 Wochen)
 ```
-
-### Filter & KPI-Karten
-
-(Quelle: `module/wartungstool/dashboard.php:17–24`, `module/wartungstool/dashboard.php:327–342`)
-
-- Filter `?f=all|due|soon|critical` (GET-Parameter)
-- Suche `?q=...` (clientseitig in PHP, sucht in Code/Name/Kategorie/WP)
-- KPI-Karten: überfällig, bald fällig, kritische Assets, alle Assets – klickbar, setzen `?f`
 
 ---
 

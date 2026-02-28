@@ -283,7 +283,7 @@ CREATE TABLE IF NOT EXISTS core_runtime_agg_day (
 
 -- wartungstool_wartungspunkt
 -- Zweck: Wartungsplan pro Asset (zeit- oder produktivstundenbasiert).
--- plan_interval: Stunden (bei produktiv) oder Tage (bei zeit)
+-- plan_interval: Stunden (bei produktiv) oder Stunden (bei zeit)
 -- letzte_wartung: Produktivstunden-Stand bei letzter Wartung (für intervall_typ='produktiv')
 -- datum: Zeitpunkt letzter Wartung (für intervall_typ='zeit')
 CREATE TABLE IF NOT EXISTS wartungstool_wartungspunkt (
