@@ -126,6 +126,7 @@ db.php # PDO + db_one/db_all/db_exec
 auth.php # session/login/csrf/require_login/current_user
 helpers.php # e(), csrf_token/check, audit_log(), etc.
 layout.php # render_header/footer + Menü
+permission.php # can(), user_permissions(), require_permission()
 css/main.css
 
 /tools/
@@ -234,8 +235,8 @@ Regel:
 
 ### Störung
 - `stoerung.melden` ✅ (public)
-- `stoerung.inbox` ✅ (Ampel + Filter ausklappbar + Suche inkl. Aktionen)
-- `stoerung.ticket` ✅ (Quick Status + Zuweisung + Aktionen + Dokumente; Sektionen ausklappbar/auto)
+- `stoerung.inbox` ✅ (Ampel + Filterbar + Suche in Titel/Beschreibung)
+- `stoerung.ticket` ✅ (Quick Status + Zuweisung + Aktionen + Dokumente)
 
 ### Runtime
 - Ingest (single+bulk) ✅
@@ -379,4 +380,4 @@ Status-Regel:
    - sonst Default 0.20
 3. OK → sonst
 
-> TODO: Logik zwischen Dashboard & Übersicht vollständig zentralisieren.
+> ✅ DONE: Logik in `src/helpers.php::wartung_status_from_rest()` zentralisiert — alle 3 Seiten (Dashboard, Übersicht, Detail) rufen diese auf.

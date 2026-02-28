@@ -97,8 +97,8 @@ HTTP-Request → app.php
 | `require_can_edit()` | `src/auth.php:171–179` | Wirft HTTP 403 wenn kein Schreibrecht |
 | `require_can_delete()` | `src/auth.php:183–191` | Wirft HTTP 403 wenn kein Löschrecht |
 | `is_admin_user()` | `src/helpers.php:70–76` | Prüft `modul='*'` in `core_permission` |
-| `can()` | `src/permission.php:43–59` | Alternative Prüfung ohne objekt_typ |
-| `user_permissions()` | `src/permission.php:12–37` | Gibt alle Permissions des aktuellen Users zurück |
+| `can()` | `src/permission.php:48–76` | Alternative Prüfung ohne objekt_typ |
+| `user_permissions()` | `src/permission.php:11–37` | Gibt alle Permissions des aktuellen Users zurück |
 
 ### `user_can_flag()` Fallback-Priorität
 
@@ -113,7 +113,7 @@ e) (user_id, '*', 'global', NULL)              ← Admin-Wildcard (alternativ)
 ```
 
 Alle in einer einzigen SQL-Query via `MAX(flag_col) ... WHERE ... OR ... OR ...`  
-(Quelle: `src/auth.php:130–145`)
+(Quelle: `src/auth.php:138–154`)
 
 ### Öffentliche Seiten
 

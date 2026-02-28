@@ -11,8 +11,8 @@ Das Wartungstool unterstützt zwei Intervalltypen:
 
 | `intervall_typ` | Basis | Quelle |
 |---|---|---|
-| `'produktiv'` | Produktivstunden (`core_runtime_counter.productive_hours`) | `module/wartungstool/punkt.php:77–97` |
-| `'zeit'` | Wallclock-Zeit (`time()`, Basis: `datum`) | `module/wartungstool/punkt.php:99–120` |
+| `'produktiv'` | Produktivstunden (`core_runtime_counter.productive_hours`) | `module/wartungstool/punkt.php:61–69` |
+| `'zeit'` | Wallclock-Zeit (`time()`, Basis: `datum`) | `module/wartungstool/punkt.php:71–81` |
 
 ---
 
@@ -20,7 +20,7 @@ Das Wartungstool unterstützt zwei Intervalltypen:
 
 ### Produktiv-Intervall (`intervall_typ='produktiv'`)
 
-(Quelle: `module/wartungstool/punkt.php:77–97`)
+(Quelle: `module/wartungstool/punkt.php:61–69`)
 
 ```
 Voraussetzung: wp.letzte_wartung IS NOT NULL AND wp.plan_interval > 0
@@ -34,7 +34,7 @@ rest  [in Produktivstunden] = dueAt - core_runtime_counter.productive_hours
 
 ### Zeit-Intervall (`intervall_typ='zeit'`)
 
-(Quelle: `module/wartungstool/punkt.php:99–120`)
+(Quelle: `module/wartungstool/punkt.php:71–81`)
 
 ```
 Voraussetzung: wp.datum IS NOT NULL AND wp.plan_interval > 0
@@ -218,8 +218,9 @@ Beim Speichern eines Wartungsprotokolls:
    (Quelle: `punkt_save.php:107–112`)
 3. `audit_log(wartungstool, protokoll, CREATE, ...)` + `audit_log(wartungstool, wartungspunkt, UPDATE, ...)`  
    (Quelle: `punkt_save.php:114, 124`)
-4. Optional: Bei Status `abweichung` kann Ticket in `stoerungstool_ticket` angelegt werden  
-   (Quelle: `punkt_save.php:158–163`)
+4. Optional: Wenn der User die Checkbox „Ticket erzeugen" aktiviert (`create_ticket=1`), wird ein Ticket in `stoerungstool_ticket` angelegt.
+   JavaScript setzt die Checkbox automatisch, wenn der Messwert außerhalb der Grenzwerte liegt, und deaktiviert sie automatisch, wenn der Messwert wieder in den Normalbereich zurückkehrt.  
+   (Quelle: `punkt_save.php:28, 127–199`; JS: `punkt.php:461–464`)
 
 ---
 
