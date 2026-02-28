@@ -153,6 +153,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 ### Tabellen-Übersicht
 
 #### Core (Prefix `core_`) – stabile Basis
+
 (Quelle: `docs/DB_SCHEMA_DELTA_NOTES.md`, Abschnitt 2)
 
 | Tabelle | Zweck |
@@ -168,6 +169,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 | `core_audit_log` | ISO-Audit-Trail (JSON alt/neu, Actor, IP, Timestamp) |
 
 #### Runtime / Telemetrie (Prefix `core_runtime_`)
+
 (Quelle: `docs/DB_SCHEMA_DELTA_NOTES.md`, Abschnitt 3)
 
 | Tabelle | Zweck |
@@ -177,6 +179,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 | `core_runtime_agg_day` | Tagesaggregation (run/stop Sekunden, Gaps, Intervals) |
 
 #### Wartungstool (Prefix `wartungstool_`)
+
 (Quelle: `docs/DB_SCHEMA_DELTA_NOTES.md`, Abschnitt 4)
 
 | Tabelle | Zweck |
@@ -185,6 +188,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 | `wartungstool_protokoll` | Durchführungshistorie (Messwert, Status `ok`/`abweichung`) |
 
 #### Störungstool v2 (Prefix `stoerungstool_`)
+
 (Quelle: `docs/DB_SCHEMA_DELTA_NOTES.md`, Abschnitt 5)
 
 | Tabelle | Zweck |
@@ -211,8 +215,8 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 
 1. **Repository klonen**
    ```bash
-   git clone <repo-url> /var/www/html/asset_ki
-   cd /var/www/html/asset_ki
+   git clone <repo-url> /path/to/asset_ki
+   cd /path/to/asset_ki
    ```
 
 2. **Datenbank erstellen**
@@ -247,7 +251,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 7. **Telemetrie-Cron einrichten** (optional)
    ```bash
    # Rollup alle 5 Minuten ausführen (nur CLI erlaubt)
-   */5 * * * * php /var/www/html/asset_ki/tools/runtime_rollup.php
+   */5 * * * * php /path/to/asset_ki/tools/runtime_rollup.php
    ```
    (Quelle: `tools/runtime_rollup.php:1` – `if (php_sapi_name() !== 'cli') { ... exit('Forbidden'); }`)
 
@@ -263,6 +267,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 ## Modulübersicht
 
 ### Wartungstool (`/module/wartungstool/`)
+
 (Quelle: `module/wartungstool/`, `docs/KNOWN_ROUTE_KEYS.md`)
 
 | Route | Datei | Beschreibung |
@@ -275,6 +280,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 | `wartung.admin_punkte` | `admin_punkte.php` | Admin CRUD: Wartungspunkte anlegen, bearbeiten, kopieren, CSV-Import |
 
 ### Störungstool (`/module/stoerungstool/`)
+
 (Quelle: `module/stoerungstool/`, `docs/KNOWN_ROUTE_KEYS.md`)
 
 | Route | Datei | Beschreibung |
@@ -284,6 +290,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 | `stoerung.ticket` | `ticket.php` | Ticket-Detail: Quick-Status, Zuweisung, Aktionen, Dokumente |
 
 ### Admin (`/module/admin/`)
+
 (Quelle: `module/admin/`, `docs/KNOWN_ROUTE_KEYS.md`)
 
 | Route | Datei | Beschreibung |
@@ -295,6 +302,7 @@ Das Haupt-Schema mit Testdaten-Seeds: [`docs/asset_github_schema.sql`](docs/asse
 | `admin.permissions` | `permissions.php` | Berechtigungsverwaltung |
 
 ### Runtime / Telemetrie (`/tools/`)
+
 (Quelle: `tools/`)
 
 | Datei | Beschreibung |
@@ -327,6 +335,7 @@ Admin-Wildcard-Erkennung: `modul='*'` und `darf_sehen=1` in `core_permission`.
 (Quelle: `src/helpers.php:70–76`)
 
 ### DB-Struktur `core_permission`
+
 (Quelle: `src/auth.php:110–111`)
 
 | Spalte | Bedeutung |
@@ -340,6 +349,7 @@ Admin-Wildcard-Erkennung: `modul='*'` und `darf_sehen=1` in `core_permission`.
 | `darf_loeschen` | Löschzugriff (geprüft via `user_can_delete()`) |
 
 ### Berechtigungsmatrix
+
 (Quelle: `docs/PRIJECT_CONTEXT_v2.md`, Abschnitt „Next 1", `docs/KNOWN_ROUTE_KEYS.md`)
 
 | Route | modul / objekt_typ | sehen | ändern | löschen |
@@ -359,6 +369,7 @@ Admin-Wildcard-Erkennung: `modul='*'` und `darf_sehen=1` in `core_permission`.
 ## Telemetrie / Produktivstunden
 
 ### Ingest (`tools/runtime_ingest.php`)
+
 (Quelle: `tools/runtime_ingest.php`)
 
 - Auth: Header `X-INGEST-TOKEN` gegen `cfg['telemetry']['ingest_token']`  
@@ -371,6 +382,7 @@ Admin-Wildcard-Erkennung: `modul='*'` und `darf_sehen=1` in `core_permission`.
 
 ```bash
 # Single
+
 curl -X POST \
   -H "X-INGEST-TOKEN: <token>" \
   -H "Content-Type: application/json" \
@@ -378,6 +390,7 @@ curl -X POST \
   http://<host>/asset_ki/tools/runtime_ingest.php
 
 # Bulk
+
 curl -X POST \
   -H "X-INGEST-TOKEN: <token>" \
   -H "Content-Type: application/json" \
@@ -386,6 +399,7 @@ curl -X POST \
 ```
 
 ### Rollup (`tools/runtime_rollup.php`)
+
 (Quelle: `tools/runtime_rollup.php`)
 
 - Nur über CLI (`php_sapi_name() !== 'cli'` → HTTP 403)  
@@ -403,6 +417,7 @@ curl -X POST \
 > Spezialabschnitt: Exakte Formel, Fallbacks, Abweichungen zwischen Seiten.
 
 ### Felder in `wartungstool_wartungspunkt`
+
 (Quelle: `docs/db_schema_v2.sql:298–300`)
 
 | Feld | Typ | Bedeutung |
@@ -481,6 +496,7 @@ rest  = (dueTs - time()) / 3600              (in Stunden)
 ## UI v2 Design-System
 
 ### CSS-Dateien
+
 (Quelle: `src/layout.php:28–38`, `src/css/ui-v2/`)
 
 | Datei | Inhalt |
@@ -498,6 +514,7 @@ Body-Klasse: `ui-v2` (alle Seiten)
 (Quelle: `src/layout.php:44`)
 
 ### Wichtige `ui-*` Klassen
+
 (Quelle: `docs/UI_V2_GUIDE.md`)
 
 | Klasse | Verwendung |
@@ -515,6 +532,7 @@ Body-Klasse: `ui-v2` (alle Seiten)
 | `ui-muted` | Gedämpfte Textfarbe |
 
 ### UI v2 Migrationsstatus
+
 (Quelle: `docs/PRIJECT_CONTEXT_v2.md`, Abschnitt „2026 Update – Migrationsstatus")
 
 | Seite | Status |
@@ -522,7 +540,7 @@ Body-Klasse: `ui-v2` (alle Seiten)
 | `wartung.dashboard` | ✅ UI v2 |
 | `wartung.uebersicht` | ✅ UI v2 |
 | `wartung.admin_punkte` | ✅ UI v2 |
-| `wartung.punkt` | ⚠️ UI v2 TODO |
+| `wartung.punkt` | ⚠ UI v2 TODO |
 | Störungstool-Seiten | Nicht im Repository verifizierbar (kein expliziter Migrationsvermerk) |
 | Admin-Seiten | Nicht im Repository verifizierbar |
 
@@ -531,6 +549,7 @@ Body-Klasse: `ui-v2` (alle Seiten)
 ## Audit-Log
 
 ### Implementierung
+
 (Quelle: `src/helpers.php:90–103`)
 
 ```php
@@ -551,6 +570,7 @@ function audit_log(
   (Quelle: `src/helpers.php:78–88`)
 
 ### Tabelle `core_audit_log`
+
 (Quelle: `docs/audit_log_analyse.md`, Abschnitt 2)
 
 | Spalte | Typ | Beschreibung |
@@ -564,6 +584,7 @@ function audit_log(
 | `created_at` | TIMESTAMP | Automatisch gesetzt |
 
 ### Bekannte Lücken
+
 (Quelle: `docs/audit_log_analyse.md`, Abschnitt 5 „Zusammenfassung")
 
 - **`module/admin/*`**: Vollständig ohne `audit_log` (18 Schreibpfade)

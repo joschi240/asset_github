@@ -44,6 +44,7 @@ HTTP-Request → app.php
 - Route-Key: `?r=<route_key>` (GET-Parameter)
 
 ### Schema `core_route`
+
 (Quelle: `docs/db_schema_v2.sql`, `docs/KNOWN_ROUTE_KEYS.md`)
 
 | Spalte | Beschreibung |
@@ -59,6 +60,7 @@ HTTP-Request → app.php
 | `sort` | Sortierreihenfolge |
 
 ### Alle bekannten Route-Keys
+
 (Quelle: `docs/KNOWN_ROUTE_KEYS.md`)
 
 | route_key | modul / objekt_typ | require_login |
@@ -83,6 +85,7 @@ HTTP-Request → app.php
 ## 3) Permission-System
 
 ### Funktionen und Dateien
+
 (Quelle: `src/helpers.php:56–76`, `src/auth.php:113–184`, `src/permission.php`)
 
 | Funktion | Datei | Beschreibung |
@@ -98,6 +101,7 @@ HTTP-Request → app.php
 | `user_permissions()` | `src/permission.php:12–37` | Gibt alle Permissions des aktuellen Users zurück |
 
 ### `user_can_flag()` Fallback-Priorität
+
 (Quelle: `src/auth.php:116–120`)
 
 ```
@@ -152,6 +156,7 @@ tools/runtime_rollup.php
 ```
 
 ### Rollup-Logik (Zusammenfassung)
+
 (Quelle: `tools/runtime_rollup.php`)
 
 - Startet bei `core_runtime_counter.last_ts` pro Asset
@@ -182,6 +187,7 @@ function audit_log(
 ```
 
 ### JSON-Serialisierung
+
 (Quelle: `src/helpers.php:78–88`)
 
 ```php
@@ -195,14 +201,15 @@ function audit_json($value): ?string
 **Hinweis:** `audit_log_analyse.md` dokumentiert in Abschnitt 1 eine frühere Version der `audit_json`-Logik (ohne `JSON_INVALID_UTF8_SUBSTITUTE`). Der aktuelle Stand in `src/helpers.php:78–88` verwendet zusätzliche Flags für Robustheit.
 
 ### Audit-Log Abdeckung
+
 (Quelle: `docs/audit_log_analyse.md`)
 
 - ✅ `wartungstool/admin_punkte.php`: alle CRUD-Pfade
 - ✅ `wartungstool/punkt_save.php`: Protokoll + WP-Update
 - ✅ `stoerungstool/ticket.php`: Status-Änderungen, Zuweisung
-- ⚠️ `module/admin/*`: **vollständig ohne** audit_log (18 Schreibpfade)
-- ⚠️ `stoerungstool/melden.php`: Ticket-CREATE ohne audit_log
-- ⚠️ `stoerungstool/ticket.php`: `update_ticket` ohne audit_log
+- ⚠ `module/admin/*`: **vollständig ohne** audit_log (18 Schreibpfade)
+- ⚠ `stoerungstool/melden.php`: Ticket-CREATE ohne audit_log
+- ⚠ `stoerungstool/ticket.php`: `update_ticket` ohne audit_log
 
 ---
 

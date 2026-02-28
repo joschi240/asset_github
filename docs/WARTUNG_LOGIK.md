@@ -19,6 +19,7 @@ Das Wartungstool unterstützt zwei Intervalltypen:
 ## 2) Fälligkeit berechnen
 
 ### Produktiv-Intervall (`intervall_typ='produktiv'`)
+
 (Quelle: `module/wartungstool/punkt.php:77–97`)
 
 ```
@@ -32,6 +33,7 @@ rest  [in Produktivstunden] = dueAt - core_runtime_counter.productive_hours
 (Quelle: `tools/runtime_rollup.php`)
 
 ### Zeit-Intervall (`intervall_typ='zeit'`)
+
 (Quelle: `module/wartungstool/punkt.php:99–120`)
 
 ```
@@ -103,6 +105,7 @@ Status:
 ## 4) soon_ratio & soon_hours – Spezialprüfung
 
 ### Felder in `wartungstool_wartungspunkt`
+
 (Quelle: `docs/db_schema_v2.sql:298–300`)
 
 ```sql
@@ -153,6 +156,7 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
 - Zeit-basierte WP erscheinen **nicht** in der Dashboard-Haupttabelle
 
 ### Trend-Berechnung
+
 (Quelle: `module/wartungstool/dashboard.php:90–133`)
 
 ```
@@ -170,6 +174,7 @@ wochenschnitt = h28 / 4   (Stunden/Woche Durchschnitt über 4 Wochen)
 ```
 
 ### Filter & KPI-Karten
+
 (Quelle: `module/wartungstool/dashboard.php:17–24`, `module/wartungstool/dashboard.php:327–342`)
 
 - Filter `?f=all|due|soon|critical` (GET-Parameter)
