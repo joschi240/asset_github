@@ -57,15 +57,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($wantAdmin) {
       if ($adminRow) {
         db_exec("UPDATE core_permission SET darf_sehen=1, darf_aendern=1, darf_loeschen=1 WHERE id=?", [(int)$adminRow['id']]);
+        audit_log('admin', 'permission', (int)$adminRow['id'], 'UPDATE',
+          ['user_id' => $userId, 'modul' => '*', 'objekt_typ' => '*', 'darf_sehen' => $adminRow['darf_sehen'], 'darf_aendern' => $adminRow['darf_aendern'], 'darf_loeschen' => $adminRow['darf_loeschen']],
+          ['user_id' => $userId, 'modul' => '*', 'objekt_typ' => '*', 'darf_sehen' => 1, 'darf_aendern' => 1, 'darf_loeschen' => 1],
+          $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+        );
       } else {
         db_exec(
           "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
            VALUES (?,?,?,?,1,1,1)",
           [$userId, '*', '*', null]
         );
+        audit_log('admin', 'permission', (int)db()->lastInsertId(), 'CREATE', null,
+          ['user_id' => $userId, 'modul' => '*', 'objekt_typ' => '*', 'darf_sehen' => 1, 'darf_aendern' => 1, 'darf_loeschen' => 1],
+          $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+        );
       }
     } else {
-      if ($adminRow) db_exec("DELETE FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+      if ($adminRow) {
+        db_exec("DELETE FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+        audit_log('admin', 'permission', (int)$adminRow['id'], 'DELETE',
+          ['user_id' => $userId, 'modul' => '*', 'objekt_typ' => '*'], null,
+          $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+        );
+      }
     }
 
     // Route-Permissions
@@ -84,7 +99,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $row = perm_row($userId, $modul, $objt, $oid);
 
       if ($see === 0 && $chg === 0 && $del === 0) {
-        if ($row) db_exec("DELETE FROM core_permission WHERE id=?", [(int)$row['id']]);
+        if ($row) {
+          db_exec("DELETE FROM core_permission WHERE id=?", [(int)$row['id']]);
+          audit_log('admin', 'permission', (int)$row['id'], 'DELETE',
+            ['user_id' => $userId, 'modul' => $modul, 'objekt_typ' => $objt], null,
+            $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+          );
+        }
         continue;
       }
 
@@ -93,11 +114,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           "UPDATE core_permission SET darf_sehen=?, darf_aendern=?, darf_loeschen=? WHERE id=?",
           [$see, $chg, $del, (int)$row['id']]
         );
+        audit_log('admin', 'permission', (int)$row['id'], 'UPDATE',
+          ['user_id' => $userId, 'modul' => $modul, 'objekt_typ' => $objt, 'darf_sehen' => $row['darf_sehen'], 'darf_aendern' => $row['darf_aendern'], 'darf_loeschen' => $row['darf_loeschen']],
+          ['user_id' => $userId, 'modul' => $modul, 'objekt_typ' => $objt, 'darf_sehen' => $see, 'darf_aendern' => $chg, 'darf_loeschen' => $del],
+          $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+        );
       } else {
         db_exec(
           "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
            VALUES (?,?,?,?,?,?,?)",
           [$userId, $modul, $objt, $oid, $see, $chg, $del]
+        );
+        audit_log('admin', 'permission', (int)db()->lastInsertId(), 'CREATE', null,
+          ['user_id' => $userId, 'modul' => $modul, 'objekt_typ' => $objt, 'darf_sehen' => $see, 'darf_aendern' => $chg, 'darf_loeschen' => $del],
+          $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
         );
       }
     }

@@ -115,6 +115,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         [$ticketId]
       );
 
+      $meldUser = current_user();
+      audit_log('stoerungstool', 'ticket', $ticketId, 'CREATE', null, [
+        'asset_id'          => $assetId,
+        'titel'             => $titel,
+        'meldungstyp'       => $meldungstyp,
+        'fachkategorie'     => $fachkategorie,
+        'prioritaet'        => $prio,
+        'maschinenstillstand' => $still,
+        'gemeldet_von'      => ($name !== '' ? $name : null),
+      ], $meldUser['id'] ?? null, $name !== '' ? $name : null);
+
       // optional Foto/PDF
       upload_first_ticket_file($ticketId);
 

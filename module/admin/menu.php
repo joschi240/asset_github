@@ -73,13 +73,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $route_key = ($route_key === '') ? null : $route_key;
       $url = ($url === '') ? null : $url;
 
+      $newData = ['menu_id' => $mid, 'parent_id' => $parent_id, 'label' => $label, 'route_key' => $route_key, 'url' => $url, 'modul' => $modul, 'objekt_typ' => $objekt_typ, 'objekt_id' => $objekt_id, 'sort' => $sort, 'aktiv' => $aktiv];
       if ($iid > 0) {
+        $oldItem = db_one("SELECT parent_id, label, route_key, url, modul, objekt_typ, objekt_id, sort, aktiv FROM core_menu_item WHERE id=? AND menu_id=? LIMIT 1", [$iid, $mid]);
         db_exec(
           "UPDATE core_menu_item
            SET parent_id=?, label=?, route_key=?, url=?, modul=?, objekt_typ=?, objekt_id=?, sort=?, aktiv=?
            WHERE id=? AND menu_id=?",
           [$parent_id, $label, $route_key, $url, $modul, $objekt_typ, $objekt_id, $sort, $aktiv, $iid, $mid]
         );
+        audit_log('admin', 'menu_item', $iid, 'UPDATE', $oldItem ?: null, $newData, $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null);
         $ok = 'Menüeintrag gespeichert.';
       } else {
         db_exec(
@@ -87,12 +90,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            VALUES (?,?,?,?,?,?,?,?,?,?)",
           [$mid, $parent_id, $label, $route_key, $url, $modul, $objekt_typ, $objekt_id, $sort, $aktiv]
         );
+        $newIid = (int)db()->lastInsertId();
+        audit_log('admin', 'menu_item', $newIid, 'CREATE', null, $newData, $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null);
         $ok = 'Menüeintrag angelegt.';
       }
 
     } elseif ($postAction === 'delete') {
       $iid = (int)$_POST['id'];
+      $oldItem = db_one("SELECT label, route_key, url, modul, aktiv FROM core_menu_item WHERE id=? AND menu_id=? LIMIT 1", [$iid, (int)$menu['id']]);
       db_exec("DELETE FROM core_menu_item WHERE id=? AND menu_id=?", [$iid, (int)$menu['id']]);
+      audit_log('admin', 'menu_item', $iid, 'DELETE', $oldItem ?: null, null, $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null);
       $ok = 'Menüeintrag gelöscht.';
     }
   } catch (Throwable $e) {

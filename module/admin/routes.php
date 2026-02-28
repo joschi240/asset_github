@@ -52,11 +52,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $modul = ($modul === '') ? null : $modul;
       $objekt_typ = ($objekt_typ === '') ? null : $objekt_typ;
 
+      $newData = ['route_key' => $route_key, 'titel' => $titel, 'file_path' => $file_path, 'modul' => $modul, 'objekt_typ' => $objekt_typ, 'objekt_id' => $objekt_id, 'require_login' => $require_login, 'aktiv' => $aktiv, 'sort' => $sort];
       if ($rid > 0) {
+        $oldRoute = db_one("SELECT route_key, titel, file_path, modul, objekt_typ, objekt_id, require_login, aktiv, sort FROM core_route WHERE id=? LIMIT 1", [$rid]);
         db_exec(
           "UPDATE core_route SET route_key=?, titel=?, file_path=?, modul=?, objekt_typ=?, objekt_id=?, require_login=?, aktiv=?, sort=? WHERE id=?",
           [$route_key, $titel, $file_path, $modul, $objekt_typ, $objekt_id, $require_login, $aktiv, $sort, $rid]
         );
+        audit_log('admin', 'route', $rid, 'UPDATE', $oldRoute ?: null, $newData, $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null);
         $ok = 'Route gespeichert.';
       } else {
         db_exec(
@@ -64,12 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
            VALUES (?,?,?,?,?,?,?,?,?)",
           [$route_key, $titel, $file_path, $modul, $objekt_typ, $objekt_id, $require_login, $aktiv, $sort]
         );
+        $newRid = (int)db()->lastInsertId();
+        audit_log('admin', 'route', $newRid, 'CREATE', null, $newData, $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null);
         $ok = 'Route angelegt.';
       }
 
     } elseif ($postAction === 'delete') {
       $rid = (int)$_POST['id'];
+      $oldRoute = db_one("SELECT route_key, titel, file_path, modul, objekt_typ, aktiv FROM core_route WHERE id=? LIMIT 1", [$rid]);
       db_exec("DELETE FROM core_route WHERE id=?", [$rid]);
+      audit_log('admin', 'route', $rid, 'DELETE', $oldRoute ?: null, null, $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null);
       $ok = 'Route gelöscht.';
     }
   } catch (Throwable $e) {

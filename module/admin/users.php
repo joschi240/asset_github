@@ -50,6 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       db_exec("INSERT INTO core_user (benutzername, passwort_hash, anzeigename, aktiv) VALUES (?,?,?,?)",
         [$bn, $hash, ($an ?: null), $aktiv]
       );
+      $newUserId = (int)db()->lastInsertId();
+      audit_log('admin', 'user', $newUserId, 'CREATE', null,
+        ['benutzername' => $bn, 'anzeigename' => ($an ?: null), 'aktiv' => $aktiv],
+        $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+      );
       $ok = 'Benutzer erstellt.';
 
     } elseif ($postAction === 'update') {
@@ -58,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $aktiv = !empty($_POST['aktiv']) ? 1 : 0;
       $pw = (string)($_POST['passwort'] ?? '');
 
+      $oldUser = db_one("SELECT anzeigename, aktiv FROM core_user WHERE id=? LIMIT 1", [$uid]);
       db_exec("UPDATE core_user SET anzeigename=?, aktiv=? WHERE id=?", [($an ?: null), $aktiv, $uid]);
 
       if ($pw !== '') {
@@ -66,11 +72,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         db_exec("UPDATE core_user SET passwort_hash=? WHERE id=?", [$hash, $uid]);
       }
 
+      audit_log('admin', 'user', $uid, 'UPDATE',
+        $oldUser ? ['anzeigename' => $oldUser['anzeigename'], 'aktiv' => $oldUser['aktiv']] : null,
+        ['anzeigename' => ($an ?: null), 'aktiv' => $aktiv, 'passwort_geaendert' => ($pw !== '')],
+        $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+      );
       $ok = 'Benutzer gespeichert.';
 
     } elseif ($postAction === 'disable') {
       $uid = (int)$_POST['id'];
+      $oldUser = db_one("SELECT aktiv FROM core_user WHERE id=? LIMIT 1", [$uid]);
       db_exec("UPDATE core_user SET aktiv=0 WHERE id=?", [$uid]);
+      audit_log('admin', 'user', $uid, 'UPDATE',
+        $oldUser ? ['aktiv' => $oldUser['aktiv']] : null,
+        ['aktiv' => 0],
+        $u['id'] ?? null, $u['anzeigename'] ?? $u['benutzername'] ?? null
+      );
       $ok = 'Benutzer deaktiviert.';
     }
   } catch (Throwable $e) {
