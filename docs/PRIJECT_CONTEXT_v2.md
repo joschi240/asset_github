@@ -198,7 +198,7 @@ Ticket-Linking aus Wartung (Option A):
   - `referenz_typ` z.B. `ticket`
   - `referenz_id` z.B. `stoerungstool_ticket.id`
   - `dateiname` = relativer Pfad unter `/uploads/` (z.B. `stoerungstool/tickets/22/file.pdf`)
-  - optional: `sha256`, mime, size, originalname
+  - optional: `sha256`, `mime`, `size_bytes`, `originalname`, `hochgeladen_am`, `hochgeladen_von_user_id`
 
 ### 4.2 Sicherheits-/UX-Regeln
 - Uploads nur erlaubte Mimes (typisch: jpg/png/webp/pdf)
@@ -361,15 +361,16 @@ Tabelle: `wartungstool_wartungspunkt`
 
 Felder:
 
-- `soon_hours` (DOUBLE, NULL)  
+- `soon_hours` (`decimal(10,2)`, `DEFAULT NULL`)  
   Absolute Restschwelle in Stunden (**hat Priorität**, wenn gesetzt)
 
-- `soon_ratio` (DOUBLE, NULL)  
+- `soon_ratio` (`decimal(5,4)`, `DEFAULT 0.2000`)  
   Relative Restschwelle 0..1  
-  Beispiel: `0.10` ⇒ „bald“, wenn `rest/interval <= 0.10`
+  Beispiel: `0.10` ⇒ „bald“, wenn `rest/interval <= 0.10`  
+  DB-Default: `0.2000` (20 %), wird für neue Zeilen automatisch gesetzt.
 
 Fallback:
-- Wenn beide NULL → Default-Schwelle im Code (aktuell 0.20)
+- Wenn beide explizit NULL → Code-Fallback `0.20` in `wartung_status_from_rest()` (greift nur, wenn `soon_ratio` manuell auf NULL gesetzt wurde)
 
 Status-Regel:
 
