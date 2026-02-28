@@ -127,12 +127,15 @@ try {
   if ($createTicketRequested === 1) {
     if (!$canCreateTicket) {
       // Marker in Protokoll, dass Ticket nicht erstellt wurde (Rechte)
+      $oldProt = db_one("SELECT bemerkung FROM wartungstool_protokoll WHERE id=?", [$protId]);
       db_exec(
         "UPDATE wartungstool_protokoll
          SET bemerkung = TRIM(CONCAT(COALESCE(bemerkung,''), CASE WHEN bemerkung IS NULL OR bemerkung='' THEN '' ELSE ' ' END, '[#TICKET:DENIED]'))
          WHERE id=?",
         [$protId]
       );
+      $newProt = db_one("SELECT bemerkung FROM wartungstool_protokoll WHERE id=?", [$protId]);
+      audit_log('wartungstool', 'protokoll', $protId, 'UPDATE', $oldProt, $newProt, $userId, $actor);
     } else {
       $titel = "Wartung: " . ($wp['asset_code'] ? $wp['asset_code'].' ' : '') . $wp['asset_name'] . " – " . $wp['text_kurz'];
 
@@ -165,6 +168,7 @@ try {
          VALUES (?, NOW(), ?, ?, 'neu', NULL)",
         [$ticketId, $userId ?: null, "Ticket erzeugt aus Wartungsprotokoll #{$protId}"]
       );
+      $ticketActionId = (int)$pdo->lastInsertId();
 
       audit_log('stoerungstool', 'ticket', $ticketId, 'CREATE', null, [
         'asset_id' => (int)$wp['asset_id'],
@@ -172,7 +176,13 @@ try {
         'kategorie' => 'Wartung',
         'source_protokoll_id' => $protId
       ], $userId, $actor);
+      audit_log('stoerungstool', 'aktion', $ticketActionId, 'CREATE', null, [
+        'ticket_id' => $ticketId,
+        'text' => "Ticket erzeugt aus Wartungsprotokoll #{$protId}",
+        'status_neu' => 'neu',
+      ], $userId, $actor);
 
+      $oldProt = db_one("SELECT bemerkung FROM wartungstool_protokoll WHERE id=?", [$protId]);
       db_exec(
         "UPDATE wartungstool_protokoll
          SET bemerkung = TRIM(CONCAT(
@@ -183,6 +193,8 @@ try {
          WHERE id=?",
         [$ticketId, $protId]
       );
+      $newProt = db_one("SELECT bemerkung FROM wartungstool_protokoll WHERE id=?", [$protId]);
+      audit_log('wartungstool', 'protokoll', $protId, 'UPDATE', $oldProt, $newProt, $userId, $actor);
     }
   }
 

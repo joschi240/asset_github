@@ -17,5 +17,11 @@
       "username": "asset_ki",
       "password": "dOMSzF6TU7/sV(PU"
     }
-  ]
+  ],
+  "chat.tools.terminal.autoApprove": {
+    "/^php -l module/wartungstool/punkt_save\\.php$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }

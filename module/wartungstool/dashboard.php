@@ -35,56 +35,6 @@ function rest_label(?float $rest): string {
   return number_format((float)$rest, 1, ',', '.') . ' h';
 }
 
-function clamp_soon_ratio(?float $r): ?float {
-  if ($r === null) return null;
-  $r = (float)$r;
-  if ($r <= 0 || $r > 1) return null;
-  return $r;
-}
-
-function clamp_soon_hours(?float $h): ?float {
-  if ($h === null) return null;
-  $h = (float)$h;
-  if ($h <= 0) return null;
-  return $h;
-}
-
-/**
- * Operative Statuslogik (einheitlich):
- * - rest null => new
- * - rest < 0  => due
- * - soonHours (wenn >0) hat Vorrang
- * - sonst soonRatio (0..1)
- * - fallback soonRatio = 0.20
- */
-function status_for(?float $rest, float $interval, ?float $soonRatio, ?float $soonHours): array {
-  if ($rest === null) {
-    return ['cls'=>'ui-badge', 'label'=>'Neu/Unbekannt', 'type'=>'new'];
-  }
-
-  if ($rest < 0) {
-    return ['cls'=>'ui-badge ui-badge--danger', 'label'=>'Überfällig', 'type'=>'due'];
-  }
-
-  $soonHours = clamp_soon_hours($soonHours);
-  $soonRatio = clamp_soon_ratio($soonRatio);
-  if ($soonHours === null && $soonRatio === null) $soonRatio = 0.20;
-
-  $isSoon = false;
-  if ($soonHours !== null) {
-    $isSoon = ($rest <= $soonHours);
-  } else {
-    $limit = $interval > 0 ? ($interval * (float)$soonRatio) : 0.0;
-    $isSoon = ($interval > 0) ? ($rest <= $limit) : false;
-  }
-
-  if ($isSoon) {
-    return ['cls'=>'ui-badge ui-badge--warn', 'label'=>'Bald fällig', 'type'=>'soon'];
-  }
-
-  return ['cls'=>'ui-badge ui-badge--ok', 'label'=>'OK', 'type'=>'ok'];
-}
-
 function dash_url(string $base, array $params): string {
   $query = array_merge(['r' => 'wartung.dashboard'], $params);
   return $base . '/app.php?' . http_build_query($query);
@@ -154,7 +104,7 @@ foreach ($wps as $wp) {
     }
   }
 
-  $st = status_for(
+  $st = wartung_status_from_rest(
     $rest,
     $interval,
     $wp['soon_ratio'] !== null ? (float)$wp['soon_ratio'] : null,

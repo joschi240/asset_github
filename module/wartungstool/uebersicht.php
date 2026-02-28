@@ -38,31 +38,6 @@ if ($assetId <= 0 && !empty($assets)) {
   $assetId = (int)$assets[0]['id'];
 }
 
-// Hilfsfunktionen
-// soon_ratio / soon_hours: wenn gesetzt (>0), bestimmt "Bald fällig" Schwelle.
-// soon_hours hat Vorrang vor soon_ratio wenn gesetzt.
-function ampel_from_rest(?float $restHours, float $intervalHours, ?float $soonRatio = null, ?float $soonHours = null): array {
-  if ($restHours === null) return ['cls'=>'ui-badge', 'label'=>'Neu/Unbekannt'];
-  if ($restHours < 0) return ['cls'=>'ui-badge ui-badge--danger','label'=>'Überfällig'];
-  if ($soonHours !== null && $soonHours > 0 && $restHours <= $soonHours) {
-    return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig'];
-  }
-  $ratioLimit = ($soonRatio !== null && $soonRatio > 0) ? $soonRatio : 0.20;
-  $ratio = $intervalHours > 0 ? ($restHours / $intervalHours) : 1.0;
-  if ($ratio <= $ratioLimit) return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig'];
-  return ['cls'=>'ui-badge ui-badge--ok','label'=>'OK'];
-}
-
-function is_open_item(?float $restHours, float $intervalHours, ?float $soonRatio = null, ?float $soonHours = null): bool {
-  // "offen" = überfällig oder bald fällig oder unbekannt (initiale Wartung)
-  if ($restHours === null) return true;
-  if ($restHours < 0) return true;
-  if ($soonHours !== null && $soonHours > 0 && $restHours <= $soonHours) return true;
-  $ratioLimit = ($soonRatio !== null && $soonRatio > 0) ? $soonRatio : 0.20;
-  $ratio = $intervalHours > 0 ? ($restHours / $intervalHours) : 1.0;
-  return ($ratio <= $ratioLimit);
-}
-
 function extract_ticket_marker(?string $bemerkung): ?int {
   if (!$bemerkung) return null;
   if (preg_match('/\\[#TICKET:(\\d+)\\]/', $bemerkung, $m)) {
@@ -128,10 +103,8 @@ if ($assetId > 0) {
     }
 
     $interval = (float)$wp['plan_interval'];
-    $soonRatio = ($wp['soon_ratio'] ?? null);
-    $soonRatio = ($soonRatio !== null ? (float)$soonRatio : null);
-    $soonHours = ($wp['soon_hours'] ?? null);
-    $soonHours = ($soonHours !== null ? (float)$soonHours : null);
+    $soonRatio = wartung_normalize_soon_ratio(($wp['soon_ratio'] ?? null) !== null ? (float)$wp['soon_ratio'] : null);
+    $soonHours = wartung_normalize_soon_hours(($wp['soon_hours'] ?? null) !== null ? (float)$wp['soon_hours'] : null);
 
     // due/rest berechnen
     $dueLabel = '—';
@@ -156,8 +129,8 @@ if ($assetId > 0) {
       }
     }
 
-    $ampel = ampel_from_rest($restHours, $interval, $soonRatio, $soonHours);
-    $open = is_open_item($restHours, $interval, $soonRatio, $soonHours);
+    $ampel = wartung_status_from_rest($restHours, $interval, $soonRatio, $soonHours);
+    $open = in_array(($ampel['type'] ?? ''), ['new', 'due', 'soon'], true);
 
     // optional: Ticket Marker aus letzter Bemerkung
     $ticketId = extract_ticket_marker($wp['last_bemerkung'] ?? null);

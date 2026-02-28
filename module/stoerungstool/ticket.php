@@ -43,19 +43,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  VALUES (?, NOW(), ?, ?, ?, NULL)",
                 [$id, $userId ?: null, 'Status geändert', $newStatus]
             );
+            $actionId = (int)db()->lastInsertId();
             audit_log('stoerungstool', 'ticket', $id, 'STATUS', null, ['status' => $newStatus], $userId, $actor);
+            audit_log('stoerungstool', 'aktion', $actionId, 'CREATE', null, [
+                'ticket_id' => $id,
+                'text' => 'Status geändert',
+                'status_neu' => $newStatus,
+            ], $userId, $actor);
 
         } elseif ($action === 'assign') {
             $assignedUserId = (int)($_POST['assigned_user_id'] ?? 0);
             $assigned = ($assignedUserId > 0) ? $assignedUserId : null;
 
             db_exec("UPDATE stoerungstool_ticket SET assigned_user_id=? WHERE id=?", [$assigned, $id]);
+            $assignText = $assigned ? ('Zugewiesen an User #' . $assigned) : 'Zuweisung entfernt';
             db_exec(
                 "INSERT INTO stoerungstool_aktion (ticket_id, datum, user_id, text, status_neu, arbeitszeit_min)
                  VALUES (?, NOW(), ?, ?, NULL, NULL)",
-                [$id, $userId ?: null, $assigned ? ('Zugewiesen an User #' . $assigned) : 'Zuweisung entfernt']
+                [$id, $userId ?: null, $assignText]
             );
+            $actionId = (int)db()->lastInsertId();
             audit_log('stoerungstool', 'ticket', $id, 'UPDATE', null, ['assigned_user_id' => $assigned], $userId, $actor);
+            audit_log('stoerungstool', 'aktion', $actionId, 'CREATE', null, [
+                'ticket_id' => $id,
+                'text' => $assignText,
+                'status_neu' => null,
+            ], $userId, $actor);
 
         } elseif ($action === 'add_action') {
             $text = trim((string)($_POST['text'] ?? ''));
@@ -68,6 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  VALUES (?, NOW(), ?, ?, NULL, NULL)",
                 [$id, $userId ?: null, $text]
             );
+            $actionId = (int)db()->lastInsertId();
+            audit_log('stoerungstool', 'aktion', $actionId, 'CREATE', null, [
+                'ticket_id' => $id,
+                'text' => $text,
+                'status_neu' => null,
+            ], $userId, $actor);
 
         } elseif ($action === 'upload_doc') {
             if (empty($_FILES['file']) || !isset($_FILES['file']['error']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {

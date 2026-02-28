@@ -2,11 +2,8 @@
 // module/wartungstool/punkt.php (INNER VIEW)
 // UI v2 Final (Desktop-first, ui-* patterns).
 // Wichtig: Diese View rendert kein eigenes Layout (Front-Controller app.php).
-// Hinweis: "Bald fällig" Logik sollte perspektivisch zentralisiert werden
-// (Dashboard/Übersicht/Punkt). Hier: Implementierung nach aktueller Feldlogik:
-//  - soon_hours gewinnt (wenn >0)
-//  - sonst soon_ratio (0..1)
-//  - sonst Fallback ratio = 0.20 (legacy Verhalten vorher: fix 20%)
+// Hinweis: "Bald fällig" Logik ist zentral in src/helpers.php umgesetzt:
+// wartung_status_from_rest() inkl. soon_hours > soon_ratio > Fallback 0.20.
 
 require_once __DIR__ . '/../../src/helpers.php';
 require_login();
@@ -47,32 +44,19 @@ if (!$wp) {
   exit;
 }
 
-// ------- Fälligkeit berechnen (inkl. soon_hours/soon_ratio) -------
+// ------- Fälligkeit berechnen (inkl. zentraler soon_hours/soon_ratio-Logik) -------
 $planInterval = (float)($wp['plan_interval'] ?? 0);
-$soonHours = ($wp['soon_hours'] !== null) ? (float)$wp['soon_hours'] : null;
-$soonRatio = ($wp['soon_ratio'] !== null) ? (float)$wp['soon_ratio'] : null;
-if ($soonRatio !== null) {
-  if ($soonRatio <= 0) $soonRatio = null;
-  if ($soonRatio > 1) $soonRatio = 1.0;
-}
-if ($soonHours !== null && $soonHours <= 0) $soonHours = null;
+$soonHours = wartung_normalize_soon_hours(($wp['soon_hours'] !== null) ? (float)$wp['soon_hours'] : null);
+$soonRatio = wartung_normalize_soon_ratio(($wp['soon_ratio'] !== null) ? (float)$wp['soon_ratio'] : null);
 
 $dueStr = '—';
 $restStr = '—';
 $restVal = null;   // Rest in Stunden (bei zeit) bzw. productive-hours (bei produktiv)
 $dueVal  = null;
 
-$ampel = ['cls' => 'ui-badge--ok', 'label' => 'OK'];
+$ampel = ['cls' => 'ui-badge ui-badge--ok', 'label' => 'OK', 'type' => 'ok'];
 
-$thresholdLabel = '—';
-if ($soonHours !== null) {
-  $thresholdLabel = number_format($soonHours, 1, ',', '.') . ' h';
-} elseif ($soonRatio !== null) {
-  $thresholdLabel = number_format($soonRatio * 100, 1, ',', '.') . ' %';
-} else {
-  $thresholdLabel = '20,0 % (Fallback)';
-  $soonRatio = 0.20; // fallback
-}
+$thresholdLabel = wartung_threshold_label($soonRatio, $soonHours);
 
 if ($wp['intervall_typ'] === 'produktiv' && $wp['letzte_wartung'] !== null && $planInterval > 0) {
   $dueAt = (float)$wp['letzte_wartung'] + $planInterval;
@@ -84,18 +68,6 @@ if ($wp['intervall_typ'] === 'produktiv' && $wp['letzte_wartung'] !== null && $p
   $dueStr  = number_format($dueAt, 1, ',', '.') . ' h';
   $restStr = number_format($rest, 1, ',', '.') . ' h';
 
-  if ($rest < 0) {
-    $ampel = ['cls' => 'ui-badge--danger', 'label' => 'Überfällig'];
-  } else {
-    $isSoon = false;
-    if ($soonHours !== null) {
-      $isSoon = ($rest <= $soonHours);
-    } else {
-      $isSoon = ($rest <= ($planInterval * $soonRatio));
-    }
-    if ($isSoon) $ampel = ['cls' => 'ui-badge--warn', 'label' => 'Bald fällig'];
-  }
-
 } elseif ($wp['intervall_typ'] === 'zeit' && !empty($wp['datum']) && $planInterval > 0) {
   $lastTs = strtotime((string)$wp['datum']);
   $dueTs  = $lastTs + (int)round($planInterval * 3600);
@@ -106,21 +78,11 @@ if ($wp['intervall_typ'] === 'produktiv' && $wp['letzte_wartung'] !== null && $p
 
   $dueStr  = date('Y-m-d H:i', $dueTs);
   $restStr = number_format($restH, 1, ',', '.') . ' h';
+}
 
-  if ($restH < 0) {
-    $ampel = ['cls' => 'ui-badge--danger', 'label' => 'Überfällig'];
-  } else {
-    $isSoon = false;
-    if ($soonHours !== null) {
-      $isSoon = ($restH <= $soonHours);
-    } else {
-      $isSoon = ($restH <= ($planInterval * $soonRatio));
-    }
-    if ($isSoon) $ampel = ['cls' => 'ui-badge--warn', 'label' => 'Bald fällig'];
-  }
-} else {
-  // Kein Startwert vorhanden (datum/letzte_wartung fehlt) => Info statt Ampel eskalieren
-  $ampel = ['cls' => 'ui-badge', 'label' => 'Nicht initialisiert'];
+$ampel = wartung_status_from_rest($restVal, $planInterval, $soonRatio, $soonHours);
+if (($ampel['type'] ?? '') === 'new') {
+  $ampel['label'] = 'Nicht initialisiert';
 }
 
 // Letzte Protokolle
@@ -169,7 +131,7 @@ $krit = (int)($wp['kritischkeitsstufe'] ?? 0);
         </p>
       </div>
       <div>
-        <span class="ui-badge <?= e($ampel['cls']) ?>"><?= e($ampel['label']) ?></span>
+        <span class="<?= e($ampel['cls']) ?>"><?= e($ampel['label']) ?></span>
       </div>
     </div>
 

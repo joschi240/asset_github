@@ -114,6 +114,61 @@ function badge_for_ticket_status(string $status): array {
   }
 }
 
+function wartung_normalize_soon_ratio(?float $ratio): ?float {
+  if ($ratio === null) return null;
+  $ratio = (float)$ratio;
+  if ($ratio <= 0 || $ratio > 1) return null;
+  return $ratio;
+}
+
+function wartung_normalize_soon_hours(?float $hours): ?float {
+  if ($hours === null) return null;
+  $hours = (float)$hours;
+  if ($hours <= 0) return null;
+  return $hours;
+}
+
+function wartung_threshold_label(?float $soonRatio, ?float $soonHours): string {
+  $soonHours = wartung_normalize_soon_hours($soonHours);
+  $soonRatio = wartung_normalize_soon_ratio($soonRatio);
+
+  if ($soonHours !== null) {
+    return number_format($soonHours, 1, ',', '.') . ' h';
+  }
+  if ($soonRatio !== null) {
+    return number_format($soonRatio * 100, 1, ',', '.') . ' %';
+  }
+  return '20,0 % (Fallback)';
+}
+
+function wartung_status_from_rest(?float $restHours, float $intervalHours, ?float $soonRatio = null, ?float $soonHours = null): array {
+  if ($restHours === null) {
+    return ['cls' => 'ui-badge', 'label' => 'Neu/Unbekannt', 'type' => 'new'];
+  }
+
+  if ($restHours < 0) {
+    return ['cls' => 'ui-badge ui-badge--danger', 'label' => 'Überfällig', 'type' => 'due'];
+  }
+
+  $soonHours = wartung_normalize_soon_hours($soonHours);
+  $soonRatio = wartung_normalize_soon_ratio($soonRatio);
+  if ($soonHours === null && $soonRatio === null) $soonRatio = 0.20;
+
+  $isSoon = false;
+  if ($soonHours !== null) {
+    $isSoon = ($restHours <= $soonHours);
+  } else {
+    $limit = ($intervalHours > 0) ? ((float)$intervalHours * (float)$soonRatio) : 0.0;
+    $isSoon = ($intervalHours > 0) ? ($restHours <= $limit) : false;
+  }
+
+  if ($isSoon) {
+    return ['cls' => 'ui-badge ui-badge--warn', 'label' => 'Bald fällig', 'type' => 'soon'];
+  }
+
+  return ['cls' => 'ui-badge ui-badge--ok', 'label' => 'OK', 'type' => 'ok'];
+}
+
 function ensure_dir(string $dir): void {
   if (!is_dir($dir)) {
     if (!mkdir($dir, 0775, true) && !is_dir($dir)) {
