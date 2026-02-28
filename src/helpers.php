@@ -77,8 +77,13 @@ function is_admin_user(?int $userId): bool {
 
 function audit_log(string $modul, string $entityType, int $entityId, string $action, $old = null, $new = null, ?int $actorUserId = null, ?string $actorText = null): void {
   $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-  $oldJson = $old !== null ? json_encode($old, JSON_UNESCAPED_UNICODE) : null;
-  $newJson = $new !== null ? json_encode($new, JSON_UNESCAPED_UNICODE) : null;
+  $safeJsonEncode = static function ($val): ?string {
+    if ($val === null) return null;
+    $encoded = json_encode($val, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    return ($encoded !== false) ? $encoded : json_encode(['__json_error__' => json_last_error_msg()]);
+  };
+  $oldJson = $safeJsonEncode($old);
+  $newJson = $safeJsonEncode($new);
 
   db_exec(
     "INSERT INTO core_audit_log (modul, entity_type, entity_id, action, actor_user_id, actor_text, ip_addr, old_json, new_json)
