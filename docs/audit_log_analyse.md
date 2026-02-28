@@ -97,26 +97,26 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 | `module/stoerungstool/ticket.php` | 67 | `'stoerungstool'` | `'aktion'` | `'CREATE'` |
 | `module/stoerungstool/ticket.php` | 85 | `'stoerungstool'` | `'aktion'` | `'CREATE'` |
 | `module/stoerungstool/ticket.php` | 114 | `'stoerungstool'` | `'dokument'` | `'CREATE'` |
-| `module/wartungstool/punkt_dokument_upload.php` | 70 | `'wartungstool'` | `'dokument'` | `'CREATE'` |
-| `module/wartungstool/admin_punkte.php` | 144 | `'wartungstool'` | `'wartungspunkt'` | `'CREATE'` |
-| `module/wartungstool/admin_punkte.php` | 207 | `'wartungstool'` | `'wartungspunkt'` | `'UPDATE'` |
-| `module/wartungstool/admin_punkte.php` | 235 | `'wartungstool'` | `'wartungspunkt'` | `'STATUS'` |
-| `module/wartungstool/admin_punkte.php` | 298 | `'wartungstool'` | `'wartungspunkt'` | `'CREATE'` |
-| `module/wartungstool/admin_punkte.php` | 311 | `'wartungstool'` | `'asset'` | `'UPDATE'` |
-| `module/wartungstool/admin_punkte.php` | 413 | `'wartungstool'` | `'wartungspunkt'` | `'CREATE'` |
-| `module/wartungstool/admin_punkte.php` | 431 | `'wartungstool'` | `'asset'` | `'UPDATE'` |
+| `module/wartungstool/punkt_dokument_upload.php` | 82 | `'wartungstool'` | `'dokument'` | `'CREATE'` |
+| `module/wartungstool/admin_punkte.php` | 145 | `'wartungstool'` | `'wartungspunkt'` | `'CREATE'` |
+| `module/wartungstool/admin_punkte.php` | 210 | `'wartungstool'` | `'wartungspunkt'` | `'UPDATE'` |
+| `module/wartungstool/admin_punkte.php` | 238 | `'wartungstool'` | `'wartungspunkt'` | `'STATUS'` |
+| `module/wartungstool/admin_punkte.php` | 303 | `'wartungstool'` | `'wartungspunkt'` | `'CREATE'` |
+| `module/wartungstool/admin_punkte.php` | 317 | `'wartungstool'` | `'asset'` | `'UPDATE'` |
+| `module/wartungstool/admin_punkte.php` | 448 | `'wartungstool'` | `'wartungspunkt'` | `'CREATE'` |
+| `module/wartungstool/admin_punkte.php` | 467 | `'wartungstool'` | `'asset'` | `'UPDATE'` |
 | `module/wartungstool/punkt_save.php` | 114 | `'wartungstool'` | `'protokoll'` | `'CREATE'` |
 | `module/wartungstool/punkt_save.php` | 124 | `'wartungstool'` | `'wartungspunkt'` | `'UPDATE'` |
 | `module/wartungstool/punkt_save.php` | 138 | `'wartungstool'` | `'protokoll'` | `'UPDATE'` |
 | `module/wartungstool/punkt_save.php` | 173 | `'stoerungstool'` | `'ticket'` | `'CREATE'` |
 | `module/wartungstool/punkt_save.php` | 179 | `'stoerungstool'` | `'aktion'` | `'CREATE'` |
 | `module/wartungstool/punkt_save.php` | 197 | `'wartungstool'` | `'protokoll'` | `'UPDATE'` |
-| `module/admin/permissions.php` | 58 | `'admin'` | `'permission'` | `'UPDATE'` |
-| `module/admin/permissions.php` | 67 | `'admin'` | `'permission'` | `'CREATE'` |
-| `module/admin/permissions.php` | 73 | `'admin'` | `'permission'` | `'DELETE'` |
-| `module/admin/permissions.php` | 95 | `'admin'` | `'permission'` | `'DELETE'` |
-| `module/admin/permissions.php` | 107 | `'admin'` | `'permission'` | `'UPDATE'` |
-| `module/admin/permissions.php` | 116 | `'admin'` | `'permission'` | `'CREATE'` |
+| `module/admin/permissions.php` | 66 | `'admin'` | `'permission'` | `'UPDATE'` |
+| `module/admin/permissions.php` | 76 | `'admin'` | `'permission'` | `'CREATE'` |
+| `module/admin/permissions.php` | 82 | `'admin'` | `'permission'` | `'DELETE'` |
+| `module/admin/permissions.php` | 130 | `'admin'` | `'permission'` | `'DELETE'` |
+| `module/admin/permissions.php` | 148 | `'admin'` | `'permission'` | `'UPDATE'` |
+| `module/admin/permissions.php` | 157 | `'admin'` | `'permission'` | `'CREATE'` |
 | `module/admin/routes.php` | 60 | `'admin'` | `'route'` | `'UPDATE'` |
 | `module/admin/routes.php` | 70 | `'admin'` | `'route'` | `'CREATE'` |
 | `module/admin/routes.php` | 78 | `'admin'` | `'route'` | `'DELETE'` |
@@ -137,12 +137,12 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 
 | Datei | Zeile | SQL-Typ | Tabelle | audit_log vorhanden |
 |-------|-------|---------|---------|---------------------|
-| `module/admin/permissions.php` | 58 | UPDATE | `core_permission` | **ja** |
-| `module/admin/permissions.php` | 60–67 | INSERT | `core_permission` | **ja** |
-| `module/admin/permissions.php` | 72–73 | DELETE | `core_permission` | **ja** |
-| `module/admin/permissions.php` | 94–95 | DELETE | `core_permission` | **ja** |
-| `module/admin/permissions.php` | 106–107 | UPDATE | `core_permission` | **ja** |
-| `module/admin/permissions.php` | 114–116 | INSERT | `core_permission` | **ja** |
+| `module/admin/permissions.php` | 64 | UPDATE | `core_permission` | **ja** (Zeile 66) |
+| `module/admin/permissions.php` | 70–74 | INSERT | `core_permission` | **ja** (Zeile 76) |
+| `module/admin/permissions.php` | 81 | DELETE | `core_permission` | **ja** (Zeile 82) |
+| `module/admin/permissions.php` | 129 | DELETE | `core_permission` | **ja** (Zeile 130) |
+| `module/admin/permissions.php` | 144–147 | UPDATE | `core_permission` | **ja** (Zeile 148) |
+| `module/admin/permissions.php` | 151–155 | INSERT | `core_permission` | **ja** (Zeile 157) |
 | `module/admin/menu.php` | 75–82 | UPDATE | `core_menu_item` | **ja** (Zeile 82) |
 | `module/admin/menu.php` | 85–92 | INSERT | `core_menu_item` | **ja** (Zeile 92) |
 | `module/admin/menu.php` | 99–100 | DELETE | `core_menu_item` | **ja** (Zeile 100) |
@@ -160,11 +160,11 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 
 | Datei | Zeile | SQL-Typ | Tabelle | audit_log vorhanden |
 |-------|-------|---------|---------|---------------------|
-| `module/wartungstool/admin_punkte.php` | 121–142 | INSERT | `wartungstool_wartungspunkt` (action=create) | **ja** (Zeile 144) |
-| `module/wartungstool/admin_punkte.php` | 192–205 | UPDATE | `wartungstool_wartungspunkt` (action=update) | **ja** (Zeile 207) |
-| `module/wartungstool/admin_punkte.php` | 233 | UPDATE | `wartungstool_wartungspunkt` (action=toggle_active) | **ja** (Zeile 235) |
-| `module/wartungstool/admin_punkte.php` | 276–296 | INSERT | `wartungstool_wartungspunkt` (action=copy_from_asset, loop) | **ja** (Zeile 298) |
-| `module/wartungstool/admin_punkte.php` | 391–411 | INSERT | `wartungstool_wartungspunkt` (action=csv_import, loop) | **ja** (Zeile 413) |
+| `module/wartungstool/admin_punkte.php` | 123–143 | INSERT | `wartungstool_wartungspunkt` (action=create) | **ja** (Zeile 145) |
+| `module/wartungstool/admin_punkte.php` | 195–208 | UPDATE | `wartungstool_wartungspunkt` (action=update) | **ja** (Zeile 210) |
+| `module/wartungstool/admin_punkte.php` | 236 | UPDATE | `wartungstool_wartungspunkt` (action=toggle_active) | **ja** (Zeile 238) |
+| `module/wartungstool/admin_punkte.php` | 280–301 | INSERT | `wartungstool_wartungspunkt` (action=copy_from_asset, loop) | **ja** (Zeile 303) |
+| `module/wartungstool/admin_punkte.php` | 426–446 | INSERT | `wartungstool_wartungspunkt` (action=csv_import, loop) | **ja** (Zeile 448) |
 | `module/wartungstool/punkt_save.php` | 86–99 | INSERT | `wartungstool_protokoll` | **ja** (Zeile 114) |
 | `module/wartungstool/punkt_save.php` | 109 | UPDATE | `wartungstool_wartungspunkt` (intervall_typ=produktiv) | **ja** (Zeile 124, gemeinsam mit Zeile 111) |
 | `module/wartungstool/punkt_save.php` | 111 | UPDATE | `wartungstool_wartungspunkt` (intervall_typ=zeit) | **ja** (Zeile 124) |
@@ -172,7 +172,7 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 | `module/wartungstool/punkt_save.php` | 158–165 | INSERT | `stoerungstool_ticket` (aus Wartungsprotokoll) | **ja** (Zeile 173) |
 | `module/wartungstool/punkt_save.php` | 166–172 | INSERT | `stoerungstool_aktion` (Ticket-Erstellung) | **ja** (Zeile 179) |
 | `module/wartungstool/punkt_save.php` | 186–195 | UPDATE | `wartungstool_protokoll` (Ticket-Link-Marker) | **ja** (Zeile 197) |
-| `module/wartungstool/punkt_dokument_upload.php` | 62–67 | INSERT | `core_dokument` | **ja** (Zeile 70) |
+| `module/wartungstool/punkt_dokument_upload.php` | 75–79 | INSERT | `core_dokument` | **ja** (Zeile 82) |
 
 ### module/stoerungstool/
 
