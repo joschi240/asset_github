@@ -88,6 +88,9 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 
 | Datei | Zeile | Modul | entity_type | action |
 |-------|-------|-------|-------------|--------|
+| `module/stoerungstool/melden.php` | 58 | `'stoerungstool'` | `'dokument'` | `'CREATE'` |
+| `module/stoerungstool/melden.php` | 127 | `'stoerungstool'` | `'ticket'` | `'CREATE'` |
+| `module/stoerungstool/melden.php` | 153 | `'stoerungstool'` | `'aktion'` | `'CREATE'` |
 | `module/stoerungstool/ticket.php` | 46 | `'stoerungstool'` | `'ticket'` | `'STATUS'` |
 | `module/stoerungstool/ticket.php` | 58 | `'stoerungstool'` | `'ticket'` | `'UPDATE'` |
 | `module/stoerungstool/ticket.php` | 95 | `'stoerungstool'` | `'dokument'` | `'CREATE'` |
@@ -108,6 +111,12 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 | `module/admin/permissions.php` | 95 | `'admin'` | `'permission'` | `'DELETE'` |
 | `module/admin/permissions.php` | 107 | `'admin'` | `'permission'` | `'UPDATE'` |
 | `module/admin/permissions.php` | 116 | `'admin'` | `'permission'` | `'CREATE'` |
+| `module/admin/routes.php` | 60 | `'admin'` | `'route'` | `'UPDATE'` |
+| `module/admin/routes.php` | 70 | `'admin'` | `'route'` | `'CREATE'` |
+| `module/admin/routes.php` | 78 | `'admin'` | `'route'` | `'DELETE'` |
+| `module/admin/users.php` | 50 | `'admin'` | `'user'` | `'CREATE'` |
+| `module/admin/users.php` | 82 | `'admin'` | `'user'` | `'UPDATE'` |
+| `module/admin/users.php` | 100 | `'admin'` | `'user'` | `'STATUS'` |
 
 ---
 
@@ -126,13 +135,13 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 | `module/admin/menu.php` | 78–82 | UPDATE | `core_menu_item` | **nein** |
 | `module/admin/menu.php` | 86–89 | INSERT | `core_menu_item` | **nein** |
 | `module/admin/menu.php` | 95 | DELETE | `core_menu_item` | **nein** |
-| `module/admin/routes.php` | 57–59 | UPDATE | `core_route` | **nein** |
-| `module/admin/routes.php` | 63–66 | INSERT | `core_route` | **nein** |
-| `module/admin/routes.php` | 72 | DELETE | `core_route` | **nein** |
-| `module/admin/users.php` | 50–52 | INSERT | `core_user` | **nein** |
-| `module/admin/users.php` | 61 | UPDATE | `core_user` | **nein** |
-| `module/admin/users.php` | 66 | UPDATE | `core_user` (Passwort-Hash) | **nein** |
-| `module/admin/users.php` | 73 | UPDATE | `core_user` (aktiv=0) | **nein** |
+| `module/admin/routes.php` | 57–59 | UPDATE | `core_route` | **ja** (Zeile 60) |
+| `module/admin/routes.php` | 63–66 | INSERT | `core_route` | **ja** (Zeile 70) |
+| `module/admin/routes.php` | 72 | DELETE | `core_route` | **ja** (Zeile 78) |
+| `module/admin/users.php` | 50–52 | INSERT | `core_user` | **ja** (Zeile 50) |
+| `module/admin/users.php` | 61 | UPDATE | `core_user` | **ja** (Zeile 82) |
+| `module/admin/users.php` | 66 | UPDATE | `core_user` (Passwort-Hash) | **ja** (Zeile 82) |
+| `module/admin/users.php` | 73 | UPDATE | `core_user` (aktiv=0) | **ja** (Zeile 100) |
 | `module/admin/setup.php` | 43–45 | INSERT | `core_user` | **nein** |
 | `module/admin/setup.php` | 50–53 | INSERT | `core_permission` | **nein** |
 
@@ -158,9 +167,9 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 
 | Datei | Zeile | SQL-Typ | Tabelle | audit_log vorhanden |
 |-------|-------|---------|---------|---------------------|
-| `module/stoerungstool/melden.php` | 49–54 | INSERT | `core_dokument` (optional, via upload_first_ticket_file) | **nein** |
-| `module/stoerungstool/melden.php` | 92–109 | INSERT | `stoerungstool_ticket` | **nein** |
-| `module/stoerungstool/melden.php` | 112–116 | INSERT | `stoerungstool_aktion` | **nein** |
+| `module/stoerungstool/melden.php` | 49–54 | INSERT | `core_dokument` (optional, via upload_first_ticket_file) | **ja** (Zeile 58) |
+| `module/stoerungstool/melden.php` | 92–109 | INSERT | `stoerungstool_ticket` | **ja** (Zeile 127) |
+| `module/stoerungstool/melden.php` | 112–116 | INSERT | `stoerungstool_aktion` | **ja** (Zeile 153) |
 | `module/stoerungstool/ticket.php` | 40 | UPDATE | `stoerungstool_ticket` (action=set_status) | **ja** (Zeile 46) |
 | `module/stoerungstool/ticket.php` | 41–45 | INSERT | `stoerungstool_aktion` (set_status) | **nein** |
 | `module/stoerungstool/ticket.php` | 52 | UPDATE | `stoerungstool_ticket` (action=assign) | **ja** (Zeile 58) |
@@ -174,16 +183,16 @@ CREATE TABLE IF NOT EXISTS core_audit_log (
 
 ### module/admin/* — teilweise ohne audit_log
 
-`module/admin/permissions.php` hat für alle 6 Schreibpfade audit_log. Ohne audit_log:
+`module/admin/permissions.php` hat für alle 6 Schreibpfade audit_log.
+`module/admin/routes.php` hat für alle 3 Schreibpfade audit_log.
+`module/admin/users.php` hat für alle 4 Schreibpfade audit_log.
+Ohne audit_log:
 - `admin/menu.php` (3 Pfade: UPDATE/INSERT/DELETE auf `core_menu_item`)
-- `admin/routes.php` (3 Pfade: UPDATE/INSERT/DELETE auf `core_route`)
-- `admin/users.php` (4 Pfade: INSERT + 3× UPDATE auf `core_user`)
 - `admin/setup.php` (2 Pfade: INSERT auf `core_user` und `core_permission`)
 
 ### module/stoerungstool/* — teilweise ohne audit_log
 
 Folgende Pfade ohne audit_log:
-- `melden.php`: Ticket-CREATE, Aktion-INSERT, Dokument-INSERT (3 Pfade)
 - `ticket.php`: `updated_at`-UPDATE ohne Statuswechsel, alle `stoerungstool_aktion`-INSERTs
 
 ### module/wartungstool/* — gut abgedeckt, wenige Lücken

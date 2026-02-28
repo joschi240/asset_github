@@ -104,12 +104,12 @@ function audit_log(string $modul, string $entityType, int $entityId, string $act
  */
 function badge_for_ticket_status(string $status): array {
   switch ($status) {
-    case 'neu':        return ['cls'=>'badge--r','label'=>'neu'];
-    case 'angenommen': return ['cls'=>'badge--y','label'=>'angenommen'];
-    case 'in_arbeit':  return ['cls'=>'badge--y','label'=>'in Arbeit'];
-    case 'bestellt':   return ['cls'=>'badge--y','label'=>'bestellt'];
-    case 'erledigt':   return ['cls'=>'badge--g','label'=>'erledigt'];
-    case 'geschlossen':return ['cls'=>'','label'=>'geschlossen'];
+    case 'neu':        return ['cls'=>'ui-badge ui-badge--danger','label'=>'neu'];
+    case 'angenommen': return ['cls'=>'ui-badge ui-badge--warn','label'=>'angenommen'];
+    case 'in_arbeit':  return ['cls'=>'ui-badge ui-badge--warn','label'=>'in Arbeit'];
+    case 'bestellt':   return ['cls'=>'ui-badge ui-badge--warn','label'=>'bestellt'];
+    case 'erledigt':   return ['cls'=>'ui-badge ui-badge--ok','label'=>'erledigt'];
+    case 'geschlossen':return ['cls'=>'ui-badge','label'=>'geschlossen'];
     default:           return ['cls'=>'','label'=>$status];
   }
 }

@@ -65,7 +65,7 @@ HTTP-Request → app.php
 
 | route_key | modul / objekt_typ | require_login |
 |---|---|:---:|
-| `wartung.dashboard` | wartungstool / dashboard | 1 |
+| `wartung.dashboard` | wartungstool / global | 1 |
 | `wartung.punkt` | wartungstool / global | 1 |
 | `wartung.punkt_save` | wartungstool / global | 1 |
 | `wartung.punkt_dokument_upload` | wartungstool / global | 1 |
@@ -91,11 +91,11 @@ HTTP-Request → app.php
 | Funktion | Datei | Beschreibung |
 |---|---|---|
 | `user_can_see()` | `src/helpers.php:56–61` | Delegiert an `user_can_flag(..., 'darf_sehen')` |
-| `user_can_flag()` | `src/auth.php:124–147` | Zentraler Resolver mit 5-stufigem Fallback |
-| `user_can_edit()` | `src/auth.php:151–153` | Delegiert an `user_can_flag(..., 'darf_aendern')` |
-| `user_can_delete()` | `src/auth.php:157–159` | Delegiert an `user_can_flag(..., 'darf_loeschen')` |
-| `require_can_edit()` | `src/auth.php:163–171` | Wirft HTTP 403 wenn kein Schreibrecht |
-| `require_can_delete()` | `src/auth.php:175–183` | Wirft HTTP 403 wenn kein Löschrecht |
+| `user_can_flag()` | `src/auth.php:132–155` | Zentraler Resolver mit 5-stufigem Fallback |
+| `user_can_edit()` | `src/auth.php:159–161` | Delegiert an `user_can_flag(..., 'darf_aendern')` |
+| `user_can_delete()` | `src/auth.php:165–167` | Delegiert an `user_can_flag(..., 'darf_loeschen')` |
+| `require_can_edit()` | `src/auth.php:171–179` | Wirft HTTP 403 wenn kein Schreibrecht |
+| `require_can_delete()` | `src/auth.php:183–191` | Wirft HTTP 403 wenn kein Löschrecht |
 | `is_admin_user()` | `src/helpers.php:70–76` | Prüft `modul='*'` in `core_permission` |
 | `can()` | `src/permission.php:43–59` | Alternative Prüfung ohne objekt_typ |
 | `user_permissions()` | `src/permission.php:12–37` | Gibt alle Permissions des aktuellen Users zurück |
@@ -209,8 +209,10 @@ function audit_json($value): ?string
 - ✅ `wartungstool/punkt_save.php`: Protokoll + WP-Update
 - ✅ `stoerungstool/ticket.php`: Status-Änderungen, Zuweisung, Dokument-Upload
 - ✅ `module/admin/permissions.php`: alle Schreibpfade mit audit_log abgedeckt
-- ⚠ `module/admin/routes.php`, `admin/menu.php`, `admin/users.php`, `admin/setup.php`: ohne audit_log (~12 Schreibpfade)
-- ⚠ `stoerungstool/melden.php`: Ticket-CREATE ohne audit_log
+- ✅ `module/admin/routes.php`: alle 3 Schreibpfade (UPDATE/INSERT/DELETE) mit audit_log
+- ✅ `module/admin/users.php`: CREATE + UPDATE + Deaktivieren mit audit_log
+- ✅ `stoerungstool/melden.php`: Ticket-CREATE, Aktion-INSERT, Dokument-INSERT mit audit_log
+- ⚠ `module/admin/menu.php`, `admin/setup.php`: ohne audit_log (~5 Schreibpfade)
 
 ---
 

@@ -91,17 +91,18 @@ Status:
   4) sonst → "OK"
 ```
 
-**In `module/wartungstool/uebersicht.php:43–49` (Übersicht, Funktion `ampel_from_rest()`):**
+**In `module/wartungstool/uebersicht.php:43–58` (Übersicht, Funktion `ampel_from_rest()`):**
 
 ```
   1) restHours === null → "Neu/Unbekannt"
   2) restHours < 0     → "Überfällig"
-  3) ratioLimit = soonRatio wenn > 0, sonst 0.20 (Fallback)  (Zeile 37)
-     ratio = restHours / intervalHours                         (Zeile 38)
-     if ratio <= ratioLimit → "Bald fällig"                   (Zeile 39)
+  3) if soonHours !== null && soonHours > 0:
+       isSoon = (restHours <= soonHours)            (Zeile 47–49)
+     else:
+       ratioLimit = soonRatio wenn > 0, sonst 0.20 (Fallback)
+       ratio = restHours / intervalHours
+       if ratio <= ratioLimit → "Bald fällig"
   4) sonst → "OK"
-
-  HINWEIS: soon_hours wird NICHT berücksichtigt.
 ```
 
 ---
@@ -136,14 +137,11 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
 |---|:---:|:---:|:---:|
 | `soon_ratio` → `ratioLimit` | ✅ | ✅ | ✅ |
 | Fallback `0.20` | ✅ | ✅ | ✅ |
-| `soon_hours` (absolut) | ✅ | ❌ **nicht** | ✅ |
+| `soon_hours` (absolut) | ✅ | ✅ | ✅ |
 | `rest === null` → Keine Punkte | ✅ (als "Neu/Unbekannt") | ✅ (als "Neu/Unbekannt") | ✅ (als "Nicht initialisiert") |
 | Dashboard-spezifisch: zeigt alle aktiven WP (zeit + produktiv) | ✅ | — | — |
 
-**Fazit:** `soon_hours` wird in `punkt.php` (Detail-Seite) und `dashboard.php` korrekt berücksichtigt. `uebersicht.php` ignoriert `soon_hours` (nur `soon_ratio`).
-
-> TODO: Logik vollständig zentralisieren.  
-> (Quelle: `docs/PRIJECT_CONTEXT_v2.md`, Abschnitt „Wartungssystem – Bald-fällig Logik")
+**Fazit:** `soon_hours` wird in `punkt.php` (Detail-Seite), `dashboard.php` und `uebersicht.php` korrekt berücksichtigt.
 
 ---
 
@@ -170,6 +168,7 @@ Bedingung für Fallback (alle drei Stellen): `soonRatio === null` oder `soonRati
 - Scope-Filter: `?scope=heute|woche|alle` – begrenzt nach Reststunden (heute ≤ 8h, woche ≤ 40h, alle unbegrenzt)
 - Status-Filter: `?f=all|due|soon|ok|new|planned` (GET-Parameter)
 - Suche `?q=...` (serverseitig, sucht in Code/Name/Kategorie/WP)
+- KPI-Row: `?kpi=1` blendet eine klickbare KPI-Übersichtszeile (Überfällig/Bald/OK/Gesamt) ein
 - Geplant-Flag: `?f=planned` zeigt alle WP mit `planned_at IS NOT NULL`
 
 ### Trend-Berechnung (TODO – noch nicht implementiert)

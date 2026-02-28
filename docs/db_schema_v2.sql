@@ -299,6 +299,9 @@ CREATE TABLE IF NOT EXISTS wartungstool_wartungspunkt (
   soon_ratio DOUBLE DEFAULT NULL,
   soon_hours DOUBLE DEFAULT NULL,
 
+  planned_at   DATETIME DEFAULT NULL,
+  planned_text VARCHAR(255) DEFAULT NULL,
+
   letzte_wartung DOUBLE DEFAULT NULL,
   datum DATETIME DEFAULT NULL,
   messwert_pflicht TINYINT(1) NOT NULL DEFAULT 0,

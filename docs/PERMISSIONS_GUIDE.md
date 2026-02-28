@@ -17,11 +17,12 @@ Stand: 2026-02-28 (aktualisiert; ursprünglich: 24.02.2026)
 Ziel: In neuen Chats/Modulen schnell korrekt Rechte setzen, 403 sauber debuggen, und konsistente `modul/objekt_typ` Konventionen nutzen.
 
 > **Hinweis (2026-02-28):** Das System hat zwei parallele Permission-APIs:
-> - `user_can_see()` / `user_can_edit()` / `user_can_delete()` / `require_can_edit()` – in `src/helpers.php` + `src/auth.php` (primär, von `app.php` genutzt)
+> - `user_can_see()` – in `src/helpers.php` (delegiert an `user_can_flag()`)
+> - `user_can_edit()` / `user_can_delete()` / `require_can_edit()` / `require_can_delete()` – ausschließlich in `src/auth.php`
 > - `can()` / `user_permissions()` / `require_permission()` – in `src/permission.php` (vereinfachte Alternative ohne `objekt_typ`)
 > 
 > Für neue Module: primäre API via `src/auth.php` verwenden.
-> (Quelle: `src/helpers.php:56–76`, `src/auth.php:113–184`, `src/permission.php`)
+> (Quelle: `src/helpers.php:56–61`, `src/auth.php:132–191`, `src/permission.php`)
 
 ---
 
