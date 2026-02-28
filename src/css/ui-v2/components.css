@@ -29,6 +29,24 @@ body.ui-v2 .ui-btn--primary {
   color: var(--primary-contrast);
 }
 
+/* Inputs */
+
+body.ui-v2 .ui-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-base);
+  outline: none;
+}
+
+body.ui-v2 .ui-input:focus {
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.10);
+}
+
 body.ui-v2 .ui-badge {
   display: inline-flex;
   align-items: center;
@@ -85,6 +103,7 @@ body.ui-v2 .ui-table th {
 body.ui-v2 .ui-table tr:last-child td {
   border-bottom: 0;
 }
+
 /* KPI Row */
 body.ui-v2 .ui-kpi-row {
   display: grid;
@@ -141,11 +160,89 @@ body.ui-v2 select {
   background: var(--surface);
 }
 
+body.ui-v2 select.ui-input {
+  padding: 10px 12px;
+}
+
 body.ui-v2 .ui-filterbar__actions {
   display: flex;
   align-items: flex-end;
 }
 
+/* Tabs */
+
+body.ui-v2 .ui-tabs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+body.ui-v2 .ui-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+body.ui-v2 .ui-tab:hover {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+body.ui-v2 .ui-tab--active {
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.08);
+}
+
+body.ui-v2 .ui-tab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+body.ui-v2 .ui-tab__count--danger {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+}
+
+body.ui-v2 .ui-tab__count--warn {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
+body.ui-v2 .ui-tab__count--ok {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+/* Card header row */
+
+body.ui-v2 .ui-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--s-4);
+}
 
 /* KPI severity */
 
@@ -184,13 +281,13 @@ body.ui-v2 .ui-btn--ghost {
   border: 1px solid var(--border);
 }
 
-body.ui-v2 .ui-table a.ui-link {
+body.ui-v2 a.ui-link {
   color: var(--primary);
   text-decoration: none;
   font-weight: 700;
 }
 
-body.ui-v2 .ui-table a.ui-link:hover {
+body.ui-v2 a.ui-link:hover {
   text-decoration: underline;
 }
 
@@ -204,28 +301,8 @@ body.ui-v2 .ui-table tbody tr:hover {
   background: rgba(37, 99, 235, 0.04);
 }
 
-/* Last entry formatting */
+/* Table stabilization */
 
-body.ui-v2 .ui-last-entry {
-  font-size: 13px;
-  line-height: 1.4;
-  color: var(--text-muted);
-}
-
-body.ui-v2 .ui-last-entry b {
-  color: var(--text);
-  font-weight: 700;
-}
-
-body.ui-v2 .ui-last-entry .ui-badge {
-  margin-top: 6px;
-}
-
-/* ===========================
-   UI v2 Table Stabilization
-   =========================== */
-
-/* Wrap tables so they never overflow the card */
 body.ui-v2 .ui-table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -233,59 +310,124 @@ body.ui-v2 .ui-table-wrap {
   border-radius: var(--r-lg);
 }
 
-/* Keep table readable; allow horizontal scroll only if needed */
 body.ui-v2 .ui-table {
-  min-width: 980px; /* prevents cramped columns; scroll appears if container is smaller */
-  table-layout: fixed; /* critical: stabilizes widths */
+  min-width: 980px;
+  table-layout: fixed;
 }
 
-/* Default cell behavior */
-body.ui-v2 .ui-table th,
+/* Numeric helpers */
+
+body.ui-v2 .ui-num {
+  font-variant-numeric: tabular-nums;
+}
+
+body.ui-v2 .ui-num--danger {
+  color: var(--danger-text);
+  font-weight: 800;
+}
+
+/* Tabs – aktiver Zustand deutlich */
+body.ui-v2 .ui-tab--active {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.55);
+  color: var(--primary);
+  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+}
+
+body.ui-v2 .ui-tab--active .ui-tab__count {
+  border-color: rgba(37, 99, 235, 0.45);
+  background: rgba(37, 99, 235, 0.10);
+  color: var(--primary);
+}
+
+/* Tabs besser klickbar */
+body.ui-v2 .ui-tab {
+  transition: background 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+/* KPI active state */
+body.ui-v2 .ui-kpi--active {
+  border-color: rgba(37, 99, 235, 0.55) !important;
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.12) !important;
+  position: relative;
+}
+
+body.ui-v2 .ui-kpi--active::after {
+  content: "aktiv";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.10);
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  color: var(--primary);
+}
 body.ui-v2 .ui-table td {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
 }
 
-/* Column widths */
-body.ui-v2 .ui-col-ampel { width: 110px; }
-body.ui-v2 .ui-col-typ { width: 90px; }
-body.ui-v2 .ui-col-intervall { width: 110px; }
-body.ui-v2 .ui-col-faellig { width: 170px; }
-body.ui-v2 .ui-col-rest { width: 110px; }
-body.ui-v2 .ui-col-actions { width: 140px; }
+/* Quickinfo list */
+body.ui-v2 .ui-quicklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-/* Actions column */
-body.ui-v2 .ui-table td.ui-td-actions,
-body.ui-v2 .ui-table th.ui-th-actions {
-  text-align: right;
+body.ui-v2 .ui-quickitem {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+body.ui-v2 .ui-quickitem__main {
+  min-width: 0;
+  flex: 1;
+}
+
+body.ui-v2 .ui-quickitem__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+body.ui-v2 .ui-quickitem__who {
+  font-weight: 800;
+}
+
+body.ui-v2 .ui-quickitem__meta {
+  font-size: 12px;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
-/* Last entry: allow wrapping (do NOT widen table) */
-body.ui-v2 .ui-last-entry {
-  font-size: 13px;
-  line-height: 1.35;
-  color: var(--text-muted);
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+body.ui-v2 .ui-quickitem__mid {
+  margin-top: 4px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-body.ui-v2 .ui-last-entry b {
-  color: var(--text);
-  font-weight: 700;
+body.ui-v2 .ui-quickitem__right {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}/* Info/Planned (blue) */
+body.ui-v2 .ui-badge--info {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--primary);
 }
 
-body.ui-v2 .ui-last-entry div,
-body.ui-v2 .ui-last-entry .small {
-  white-space: normal;
-  word-break: break-word;
-}
-
-/* Row hover */
-body.ui-v2 .ui-table tbody tr {
-  transition: background 120ms ease;
-}
-body.ui-v2 .ui-table tbody tr:hover {
-  background: rgba(37, 99, 235, 0.04);
+body.ui-v2 .ui-tab__count--info {
+  background: rgba(37, 99, 235, 0.10);
+  border-color: rgba(37, 99, 235, 0.35);
+  color: var(--primary);
 }

@@ -38,8 +38,18 @@ Eine modulare PHP-Webanwendung für **Anlagenwartung** und **Störungsmanagement
 | Wartung | Zeit- & produktivbasiert; Fälligkeit + `soon_ratio`/`soon_hours` Logik | `module/wartungstool/dashboard.php:41–58`, `module/wartungstool/uebersicht.php:34–50`, `module/wartungstool/punkt.php:50–124` |
 | `soon_ratio` Fallback | `0.20` (wenn `soon_ratio` NULL oder ≤ 0 **und** kein `soon_hours` gesetzt) | `module/wartungstool/dashboard.php:49–51`, `module/wartungstool/uebersicht.php:37`, `module/wartungstool/punkt.php:74` |
 | UI v2 | CSS-Klassen Prefix `ui-*`, Dateien unter `src/css/ui-v2/` | `src/layout.php:34–38`, `src/css/ui-v2/tokens.css` |
-
+| UI v2 „Final“ Policy | Template + Regeln sind verbindlich; `src/css/ui-v2/` ist eingefroren | `docs/UI_V2_GUIDE.md`, `docs/STYLE_RULES.md` |
 ---
+
+## Arbeitsmodus (GPT / VS Code / neue Chats)
+
+Für neue Chats gilt: immer `README.md` + `docs/*` als Quelle verwenden.
+Verbindliche Regeln stehen in `docs/PRIJECT_CONTEXT_v2.md`.
+
+Arbeitsweise:
+- Änderungen immer deterministisch: klare Schritte + copy/paste-fähige Patches.
+- Wenn unklar: Rückfrage, aber **nur wenn wirklich nötig**.
+- UI: nur nach Template/Rules arbeiten, keine modul-spezifischen CSS-Abzweigungen.
 
 ## Architektur-Überblick
 
@@ -494,6 +504,28 @@ rest  = (dueTs - time()) / 3600              (in Stunden)
 ---
 
 ## UI v2 Design-System
+
+
+### UI v2 – Final Policy (verbindlich)
+
+Wir haben eine „Final“-Version des UI v2 Templates festgelegt.
+
+**Single Source of Truth:**
+- Komponenten + Patterns: `docs/UI_V2_GUIDE.md`
+- Verbindliche UX-/Style-Regeln (Shopfloor/Operativ): `docs/STYLE_RULES.md`
+
+**CSS Freeze:**
+- `src/css/ui-v2/` (`tokens.css`, `base.css`, `components.css`, `layout.css`) gilt als **final**.
+- Diese Dateien werden **nicht** mehr „einfach so“ geändert.
+
+**Änderungen am Design-System nur im Ausnahmefall:**
+- Wenn eine Änderung an `src/css/ui-v2/*` nötig erscheint, muss vorher:
+  1) ein kurzer **Vorschlag** kommen (was/warum),
+  2) ein **Impact** (welche Seiten betroffen),
+  3) eine **Ja/Nein-Rückfrage** („Soll ich das wirklich ändern?“).
+- Default ist: **keine Änderung** am Design-System, sondern Lösung innerhalb der bestehenden Klassen/Patterns.
+
+Ziel: Einheitlicher, stabiler Look über alle Module ohne CSS-Drift.
 
 ### CSS-Dateien
 

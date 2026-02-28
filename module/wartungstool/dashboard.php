@@ -10,439 +10,304 @@ $u = current_user();
 $userId = (int)($u['id'] ?? 0);
 
 // Rechte
-$canSeePunkt = user_can_see($userId, 'wartungstool', 'global', null);
+$canSeePunkt      = user_can_see($userId, 'wartungstool', 'global', null);
 $canSeeUebersicht = user_can_see($userId, 'wartungstool', 'global', null);
-$canAdmin = user_can_edit($userId, 'wartungstool', 'global', null);
+$canAdmin         = user_can_edit($userId, 'wartungstool', 'global', null);
 
-// Filter: all | due | soon | critical
+// Operative Scope: heute | woche | alle
+$scope = (string)($_GET['scope'] ?? 'heute');
+$allowedScopes = ['heute','woche','alle'];
+if (!in_array($scope, $allowedScopes, true)) $scope = 'heute';
+
+// Statusfilter: all | due | soon | ok | new | planned
 $f = (string)($_GET['f'] ?? 'all');
-$allowedF = ['all','due','soon','critical'];
+$allowedF = ['all','due','soon','ok','new','planned'];
 if (!in_array($f, $allowedF, true)) $f = 'all';
 
-// Search (clientseitig in PHP): sucht in Code/Name/Kategorie/WP
+// Search
 $q = trim((string)($_GET['q'] ?? ''));
 $qNorm = mb_strtolower($q);
 
-// Assets laden
-$maschinen = db_all("
-  SELECT a.id, a.code, a.name, a.prioritaet, a.aktiv,
-         k.name AS kategorie_name, k.kritischkeitsstufe
-  FROM core_asset a
-  LEFT JOIN core_asset_kategorie k ON k.id = a.kategorie_id
-  WHERE a.aktiv=1
-  ORDER BY COALESCE(k.kritischkeitsstufe,1) DESC, a.prioritaet DESC, a.name ASC
-");
+// ---------- Helpers ----------
 
 function rest_label(?float $rest): string {
   if ($rest === null) return '—';
   return number_format((float)$rest, 1, ',', '.') . ' h';
 }
 
-function ui_badge_for(?float $rest, float $interval, ?float $soonRatio = null): array {
-
-  if ($rest === null)
-    return ['cls'=>'ui-badge', 'label'=>'Keine Punkte', 'type'=>'none'];
-
-  if ($rest < 0)
-    return ['cls'=>'ui-badge ui-badge--danger','label'=>'Überfällig', 'type'=>'due'];
-
-  $ratioLimit = ($soonRatio !== null && $soonRatio > 0)
-    ? $soonRatio
-    : 0.20; // Fallback
-
-  $ratio = $interval > 0 ? ($rest / $interval) : 1.0;
-
-  if ($ratio <= $ratioLimit)
-    return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig', 'type'=>'soon'];
-
-  return ['cls'=>'ui-badge ui-badge--ok','label'=>'OK', 'type'=>'ok'];
+function clamp_soon_ratio(?float $r): ?float {
+  if ($r === null) return null;
+  $r = (float)$r;
+  if ($r <= 0 || $r > 1) return null;
+  return $r;
 }
 
-function trend_badge(string $trend): array {
-  if ($trend === '▲') return ['cls'=>'ui-badge ui-badge--ok', 'label'=>'▲ steigend'];
-  if ($trend === '▼') return ['cls'=>'ui-badge ui-badge--danger', 'label'=>'▼ fallend'];
-  return ['cls'=>'ui-badge', 'label'=>'➝ stabil'];
+function clamp_soon_hours(?float $h): ?float {
+  if ($h === null) return null;
+  $h = (float)$h;
+  if ($h <= 0) return null;
+  return $h;
 }
 
-function pct_label(?float $pct): string {
-  if ($pct === null) return '—';
-  // Cap-Anzeige nicer
-  if ($pct >= 999.0) return '≥ 999%';
-  if ($pct <= -999.0) return '≤ -999%';
-  return number_format((float)$pct, 1, ',', '.') . '%';
-}
-
-// Dashboard-Metriken pro Asset
-function berechneDashboard(int $assetId): array {
-  // 1) Counter (Produktivstunden)
-  $row = db_one("SELECT COALESCE(productive_hours,0) AS h FROM core_runtime_counter WHERE asset_id=?", [$assetId]);
-  $gesamtStd = (float)($row['h'] ?? 0);
-
-  // 2) 28 Tage Laufzeit (für Wochen-Schnitt)
-  $row = db_one("
-      SELECT IFNULL(SUM(run_seconds)/3600,0) AS h
-      FROM core_runtime_agg_day
-      WHERE asset_id=? AND day >= CURDATE() - INTERVAL 28 DAY
-    ", [$assetId]);
-  $std4wo = (float)($row['h'] ?? 0);
-  $wochenschnitt = $std4wo / 4.0;
-
-  // 3) Trend: letzte 14 Tage vs davorliegende 14 Tage
-  $row = db_one("
-      SELECT IFNULL(SUM(run_seconds)/3600,0) AS h
-      FROM core_runtime_agg_day
-      WHERE asset_id=? AND day >= CURDATE() - INTERVAL 14 DAY
-    ", [$assetId]);
-  $h14_new = (float)($row['h'] ?? 0);
-
-  $row = db_one("
-      SELECT IFNULL(SUM(run_seconds)/3600,0) AS h
-      FROM core_runtime_agg_day
-      WHERE asset_id=?
-        AND day <  CURDATE() - INTERVAL 14 DAY
-        AND day >= CURDATE() - INTERVAL 28 DAY
-    ", [$assetId]);
-  $h14_old = (float)($row['h'] ?? 0);
-
-  $trend = '➝';
-  if ($h14_old > 0) {
-    if ($h14_new > $h14_old * 1.10) $trend = '▲';
-    elseif ($h14_new < $h14_old * 0.90) $trend = '▼';
-  } elseif ($h14_new > 0) {
-    $trend = '▲';
+/**
+ * Operative Statuslogik (einheitlich):
+ * - rest null => new
+ * - rest < 0  => due
+ * - soonHours (wenn >0) hat Vorrang
+ * - sonst soonRatio (0..1)
+ * - fallback soonRatio = 0.20
+ */
+function status_for(?float $rest, float $interval, ?float $soonRatio, ?float $soonHours): array {
+  if ($rest === null) {
+    return ['cls'=>'ui-badge', 'label'=>'Neu/Unbekannt', 'type'=>'new'];
   }
 
-  // Trend robust
-  $trendPct = null;
-  $trendMode = 'pct'; // 'pct' | 'neu'
-  $deltaH = $h14_new - $h14_old;
+  if ($rest < 0) {
+    return ['cls'=>'ui-badge ui-badge--danger', 'label'=>'Überfällig', 'type'=>'due'];
+  }
 
-  if ($h14_old < 1.0) {
-    if ($h14_new >= 1.0) {
-      $trendMode = 'neu';
-      $trendPct = null;
-    } else {
-      $trendMode = 'pct';
-      $trendPct = 0.0;
-    }
+  $soonHours = clamp_soon_hours($soonHours);
+  $soonRatio = clamp_soon_ratio($soonRatio);
+  if ($soonHours === null && $soonRatio === null) $soonRatio = 0.20;
+
+  $isSoon = false;
+  if ($soonHours !== null) {
+    $isSoon = ($rest <= $soonHours);
   } else {
-    $trendMode = 'pct';
-    $trendPct = ($deltaH / $h14_old) * 100.0;
-    if ($trendPct > 999.0) $trendPct = 999.0;
-    if ($trendPct < -999.0) $trendPct = -999.0;
+    $limit = $interval > 0 ? ($interval * (float)$soonRatio) : 0.0;
+    $isSoon = ($interval > 0) ? ($rest <= $limit) : false;
   }
 
-  // 4) Nächst fälliger Wartungspunkt (PRODUKTIV!)
-  $punkt = db_one("
-    SELECT
-      wp.id,
-      wp.text_kurz,
-      wp.plan_interval,
-      wp.letzte_wartung,
-      wp.soon_ratio
-    FROM wartungstool_wartungspunkt wp
-    WHERE
-      wp.asset_id = ?
-      AND wp.aktiv = 1
-      AND wp.intervall_typ = 'produktiv'
-      AND wp.letzte_wartung IS NOT NULL
-    ORDER BY (wp.letzte_wartung + wp.plan_interval) ASC
-    LIMIT 1
-  ", [$assetId]);
-
-  $rest = null;
-  $wpId = null;
-  $wpText = null;
-  $wpInterval = null;
-  $soonRatio = null;
-
-  if ($punkt) {
-    $wpId = (int)$punkt['id'];
-    $wpText = (string)$punkt['text_kurz'];
-    $wpInterval = (float)$punkt['plan_interval'];
-    $soonRatio = ($punkt['soon_ratio'] !== null ? (float)$punkt['soon_ratio'] : null);
-
-    $dueAt = (float)$punkt['letzte_wartung'] + (float)$punkt['plan_interval'];
-    $rest = $dueAt - $gesamtStd;
+  if ($isSoon) {
+    return ['cls'=>'ui-badge ui-badge--warn', 'label'=>'Bald fällig', 'type'=>'soon'];
   }
 
-  // 5) Prognose KW
-  $kw = '-';
-  if ($rest !== null) {
-    if ($rest < 0) {
-      $kw = 'überfällig';
-    } elseif ($wochenschnitt > 0) {
-      $weeksLeft = $rest / $wochenschnitt;
-      $daysLeft = (int)round($weeksLeft * 7);
-      $dueDate = strtotime("+{$daysLeft} days");
-      $kw = $dueDate ? ('KW ' . date('W', $dueDate)) : '-';
-    }
-  }
-
-  return [
-    'rest' => ($rest !== null ? (float)$rest : null),
-    'laufzeit' => $gesamtStd,
-    'kw' => $kw,
-    'schnitt' => round($wochenschnitt, 1),
-    'trend' => $trend,
-    'trend_pct' => $trendPct,
-    'trend_mode' => $trendMode,
-    'trend_delta_h' => $deltaH,
-    'h14_new' => $h14_new,
-    'h14_old' => $h14_old,
-    'h28_total' => $std4wo,
-    'wp_id' => $wpId,
-    'wp_text' => $wpText,
-    'wp_interval' => $wpInterval,
-    'soon_ratio' => $soonRatio,
-  ];
+  return ['cls'=>'ui-badge ui-badge--ok', 'label'=>'OK', 'type'=>'ok'];
 }
 
-function dash_url(string $base, string $f, string $q, array $params = []): string {
-  $query = array_merge(['r' => 'wartung.dashboard', 'f' => $f], $params);
-  if ($q !== '') $query['q'] = $q;
+function dash_url(string $base, array $params): string {
+  $query = array_merge(['r' => 'wartung.dashboard'], $params);
   return $base . '/app.php?' . http_build_query($query);
 }
 
-function renderSimpleTable(array $rows, string $title, string $base, bool $canSeePunkt, string $f, string $q): void {
-  ?>
-  <div class="ui-card" style="margin-bottom: var(--s-6);">
-    <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
-      <h2 style="margin:0;"><?= e($title) ?></h2>
-      <div class="ui-muted small"><?= (int)count($rows) ?> Anlagen</div>
-    </div>
-
-    <div style="margin-top: var(--s-4);" class="ui-table-wrap">
-      <table class="ui-table">
-        <thead>
-          <tr>
-            <th scope="col" class="ui-col-ampel">Status</th>
-            <th scope="col">Anlage</th>
-            <th scope="col">Nächster Punkt</th>
-            <th scope="col" class="ui-col-rest">Rest</th>
-            <th scope="col" class="ui-th-actions ui-col-actions">Aktion</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if (empty($rows)): ?>
-            <tr>
-              <td colspan="5" class="small ui-muted">Keine Treffer.</td>
-            </tr>
-          <?php else: ?>
-            <?php foreach ($rows as $r): ?>
-              <?php
-                $interval = isset($r['wp_interval']) && $r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0;
-                $ampel = ui_badge_for($r['rest'], $interval, $r['soon_ratio'] ?? null);
-                $assetLabel = (($r['code'] ? $r['code'].' — ' : '') . ($r['name'] ?? ''));
-                $assetSearch = (string)($r['code'] ?: ($r['name'] ?? ''));
-              ?>
-              <tr>
-                <td>
-                  <span class="<?= e($ampel['cls']) ?>"><?= e($ampel['label']) ?></span>
-                </td>
-
-                <td>
-                  <div>
-                    <strong>
-                      <a class="ui-link" href="<?= e(dash_url($base, $f, $q, ['q' => $assetSearch])) ?>">
-                        <?= e($assetLabel) ?>
-                      </a>
-                    </strong>
-                  </div>
-                  <div class="small ui-muted">
-                    <?= e($r['kategorie_name'] ?: '—') ?>
-                    <?= !empty($r['kritischkeitsstufe']) ? ' · Krit ' . e((string)$r['kritischkeitsstufe']) : '' ?>
-                  </div>
-                </td>
-
-                <td class="ui-last-entry">
-                  <?php if (!empty($r['wp_id'])): ?>
-                    <?php if ($canSeePunkt): ?>
-                      <div>
-                        <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$r['wp_id'] ?>">
-                          <?= e((string)$r['wp_text']) ?>
-                        </a>
-                        <span class="small ui-muted"> · WP #<?= (int)$r['wp_id'] ?></span>
-                      </div>
-                    <?php else: ?>
-                      <div><?= e((string)$r['wp_text']) ?> <span class="small ui-muted">(WP #<?= (int)$r['wp_id'] ?>)</span></div>
-                    <?php endif; ?>
-                  <?php else: ?>
-                    <span class="small ui-muted">—</span>
-                  <?php endif; ?>
-                </td>
-
-                <td>
-                  <strong><?= e(rest_label($r['rest'])) ?></strong>
-                </td>
-
-                <td class="ui-td-actions">
-                  <?php if (!empty($r['wp_id']) && $canSeePunkt): ?>
-                    <a class="ui-btn ui-btn--sm ui-btn--primary" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$r['wp_id'] ?>">
-                      Öffnen
-                    </a>
-                  <?php else: ?>
-                    <span class="ui-muted small">—</span>
-                  <?php endif; ?>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php endif; ?>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  <?php
+function tab_count_cls(string $type): string {
+  if ($type === 'due')  return 'ui-tab__count ui-tab__count--danger';
+  if ($type === 'soon') return 'ui-tab__count ui-tab__count--warn';
+  if ($type === 'ok')   return 'ui-tab__count ui-tab__count--ok';
+  if ($type === 'planned') return 'ui-tab__count ui-tab__count--info';
+  return 'ui-tab__count';
 }
 
-// Aufteilen nach Kritikalität
-$wichtig = [];
-$unwichtig = [];
+// ---------- Data loading ----------
 
-foreach ($maschinen as $m) {
-  $daten = berechneDashboard((int)$m['id']);
-  $row = array_merge($m, $daten);
+$wps = db_all("
+  SELECT
+    wp.id,
+    wp.asset_id,
+    wp.text_kurz,
+    wp.plan_interval,
+    wp.intervall_typ,
+    wp.datum,
+    wp.letzte_wartung,
+    wp.soon_ratio,
+    wp.soon_hours,
+    wp.planned_at,
+    wp.planned_text,
 
-  if ((int)($m['kritischkeitsstufe'] ?? 1) >= 3) $wichtig[] = $row;
-  else $unwichtig[] = $row;
+    a.code AS asset_code,
+    a.name AS asset_name,
+
+    k.name AS kategorie_name,
+    k.kritischkeitsstufe,
+
+    COALESCE(c.productive_hours, 0) AS productive_hours
+  FROM wartungstool_wartungspunkt wp
+  JOIN core_asset a ON a.id = wp.asset_id
+  LEFT JOIN core_asset_kategorie k ON k.id = a.kategorie_id
+  LEFT JOIN core_runtime_counter c ON c.asset_id = a.id
+  WHERE wp.aktiv = 1 AND a.aktiv = 1
+  ORDER BY a.name ASC, wp.text_kurz ASC
+");
+
+$nowTs = time();
+
+$rows = [];
+foreach ($wps as $wp) {
+  $interval = (float)($wp['plan_interval'] ?? 0);
+  $rest = null;
+
+  if (($wp['intervall_typ'] ?? '') === 'produktiv') {
+    $lw = $wp['letzte_wartung'];
+    if ($lw !== null && $interval > 0) {
+      $dueAt = (float)$lw + $interval;
+      $rest = $dueAt - (float)($wp['productive_hours'] ?? 0);
+    }
+  } else {
+    // zeit
+    $d = $wp['datum'];
+    if ($d !== null && $interval > 0) {
+      $dueTs = strtotime((string)$d);
+      if ($dueTs !== false) {
+        $dueTs = $dueTs + (int)round($interval * 3600);
+        $rest = ($dueTs - $nowTs) / 3600;
+      }
+    }
+  }
+
+  $st = status_for(
+    $rest,
+    $interval,
+    $wp['soon_ratio'] !== null ? (float)$wp['soon_ratio'] : null,
+    $wp['soon_hours'] !== null ? (float)$wp['soon_hours'] : null
+  );
+
+  $assetLabel = trim(((string)($wp['asset_code'] ?? '')));
+  $assetName  = trim(((string)($wp['asset_name'] ?? '')));
+  $wpText     = (string)($wp['text_kurz'] ?? '');
+
+  // Search filter
+  if ($qNorm !== '') {
+    $blob = mb_strtolower($assetLabel . ' | ' . $assetName . ' | ' . (string)($wp['kategorie_name'] ?? '') . ' | ' . $wpText);
+    if (mb_strpos($blob, $qNorm) === false) continue;
+  }
+
+  // Scope filter (operativ)
+  $limit = null;
+  if ($scope === 'heute') $limit = 8.0;
+  if ($scope === 'woche') $limit = 40.0;
+
+  if ($limit !== null) {
+    if ($rest === null) {
+      // in operativem Scope nicht anzeigen
+      continue;
+    }
+    if (!($rest < 0 || $rest <= $limit)) {
+      continue;
+    }
+  }
+
+  // Status filter + Geplant-Filter (Flag)
+  if ($f === 'planned') {
+    if (($wp['planned_at'] ?? null) === null) continue;
+  } else {
+    if ($f !== 'all' && $st['type'] !== $f) continue;
+  }
+
+  $rows[] = [
+    'wp_id' => (int)$wp['id'],
+    'asset_code' => $assetLabel,
+    'asset_name' => $assetName,
+    'kategorie_name' => (string)($wp['kategorie_name'] ?? ''),
+    'krit' => (int)($wp['kritischkeitsstufe'] ?? 1),
+    'wp_text' => $wpText,
+    'rest' => $rest,
+    'interval' => $interval,
+    'letzte' => ($wp['intervall_typ'] === 'produktiv') ? ($wp['letzte_wartung'] !== null ? (float)$wp['letzte_wartung'] : null) : null,
+    'datum' => ($wp['intervall_typ'] === 'zeit') ? (string)($wp['datum'] ?? '') : '',
+    'intervall_typ' => (string)($wp['intervall_typ'] ?? ''),
+    'status' => $st,
+    'planned_at' => $wp['planned_at'] ?? null,
+    'planned_text' => (string)($wp['planned_text'] ?? ''),
+    'planned' => ($wp['planned_at'] ?? null) !== null,
+  ];
 }
 
-// Sortierung: kleinster Rest zuerst
-$sortFn = function($a, $b) {
-  $ar = $a['rest']; $br = $b['rest'];
+// Sort: due -> soon -> ok -> new, dann rest ASC (null last)
+$prio = ['due'=>1,'soon'=>2,'ok'=>3,'new'=>4];
+usort($rows, function($a, $b) use ($prio) {
+  $pa = $prio[$a['status']['type']] ?? 9;
+  $pb = $prio[$b['status']['type']] ?? 9;
+  if ($pa !== $pb) return $pa <=> $pb;
+
+  $ar = $a['rest'];
+  $br = $b['rest'];
   if ($ar === null && $br === null) return 0;
   if ($ar === null) return 1;
   if ($br === null) return -1;
   return $ar <=> $br;
-};
-usort($wichtig, $sortFn);
-usort($unwichtig, $sortFn);
+});
 
-// KPI counts + Filter-Logik
-$kritischCount = count($wichtig);
-$weitereCount = count($unwichtig);
-$gesamtCount = $kritischCount + $weitereCount;
-
-$ueberfaellig = 0;
-$bald = 0;
-
-$allRows = array_merge($wichtig, $unwichtig);
-
-foreach ($allRows as $r) {
-  $interval = isset($r['wp_interval']) && $r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0;
-  $ampel = ui_badge_for($r['rest'], $interval, $r['soon_ratio'] ?? null);
-  if ($ampel['type'] === 'due') $ueberfaellig++;
-  if ($ampel['type'] === 'soon') $bald++;
+// Counts innerhalb Scope + Search (auf Basis der angezeigten Rows)
+$counts = ['due'=>0,'soon'=>0,'ok'=>0,'new'=>0,'planned'=>0,'all'=>0];
+foreach ($rows as $r) {
+  $t = $r['status']['type'];
+  if (isset($counts[$t])) $counts[$t]++;
+  if (!empty($r['planned'])) $counts['planned']++;
+  $counts['all']++;
 }
 
-// Apply filter
-$filterFn = function($r) use ($f, $qNorm) {
-  $krit = (int)($r['kritischkeitsstufe'] ?? 1);
-  $interval = isset($r['wp_interval']) && $r['wp_interval'] !== null ? (float)$r['wp_interval'] : 0.0;
-  $ampel = ui_badge_for($r['rest'], $interval, $r['soon_ratio'] ?? null);
+// Sidebar: letzte Protokolle (Wartung)
+$last = db_all("
+  SELECT
+    p.id,
+    p.datum,
+    p.status,
+    p.user_id,
+    COALESCE(u.anzeigename, u.benutzername) AS user_name,
+    wp.id AS wp_id,
+    wp.text_kurz,
+    a.code AS asset_code
+  FROM wartungstool_protokoll p
+  JOIN wartungstool_wartungspunkt wp ON wp.id = p.wartungspunkt_id
+  JOIN core_asset a ON a.id = wp.asset_id
+  LEFT JOIN core_user u ON u.id = p.user_id
+  ORDER BY p.id DESC
+  LIMIT 20
+");
 
-  // f-Filter
-  if ($f === 'critical' && $krit < 3) return false;
-  if ($f === 'due' && $ampel['type'] !== 'due') return false;
-  if ($f === 'soon' && $ampel['type'] !== 'soon') return false;
+/**
+ * Sidebar Quickinfo:
+ * - Gruppiert nach Asset (wenn viele Aktionen an derselben Maschine passieren)
+ * - Zeigt max. 6 Gruppen
+ */
+$lastGroups = [];
+$lastOrder  = [];
 
-  // q-Filter (substring match)
-  if ($qNorm !== '') {
-    $hay = [
-      (string)($r['code'] ?? ''),
-      (string)($r['name'] ?? ''),
-      (string)($r['kategorie_name'] ?? ''),
-      (string)($r['wp_text'] ?? ''),
+foreach ($last as $x) {
+  $asset = (string)($x['asset_code'] ?? '');
+  if ($asset === '') $asset = '—';
+
+  if (!isset($lastGroups[$asset])) {
+    $lastGroups[$asset] = [
+      'asset_code' => $asset,
+      'latest_dt'  => (string)($x['datum'] ?? ''),
+      'latest_user'=> (string)($x['user_name'] ?? '—'),
+      'items'      => [],
+      'has_warn'   => false,
     ];
-    $blob = mb_strtolower(implode(' | ', $hay));
-    if (mb_strpos($blob, $qNorm) === false) return false;
+    $lastOrder[] = $asset;
   }
 
-  return true;
-};
-// gefilterte Listen
-$wichtigF = array_values(array_filter($wichtig, $filterFn));
-$unwichtigF = array_values(array_filter($unwichtig, $filterFn));
+  $st = (string)($x['status'] ?? '');
+  if ($st === 'abweichung') $lastGroups[$asset]['has_warn'] = true;
 
-// Trend Insights: Δh primary
-$rowsWithTrend = array_filter($allRows, fn($r) => isset($r['trend_delta_h']));
-
-$topUp = $rowsWithTrend;
-usort($topUp, function($a, $b) {
-  // 'neu' zuerst nach Δh, sonst nach %
-  $am = $a['trend_mode'] ?? 'pct';
-  $bm = $b['trend_mode'] ?? 'pct';
-
-  if ($am === 'neu' && $bm !== 'neu') return -1;
-  if ($bm === 'neu' && $am !== 'neu') return 1;
-
-  if ($am === 'neu' && $bm === 'neu') {
-    return ((float)($b['trend_delta_h'] ?? 0)) <=> ((float)($a['trend_delta_h'] ?? 0));
-  }
-
-  return ((float)($b['trend_pct'] ?? 0)) <=> ((float)($a['trend_pct'] ?? 0));
-});
-$topUp = array_slice($topUp, 0, 5);
-
-$topDown = $rowsWithTrend;
-usort($topDown, function($a, $b) {
-  $am = $a['trend_mode'] ?? 'pct';
-  $bm = $b['trend_mode'] ?? 'pct';
-
-  // 'neu' ist quasi steigend => bei fallend ans Ende
-  if ($am === 'neu' && $bm !== 'neu') return 1;
-  if ($bm === 'neu' && $am !== 'neu') return -1;
-
-  return ((float)($a['trend_pct'] ?? 0)) <=> ((float)($b['trend_pct'] ?? 0));
-});
-$topDown = array_slice($topDown, 0, 5);
-
-// Global Trend Summary
-$sumNew = 0.0; $sumOld = 0.0;
-foreach ($allRows as $r) {
-  $sumNew += (float)($r['h14_new'] ?? 0);
-  $sumOld += (float)($r['h14_old'] ?? 0);
-}
-$globalDeltaH = $sumNew - $sumOld;
-
-$globalPct = null;
-$globalMode = 'pct';
-if ($sumOld < 10.0) {
-  if ($sumNew >= 10.0) {
-    $globalMode = 'neu';
-    $globalPct = null;
-  } else {
-    $globalMode = 'pct';
-    $globalPct = 0.0;
-  }
-} else {
-  $globalMode = 'pct';
-  $globalPct = ($globalDeltaH / $sumOld) * 100.0;
-  if ($globalPct > 999.0) $globalPct = 999.0;
-  if ($globalPct < -999.0) $globalPct = -999.0;
+  $lastGroups[$asset]['items'][] = [
+    'wp_id' => (int)($x['wp_id'] ?? 0),
+    'text'  => (string)($x['text_kurz'] ?? ''),
+    'dt'    => (string)($x['datum'] ?? ''),
+    'user'  => (string)($x['user_name'] ?? '—'),
+    'status'=> $st,
+  ];
 }
 
-$globalTrend = '➝';
-if ($sumOld > 0) {
-  if ($sumNew > $sumOld * 1.10) $globalTrend = '▲';
-  elseif ($sumNew < $sumOld * 0.90) $globalTrend = '▼';
-} elseif ($sumNew > 0) {
-  $globalTrend = '▲';
+// Begrenzen auf 6 Gruppen (in Reihenfolge der neuesten Aktion)
+$lastOrder = array_slice($lastOrder, 0, 6);
+$lastGrouped = [];
+foreach ($lastOrder as $asset) {
+  $lastGrouped[] = $lastGroups[$asset];
 }
-$gBadge = trend_badge($globalTrend);
 
-// KPI URLs (behält q)
-$mkUrl = function(string $fTarget) use ($base, $q) {
-  $url = $base . '/app.php?r=wartung.dashboard&f=' . urlencode($fTarget);
-  if ($q !== '') $url .= '&q=' . urlencode($q);
-  return $url;
+// URLs
+$mkScope = function(string $scopeTarget) use ($base, $f, $q) {
+  $params = ['scope'=>$scopeTarget, 'f'=>$f];
+  if ($q !== '') $params['q'] = $q;
+  return dash_url($base, $params);
 };
 
-// generischer URL-Builder (behält f + q)
-$mkDashUrl = function(array $params = []) use ($base, $f, $q) {
-  $query = array_merge(['r' => 'wartung.dashboard', 'f' => $f], $params);
-  if ($q !== '') $query['q'] = $q;
-  return $base . '/app.php?' . http_build_query($query);
+$mkFilter = function(string $fTarget) use ($base, $scope, $q) {
+  $params = ['scope'=>$scope, 'f'=>$fTarget];
+  if ($q !== '') $params['q'] = $q;
+  return dash_url($base, $params);
 };
 ?>
 
@@ -450,9 +315,7 @@ $mkDashUrl = function(array $params = []) use ($base, $f, $q) {
 
   <div class="ui-page-header" style="margin: 0 0 var(--s-5) 0;">
     <h1 class="ui-page-title">Wartung – Dashboard</h1>
-    <p class="ui-page-subtitle ui-muted">
-      Übersicht nach Kritikalität · Quelle: <code>core_runtime_counter</code> · Trend: <code>core_runtime_agg_day</code> (4-Wochen Vergleich 14/14 Tage)
-    </p>
+    <p class="ui-page-subtitle ui-muted">Operative Aufgabenliste (Werkhalle) · Überfällig & bald fällig zuerst</p>
 
     <div style="margin-top: 8px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
       <div class="small">
@@ -466,137 +329,209 @@ $mkDashUrl = function(array $params = []) use ($base, $f, $q) {
 
       <form method="get" action="<?= e($base) ?>/app.php" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <input type="hidden" name="r" value="wartung.dashboard">
+        <input type="hidden" name="scope" value="<?= e($scope) ?>">
         <input type="hidden" name="f" value="<?= e($f) ?>">
 
-        <label class="sr-only" for="dash_q">Suche</label>
         <input
           id="dash_q"
           name="q"
           value="<?= e($q) ?>"
-          placeholder="Suche: BAZ-18, Kompressor, Messwert …"
+          placeholder="Suchen… (CNC-01, Kompressor, Filter, …)"
           class="ui-input"
           style="min-width: 320px;"
         >
 
-        <button class="ui-btn ui-btn--primary ui-btn--sm" type="submit">Suchen</button>
+        <button class="ui-btn ui-btn--primary ui-btn--sm" type="submit">Anwenden</button>
 
         <?php if ($q !== ''): ?>
-          <a class="ui-btn ui-btn--ghost ui-btn--sm" href="<?= e($base) ?>/app.php?r=wartung.dashboard&f=<?= urlencode($f) ?>">Zurücksetzen</a>
+          <a class="ui-btn ui-btn--ghost ui-btn--sm" href="<?= e(dash_url($base, ['scope'=>$scope, 'f'=>$f])) ?>">Reset</a>
         <?php endif; ?>
       </form>
-    </div>
-
-    <div style="margin-top: 10px; display:flex; gap:8px; flex-wrap:wrap;">
-      <?php if (!$canSeePunkt): ?>
-        <span class="ui-badge">Detailansicht gesperrt</span>
-      <?php endif; ?>
-      <?php if ($canAdmin): ?>
-        <span class="ui-badge ui-badge--ok">Admin</span>
-      <?php endif; ?>
     </div>
   </div>
 
   <!-- KPI row clickable -->
+  <?php if (!empty($_GET['kpi'])): ?>
   <div class="ui-kpi-row">
-    <a class="ui-kpi ui-kpi--danger" style="text-decoration:none;" href="<?= e($mkUrl('due')) ?>">
+    <a class="ui-kpi ui-kpi--danger <?= $f==='due' ? 'ui-kpi--active' : '' ?>" style="text-decoration:none;" href="<?= e($mkFilter('due')) ?>">
       <div class="ui-kpi__label">Überfällig</div>
-      <div class="ui-kpi__value"><?= (int)$ueberfaellig ?></div>
+      <div class="ui-kpi__value"><?= (int)$counts['due'] ?></div>
     </a>
 
-    <a class="ui-kpi ui-kpi--warn" style="text-decoration:none;" href="<?= e($mkUrl('soon')) ?>">
+    <a class="ui-kpi ui-kpi--warn <?= $f==='soon' ? 'ui-kpi--active' : '' ?>" style="text-decoration:none;" href="<?= e($mkFilter('soon')) ?>">
       <div class="ui-kpi__label">Bald fällig</div>
-      <div class="ui-kpi__value"><?= (int)$bald ?></div>
+      <div class="ui-kpi__value"><?= (int)$counts['soon'] ?></div>
     </a>
 
-    <a class="ui-kpi" style="text-decoration:none;" href="<?= e($mkUrl('critical')) ?>">
-      <div class="ui-kpi__label">Kritische Anlagen</div>
-      <div class="ui-kpi__value"><?= (int)$kritischCount ?></div>
+    <a class="ui-kpi ui-kpi--ok <?= $f==='ok' ? 'ui-kpi--active' : '' ?>" style="text-decoration:none;" href="<?= e($mkFilter('ok')) ?>">
+      <div class="ui-kpi__label">OK</div>
+      <div class="ui-kpi__value"><?= (int)$counts['ok'] ?></div>
     </a>
 
-    <a class="ui-kpi" style="text-decoration:none;" href="<?= e($mkUrl('all')) ?>">
-      <div class="ui-kpi__label">Gesamtanlagen</div>
-      <div class="ui-kpi__value"><?= (int)$gesamtCount ?></div>
+    <a class="ui-kpi <?= $f==='all' ? 'ui-kpi--active' : '' ?>" style="text-decoration:none;" href="<?= e($mkFilter('all')) ?>">
+      <div class="ui-kpi__label">Gesamt</div>
+      <div class="ui-kpi__value"><?= (int)$counts['all'] ?></div>
     </a>
   </div>
+<?php endif; ?>
+  <div class="ui-grid" style="display:grid; grid-template-columns: 1.7fr 0.9fr; gap: var(--s-6); align-items:start;">
 
-  <!-- 2-Spalten Layout -->
-  <div class="ui-grid" style="display:grid; grid-template-columns: 1.6fr 0.9fr; gap: var(--s-6); align-items:start;">
     <div>
-      <?php renderSimpleTable($wichtigF, 'Kritisch (Kritikalität 3)', $base, $canSeePunkt, $f, $q); ?>
-
       <div class="ui-card">
-        <details>
-          <summary style="cursor:pointer; font-weight:700;">
-            Weitere Anlagen (Kritikalität 1–2) · <?= e(count($unwichtigF)) ?> Anlagen
-            <?php if ($f !== 'all'): ?>
-              <span class="small ui-muted" style="font-weight:400;">(Filter aktiv)</span>
-            <?php endif; ?>
-          </summary>
-          <div style="margin-top: var(--s-4);">
-            <?php renderSimpleTable($unwichtigF, 'Weitere Anlagen (Kritikalität 1–2)', $base, $canSeePunkt, $f, $q); ?>
+
+        <div class="ui-card-head">
+          <div class="ui-tabs">
+            <a class="ui-tab <?= $scope==='heute'?'ui-tab--active':'' ?>" href="<?= e($mkScope('heute')) ?>">Heute</a>
+            <a class="ui-tab <?= $scope==='woche'?'ui-tab--active':'' ?>" href="<?= e($mkScope('woche')) ?>">Diese Woche</a>
+            <a class="ui-tab <?= $scope==='alle'?'ui-tab--active':'' ?>" href="<?= e($mkScope('alle')) ?>">Alle</a>
           </div>
-        </details>
+
+          <div class="ui-tabs" style="justify-content:flex-end;">
+            <a class="ui-tab <?= $f==='all'?'ui-tab--active':'' ?>" href="<?= e($mkFilter('all')) ?>">Alle <span class="<?= e(tab_count_cls('all')) ?>"><?= (int)$counts['all'] ?></span></a>
+            <a class="ui-tab <?= $f==='due'?'ui-tab--active':'' ?>" href="<?= e($mkFilter('due')) ?>">Überfällig <span class="<?= e(tab_count_cls('due')) ?>"><?= (int)$counts['due'] ?></span></a>
+            <a class="ui-tab <?= $f==='soon'?'ui-tab--active':'' ?>" href="<?= e($mkFilter('soon')) ?>">Bald <span class="<?= e(tab_count_cls('soon')) ?>"><?= (int)$counts['soon'] ?></span></a>
+            <a class="ui-tab <?= $f==='ok'?'ui-tab--active':'' ?>" href="<?= e($mkFilter('ok')) ?>">OK <span class="<?= e(tab_count_cls('ok')) ?>"><?= (int)$counts['ok'] ?></span></a>
+            <a class="ui-tab <?= $f==='planned'?'ui-tab--active':'' ?>" href="<?= e($mkFilter('planned')) ?>">Geplant <span class="<?= e(tab_count_cls('planned')) ?>"><?= (int)$counts['planned'] ?></span></a>
+          </div>
+        </div>
+
+        <div class="ui-table-wrap">
+          <table class="ui-table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Wartungspunkt</th>
+                <th>Rest</th>
+                <th>Intervall</th>
+                <th>Letzte Wartung</th>
+                <th>Status</th>
+                <th class="ui-th-actions">Aktion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php if (empty($rows)): ?>
+                <tr><td colspan="7" class="small ui-muted">Keine Treffer.</td></tr>
+              <?php else: ?>
+                <?php foreach ($rows as $r): ?>
+                  <?php
+                    $restCls = 'ui-num';
+                    if ($r['rest'] !== null && (float)$r['rest'] < 0) $restCls .= ' ui-num--danger';
+
+                    $letzte = '—';
+                    if ($r['intervall_typ'] === 'produktiv') {
+                      $letzte = ($r['letzte'] !== null) ? (number_format((float)$r['letzte'], 1, ',', '.') . ' h') : '—';
+                    } else {
+                      $letzte = $r['datum'] ? e($r['datum']) : '—';
+                    }
+                  ?>
+                  <tr>
+                    <td>
+                      <div style="font-weight:800; letter-spacing:0.2px;">
+                        <?= e($r['asset_code'] ?: '—') ?>
+                      </div>
+                      <div class="small ui-muted" style="margin-top:2px;">
+                        <?= e($r['asset_name'] ?: '') ?>
+                      </div>
+                    </td>
+
+                    <td>
+                      <?php if ($canSeePunkt): ?>
+                        <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$r['wp_id'] ?>"><?= e($r['wp_text']) ?></a>
+                        <span class="small ui-muted"> · WP #<?= (int)$r['wp_id'] ?></span>
+                      <?php else: ?>
+                        <?= e($r['wp_text']) ?> <span class="small ui-muted">(WP #<?= (int)$r['wp_id'] ?>)</span>
+                      <?php endif; ?>
+                    </td>
+
+                    <td class="<?= e($restCls) ?>"><strong><?= e(rest_label($r['rest'])) ?></strong></td>
+                    <td class="ui-num"><?= e(number_format((float)$r['interval'], 0, ',', '.')) ?> h</td>
+                    <td class="small ui-muted"><?= $letzte ?></td>
+
+                    <td>
+                      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <span class="<?= e($r['status']['cls']) ?>"><?= e($r['status']['label']) ?></span>
+                        <?php if (!empty($r['planned'])): ?>
+                          <?php
+                            $pt = (string)($r['planned_text'] ?? '');
+                            $pd = (string)($r['planned_at'] ?? '');
+                            $title = trim(($pd ? $pd : '') . ($pt ? ' · ' . $pt : ''));
+                          ?>
+                          <span class="ui-badge ui-badge--info" title="<?= e($title) ?>">Geplant</span>
+                        <?php endif; ?>
+                      </div>
+                    </td>
+
+                    <td class="ui-td-actions">
+                      <?php if ($canSeePunkt): ?>
+                        <a class="ui-btn ui-btn--sm ui-btn--primary" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$r['wp_id'] ?>">Öffnen</a>
+                      <?php else: ?>
+                        <span class="ui-muted small">—</span>
+                      <?php endif; ?>
+                    </td>
+                  </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: var(--s-4);" class="small ui-muted">
+          Hinweis: „Bald fällig“ nutzt <code>soon_hours</code> (falls gesetzt) sonst <code>soon_ratio</code> (Fallback 0.20).
+        </div>
+
       </div>
     </div>
 
     <aside>
       <div class="ui-card" style="margin-bottom: var(--s-6);">
-        <h2 style="margin:0;">Trend – 4 Wochen</h2>
-        <p class="small ui-muted" style="margin-top:6px;">
-          Vergleich: letzte 14 Tage vs. davorliegende 14 Tage (Proxy für 4-Wochen Entwicklung).
-        </p>
+        <h2 style="margin:0;">Quickinfo</h2>
+        <p class="small ui-muted" style="margin-top:6px;">Letzte Wartungsaktionen</p>
 
-        <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <span class="<?= e($gBadge['cls']) ?>"><?= e($gBadge['label']) ?></span>
-        </div>
-
-        <div style="margin-top:10px;">
-          <div style="font-size:20px; font-weight:800;">
-            Δ <?= number_format((float)$globalDeltaH, 1, ',', '.') ?> h
-          </div>
-          <div class="small ui-muted" style="margin-top:4px;">
-            <?php if ($globalMode === 'neu'): ?>
-              Gesamt: <b>Neu</b>
-            <?php else: ?>
-              Gesamt: <b><?= e(pct_label($globalPct)) ?></b>
-            <?php endif; ?>
-            · Neu: <?= number_format($sumNew, 1, ',', '.') ?> h
-            · Alt: <?= number_format($sumOld, 1, ',', '.') ?> h
-          </div>
-        </div>
-      </div>
-
-      <div class="ui-card" style="margin-bottom: var(--s-6);">
-        <h2 style="margin:0;">Top steigend</h2>
-        <p class="small ui-muted" style="margin-top:6px;">Δh als Primärwert, % sekundär (stabiler).</p>
-
-        <?php if (empty($topUp)): ?>
+        <?php if (empty($lastGrouped)): ?>
           <p class="small ui-muted" style="margin-top:10px;">Keine Daten.</p>
         <?php else: ?>
-          <div style="margin-top:10px; display:flex; flex-direction:column; gap:12px;">
-            <?php foreach ($topUp as $r): ?>
-              <?php $b = trend_badge((string)$r['trend']); ?>
-              <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-                <div style="min-width:0;">
-                  <div>
-                    <strong>
-                      <a class="ui-link" href="<?= e($mkDashUrl(['q' => $r['code'] ?: $r['name']])) ?>">
-                        <?= e(($r['code'] ? $r['code'].' — ' : '') . $r['name']) ?>
-                      </a>
-                    </strong>
+          <div class="ui-quicklist" style="margin-top:12px;">
+            <?php foreach ($lastGrouped as $g): ?>
+              <?php
+                $badge = $g['has_warn'] ? 'ui-badge ui-badge--warn' : 'ui-badge ui-badge--ok';
+                $label = $g['has_warn'] ? 'Abweichung' : 'OK';
+
+                $items = $g['items'];
+                $show  = array_slice($items, 0, 3);
+                $more  = max(0, count($items) - count($show));
+              ?>
+              <div class="ui-quickitem">
+                <div class="ui-quickitem__main">
+                  <div class="ui-quickitem__top">
+                    <span class="ui-quickitem__who"><?= e($g['latest_user']) ?></span>
+                    <span class="ui-quickitem__meta"><?= e($g['latest_dt']) ?></span>
                   </div>
-                  <div class="small ui-muted"><?= e($r['kategorie_name'] ?: '—') ?></div>
-                </div>
-                <div style="text-align:right; white-space:nowrap;">
-                  <div><span class="<?= e($b['cls']) ?>"><?= e($b['label']) ?></span></div>
-                  <div style="font-weight:800;">Δ <?= number_format((float)($r['trend_delta_h'] ?? 0), 1, ',', '.') ?> h</div>
-                  <div class="small ui-muted">
-                    <?php if (($r['trend_mode'] ?? 'pct') === 'neu'): ?>
-                      Alt &lt; 1 h (Proxy)
-                    <?php else: ?>
-                      <?= e(pct_label((float)($r['trend_pct'] ?? 0))) ?>
+
+                  <div class="ui-quickitem__mid" style="white-space:normal;">
+                    <strong><?= e($g['asset_code']) ?></strong>
+                    <span class="small ui-muted">·</span>
+                    <span class="small ui-muted"><?= (int)count($items) ?> Aktion(en)</span>
+                  </div>
+
+                  <div class="small ui-muted" style="margin-top:6px; display:flex; flex-direction:column; gap:4px;">
+                    <?php foreach ($show as $it): ?>
+                      <div style="display:flex; gap:8px; align-items:baseline; justify-content:space-between;">
+                        <div style="min-width:0; flex:1;">
+                          <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$it['wp_id'] ?>">
+                            <?= e($it['text']) ?>
+                          </a>
+                        </div>
+                        <div style="white-space:nowrap;" class="small ui-muted">WP #<?= (int)$it['wp_id'] ?></div>
+                      </div>
+                    <?php endforeach; ?>
+                    <?php if ($more > 0): ?>
+                      <div class="small ui-muted">+<?= (int)$more ?> weitere…</div>
                     <?php endif; ?>
                   </div>
+                </div>
+
+                <div class="ui-quickitem__right">
+                  <span class="<?= e($badge) ?>"><?= e($label) ?></span>
                 </div>
               </div>
             <?php endforeach; ?>
@@ -605,44 +540,28 @@ $mkDashUrl = function(array $params = []) use ($base, $f, $q) {
       </div>
 
       <div class="ui-card">
-        <h2 style="margin:0;">Top fallend</h2>
-        <p class="small ui-muted" style="margin-top:6px;">Δh als Primärwert, % sekundär.</p>
-
-        <?php if (empty($topDown)): ?>
-          <p class="small ui-muted" style="margin-top:10px;">Keine Daten.</p>
-        <?php else: ?>
-          <div style="margin-top:10px; display:flex; flex-direction:column; gap:12px;">
-            <?php foreach ($topDown as $r): ?>
-              <?php $b = trend_badge((string)$r['trend']); ?>
-              <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
-                <div style="min-width:0;">
-                  <div>
-                    <strong>
-                      <a class="ui-link" href="<?= e($mkDashUrl(['q' => $r['code'] ?: $r['name']])) ?>">
-                        <?= e(($r['code'] ? $r['code'].' — ' : '') . $r['name']) ?>
-                      </a>
-                    </strong>
-                  </div>
-                  <div class="small ui-muted"><?= e($r['kategorie_name'] ?: '—') ?></div>
-                </div>
-                <div style="text-align:right; white-space:nowrap;">
-                  <div><span class="<?= e($b['cls']) ?>"><?= e($b['label']) ?></span></div>
-                  <div style="font-weight:800;">Δ <?= number_format((float)($r['trend_delta_h'] ?? 0), 1, ',', '.') ?> h</div>
-                  <div class="small ui-muted">
-                    <?php if (($r['trend_mode'] ?? 'pct') === 'neu'): ?>
-                      —
-                    <?php else: ?>
-                      <?= e(pct_label((float)($r['trend_pct'] ?? 0))) ?>
-                    <?php endif; ?>
-                  </div>
-                </div>
-              </div>
-            <?php endforeach; ?>
+        <h2 style="margin:0;">Wartung</h2>
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">Überfällig</span>
+            <span class="<?= e(tab_count_cls('due')) ?>"><?= (int)$counts['due'] ?></span>
           </div>
-        <?php endif; ?>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">Bald fällig</span>
+            <span class="<?= e(tab_count_cls('soon')) ?>"><?= (int)$counts['soon'] ?></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">OK</span>
+            <span class="<?= e(tab_count_cls('ok')) ?>"><?= (int)$counts['ok'] ?></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">Geplant</span>
+            <span class="<?= e(tab_count_cls('planned')) ?>"><?= (int)$counts['planned'] ?></span>
+          </div>
+        </div>
       </div>
-
     </aside>
+
   </div>
 
 </div>

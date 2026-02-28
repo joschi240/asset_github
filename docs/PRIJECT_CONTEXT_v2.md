@@ -41,8 +41,39 @@ Ziel: **modular, auditfähig, shopfloor-tauglich** – Erweiterungen **schrittwe
 5) **„Ich bin faul“-Regel** 😄  
    - Bei jeder Änderung: **SQL Script** liefern  
    - Wenn Patch-Workflow unsicher: **komplette Datei(en)** liefern, nicht nur Diff.
+   
+6) UI v2 „Final“ – Template & Rules sind verbindlich
+- Für neue/überarbeitete Seiten gilt ausschließlich UI v2:
+  - Template/Patterns: `docs/UI_V2_GUIDE.md`
+  - Verbindliche UX-Regeln: `docs/STYLE_RULES.md`
+- Keine modul-spezifischen CSS-Dateien (keine neuen ticket.css-Äste etc.)
+- Neue UI nur mit `ui-*` Klassen (keine Legacy-Klassen).
+
+7) CSS Freeze (Design-System ist final)
+- `src/css/ui-v2/` (`tokens.css`, `base.css`, `components.css`, `layout.css`) gilt als **final eingefroren**.
+- Änderungen daran sind **Ausnahmefälle**.
+- Wenn GPT eine Änderung an `src/css/ui-v2/*` vorschlägt, muss es vorher:
+  1) den Vorschlag beschreiben (was genau wird geändert),
+  2) den Impact nennen (welche Seiten/Module betroffen),
+  3) eine **Ja/Nein-Rückfrage** stellen.
+- Default: Lösung innerhalb bestehender Klassen/Patterns, ohne Design-System zu verändern.
 
 ---
+
+## Zusammenarbeit / Workflow (GPT)
+
+Ziel: stabile, auditfähige Erweiterung ohne UI-Drift.
+
+Arbeitsmodus:
+- GPT liefert Änderungen als:
+  - komplette Datei (wenn Risiko/Unklarheit),
+  - oder klar abgegrenzte Copy/Paste-Blöcke mit Dateipfad + Einfügepunkt.
+- Keine „vielleicht“-Änderungen ohne Begründung.
+- Bei potenziell weitreichenden Änderungen (DB, Permissions, CSS Freeze):
+  - erst Vorschlag + Impact + Ja/Nein.
+- Bei DB-Änderungen:
+  - immer Migration-SQL + (falls nötig) Backfill-SQL.
+  
 
 ## 1) Architektur – Routing, Menü, Rechte
 
