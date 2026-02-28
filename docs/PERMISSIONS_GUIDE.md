@@ -1,14 +1,27 @@
-# Upload: empfohlene Server-Einstellungen
+# PERMISSIONS_GUIDE.md (Rechtesystem + Best Practices + Seeds + Debug)
+
+> Repo-verifiziert. Stand: 2026-02-28.
+
+## Upload: empfohlene Server-Einstellungen
+(Quelle: Konfigurationsempfehlung für php.ini / Webserver)
 
 - `upload_max_filesize = 20M`
 - `post_max_size = 25M`
 - (nginx) `client_max_body_size 20M;`
 
 Diese Werte sollten in der php.ini und ggf. im Webserver gesetzt werden, damit große Bilder und PDFs hochgeladen werden können.
-# PERMISSIONS_GUIDE.md (Rechtesystem + Best Practices + Seeds + Debug)
 
-Stand: 24.02.2026  
+---
+
+Stand: 2026-02-28 (aktualisiert; ursprünglich: 24.02.2026)  
 Ziel: In neuen Chats/Modulen schnell korrekt Rechte setzen, 403 sauber debuggen, und konsistente `modul/objekt_typ` Konventionen nutzen.
+
+> **Hinweis (2026-02-28):** Das System hat zwei parallele Permission-APIs:
+> - `user_can_see()` / `user_can_edit()` / `user_can_delete()` / `require_can_edit()` – in `src/helpers.php` + `src/auth.php` (primär, von `app.php` genutzt)
+> - `can()` / `user_permissions()` / `require_permission()` – in `src/permission.php` (vereinfachte Alternative ohne `objekt_typ`)
+> 
+> Für neue Module: primäre API via `src/auth.php` verwenden.
+> (Quelle: `src/helpers.php:56–76`, `src/auth.php:113–184`, `src/permission.php`)
 
 ---
 
