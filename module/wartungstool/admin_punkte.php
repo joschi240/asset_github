@@ -1,5 +1,9 @@
 <?php
 // module/wartungstool/admin_punkte.php (INNER VIEW)
+// UI v2: Seite ist bereits weitgehend migriert. Diese Version räumt Inline-Styling etwas auf,
+// vereinheitlicht Layout/Blöcke und fixt inkonsistente Inserts (soon_hours) bei Copy/Import.
+// Legacy: nichts gelöscht, nur konsolidiert.
+
 require_once __DIR__ . '/../../src/helpers.php';
 require_login();
 require_can_edit('wartungstool', 'global', null);
@@ -26,7 +30,6 @@ function clamp_soon_ratio($v): ?float {
   if ($n > 1.0) $n = 1.0;
   return (float)$n;
 }
-
 function clamp_soon_hours($v): ?float {
   $n = num_or_null($v);
   if ($n === null) return null;
@@ -43,10 +46,6 @@ function clamp_intervall_typ(string $t): string {
 }
 function clamp_status_aktiv($v): int {
   return ((string)$v === '0' || strtolower((string)$v) === 'nein' || strtolower((string)$v) === 'false') ? 0 : 1;
-}
-function first_non_empty(array $arr): ?string {
-  foreach ($arr as $a) { $a = trim((string)$a); if ($a !== '') return $a; }
-  return null;
 }
 function guess_delim(string $line): string {
   // bevorzugt ; dann , dann \t
@@ -101,8 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
       $planInterval = num_or_null($_POST['plan_interval'] ?? '');
       if ($planInterval === null || $planInterval <= 0) throw new RuntimeException("Intervall (h) ist Pflicht und muss > 0 sein.");
-	  $soonRatio = clamp_soon_ratio($_POST['soon_ratio'] ?? '');
-	  $soonHours = clamp_soon_hours($_POST['soon_hours'] ?? '');
+
+      $soonRatio = clamp_soon_ratio($_POST['soon_ratio'] ?? '');
+      $soonHours = clamp_soon_hours($_POST['soon_hours'] ?? '');
 
       $messwertPflicht = !empty($_POST['messwert_pflicht']) ? 1 : 0;
       $einheit = str_or_null($_POST['einheit'] ?? null);
@@ -113,33 +113,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $initNow = !empty($_POST['init_now']) ? 1 : 0;
 
       $old = null;
-$letzteWartung = null;
-$datum = null;
+      $letzteWartung = null;
+      $datum = null;
 
       if ($action === 'create') {
-        // ...existing code...
-db_exec(
-  "INSERT INTO wartungstool_wartungspunkt
-   (asset_id, text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio, soon_hours, letzte_wartung, datum,
-    messwert_pflicht, grenzwert_min, grenzwert_max, einheit, aktiv, created_at, updated_at)
-   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(), NOW())",
-  [
-    $assetId,
-    $textKurz,
-    $textLang,
-    $intervallTyp,
-    $planInterval,
-    $soonRatio,
-    $soonHours,
-    $letzteWartung,
-    $datum,
-    $messwertPflicht,
-    $gwMin,
-    $gwMax,
-    $einheit,
-    1
-  ]
-);
+        // Hinweis: Standardmäßig bleiben letzte_wartung/datum NULL. Optional init_now wird aktuell nur bei update genutzt.
+        // (Legacy-Verhalten beibehalten)
+        db_exec(
+          "INSERT INTO wartungstool_wartungspunkt
+           (asset_id, text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio, soon_hours, letzte_wartung, datum,
+            messwert_pflicht, grenzwert_min, grenzwert_max, einheit, aktiv, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(), NOW())",
+          [
+            $assetId,
+            $textKurz,
+            $textLang,
+            $intervallTyp,
+            $planInterval,
+            $soonRatio,
+            $soonHours,
+            $letzteWartung,
+            $datum,
+            $messwertPflicht,
+            $gwMin,
+            $gwMax,
+            $einheit,
+            1
+          ]
+        );
         $newId = (int)$pdo->lastInsertId();
         audit_log('wartungstool', 'wartungspunkt', $newId, 'CREATE', null, [
           'asset_id' => $assetId,
@@ -147,6 +148,7 @@ db_exec(
           'intervall_typ' => $intervallTyp,
           'plan_interval' => $planInterval,
           'soon_ratio' => $soonRatio,
+          'soon_hours' => $soonHours,
           'messwert_pflicht' => $messwertPflicht,
           'grenzwert_min' => $gwMin,
           'grenzwert_max' => $gwMax,
@@ -165,7 +167,7 @@ db_exec(
           'intervall_typ' => $oldRow['intervall_typ'],
           'plan_interval' => $oldRow['plan_interval'],
           'soon_ratio' => $oldRow['soon_ratio'],
-		  'soon_hours' => $oldRow['soon_hours'],
+          'soon_hours' => $oldRow['soon_hours'],
           'letzte_wartung' => $oldRow['letzte_wartung'],
           'datum' => $oldRow['datum'],
           'messwert_pflicht' => $oldRow['messwert_pflicht'],
@@ -190,19 +192,20 @@ db_exec(
         }
 
         db_exec(
-  "UPDATE wartungstool_wartungspunkt
-   SET text_kurz=?, text_lang=?, intervall_typ=?, plan_interval=?, soon_ratio=?, soon_hours=?,
-       letzte_wartung=?, datum=?,
-       messwert_pflicht=?, grenzwert_min=?, grenzwert_max=?, einheit=?,
-       updated_at=NOW()
-   WHERE id=? AND asset_id=?",
-  [
-    $textKurz, $textLang, $intervallTyp, $planInterval, $soonRatio, $soonHours,
-    $letzteWartung, $datum,
-    $messwertPflicht, $gwMin, $gwMax, $einheit,
-    $wpId, $assetId
-  ]
-);
+          "UPDATE wartungstool_wartungspunkt
+           SET text_kurz=?, text_lang=?, intervall_typ=?, plan_interval=?, soon_ratio=?, soon_hours=?,
+               letzte_wartung=?, datum=?,
+               messwert_pflicht=?, grenzwert_min=?, grenzwert_max=?, einheit=?,
+               updated_at=NOW()
+           WHERE id=? AND asset_id=?",
+          [
+            $textKurz, $textLang, $intervallTyp, $planInterval, $soonRatio, $soonHours,
+            $letzteWartung, $datum,
+            $messwertPflicht, $gwMin, $gwMax, $einheit,
+            $wpId, $assetId
+          ]
+        );
+
         $newRow = db_one("SELECT * FROM wartungstool_wartungspunkt WHERE id=? LIMIT 1", [$wpId]);
         audit_log('wartungstool', 'wartungspunkt', $wpId, 'UPDATE', $old, [
           'text_kurz' => $newRow['text_kurz'],
@@ -210,7 +213,7 @@ db_exec(
           'intervall_typ' => $newRow['intervall_typ'],
           'plan_interval' => $newRow['plan_interval'],
           'soon_ratio' => $newRow['soon_ratio'],
-		  'soon_hours' => $newRow['soon_hours'],
+          'soon_hours' => $newRow['soon_hours'],
           'letzte_wartung' => $newRow['letzte_wartung'],
           'datum' => $newRow['datum'],
           'messwert_pflicht' => $newRow['messwert_pflicht'],
@@ -250,7 +253,7 @@ db_exec(
 
       $where = $includeInactive ? "" : "AND aktiv=1";
       $srcPoints = db_all("
-        SELECT text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio,
+        SELECT text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio, soon_hours,
                messwert_pflicht, grenzwert_min, grenzwert_max, einheit, aktiv
         FROM wartungstool_wartungspunkt
         WHERE asset_id=? $where
@@ -275,9 +278,9 @@ db_exec(
 
         db_exec(
           "INSERT INTO wartungstool_wartungspunkt
-           (asset_id, text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio, letzte_wartung, datum,
+           (asset_id, text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio, soon_hours, letzte_wartung, datum,
             messwert_pflicht, grenzwert_min, grenzwert_max, einheit, aktiv, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(), NOW())",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(), NOW())",
           [
             $assetId,
             $p['text_kurz'],
@@ -285,6 +288,7 @@ db_exec(
             $p['intervall_typ'],
             (float)$p['plan_interval'],
             isset($p['soon_ratio']) ? $p['soon_ratio'] : null,
+            isset($p['soon_hours']) ? $p['soon_hours'] : null,
             $letzteW,
             $datum,
             (int)$p['messwert_pflicht'],
@@ -295,6 +299,7 @@ db_exec(
           ]
         );
         $newId = (int)$pdo->lastInsertId();
+
         audit_log('wartungstool', 'wartungspunkt', $newId, 'CREATE', null, [
           'copied_from_asset_id' => $sourceAssetId,
           'asset_id' => $assetId,
@@ -302,6 +307,7 @@ db_exec(
           'intervall_typ' => $p['intervall_typ'],
           'plan_interval' => (float)$p['plan_interval'],
           'soon_ratio' => isset($p['soon_ratio']) ? $p['soon_ratio'] : null,
+          'soon_hours' => isset($p['soon_hours']) ? $p['soon_hours'] : null,
           'init_now' => $initNow
         ], $userId, $actor);
 
@@ -329,10 +335,11 @@ db_exec(
 
       $first = strtolower(trim($lines[0]));
       $hasHeader = (
-  strpos($first, 'text_kurz') !== false ||
-  strpos($first, 'plan_interval') !== false ||
-  strpos($first, 'soon_ratio') !== false
-);
+        strpos($first, 'text_kurz') !== false ||
+        strpos($first, 'plan_interval') !== false ||
+        strpos($first, 'soon_ratio') !== false ||
+        strpos($first, 'soon_hours') !== false
+      );
       if ($hasHeader) array_shift($lines);
 
       $created = 0;
@@ -358,21 +365,48 @@ db_exec(
         $gwMax = num_or_null($cols[6] ?? '');
 
         $aktiv = isset($cols[7]) ? clamp_status_aktiv($cols[7]) : 1;
-        // soon_ratio optional
+
+        // Erweiterung: soon_hours + soon_ratio + text_lang
+        // Akzeptierte Formen:
+        //  - ...;aktiv;soon_hours;soon_ratio;text_lang
+        //  - ...;aktiv;soon_ratio;text_lang (legacy)
+        $soonHours = null;
         $soonRatio = null;
         $textLang = null;
+
         if (isset($cols[8])) {
-          // Wenn Spalte 8 numerisch: soon_ratio, sonst text_lang
-          $col8 = trim($cols[8]);
+          $col8 = trim((string)$cols[8]);
           $col8num = num_or_null($col8);
-          if ($col8num !== null && $col8num >= 0 && $col8num <= 1) {
-            $soonRatio = $col8num;
-            // text_lang ggf. aus Spalte 9+ nehmen
-            if (isset($cols[9])) {
-              $tail = array_slice($cols, 9);
-              $textLang = str_or_null(implode(' ' . $delim . ' ', $tail));
+
+          // Heuristik:
+          // - wenn <=1 => ratio, wenn >1 => hours (oder wenn int/float)
+          if ($col8num !== null) {
+            if ($col8num > 1) {
+              $soonHours = clamp_soon_hours($col8num);
+              if (isset($cols[9])) {
+                $col9 = trim((string)$cols[9]);
+                $col9num = num_or_null($col9);
+                if ($col9num !== null && $col9num >= 0 && $col9num <= 1) {
+                  $soonRatio = clamp_soon_ratio($col9num);
+                  if (isset($cols[10])) {
+                    $tail = array_slice($cols, 10);
+                    $textLang = str_or_null(implode(' ' . $delim . ' ', $tail));
+                  }
+                } else {
+                  // falls Spalte 9 nicht numerisch: als text_lang behandeln
+                  $tail = array_slice($cols, 9);
+                  $textLang = str_or_null(implode(' ' . $delim . ' ', $tail));
+                }
+              }
+            } else {
+              $soonRatio = clamp_soon_ratio($col8num);
+              if (isset($cols[9])) {
+                $tail = array_slice($cols, 9);
+                $textLang = str_or_null(implode(' ' . $delim . ' ', $tail));
+              }
             }
           } else {
+            // col8 nicht numerisch => text_lang
             $textLang = str_or_null(implode(' ' . $delim . ' ', array_slice($cols, 8)));
           }
         }
@@ -390,9 +424,9 @@ db_exec(
 
         db_exec(
           "INSERT INTO wartungstool_wartungspunkt
-           (asset_id, text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio, letzte_wartung, datum,
+           (asset_id, text_kurz, text_lang, intervall_typ, plan_interval, soon_ratio, soon_hours, letzte_wartung, datum,
             messwert_pflicht, grenzwert_min, grenzwert_max, einheit, aktiv, created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(), NOW())",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, NOW(), NOW())",
           [
             $assetId,
             $textKurz,
@@ -400,6 +434,7 @@ db_exec(
             $intervallTyp,
             $planInterval,
             $soonRatio,
+            $soonHours,
             $letzteW,
             $datum,
             $messwertPflicht,
@@ -416,6 +451,7 @@ db_exec(
           'intervall_typ' => $intervallTyp,
           'plan_interval' => $planInterval,
           'soon_ratio' => $soonRatio,
+          'soon_hours' => $soonHours,
           'messwert_pflicht' => $messwertPflicht,
           'grenzwert_min' => $gwMin,
           'grenzwert_max' => $gwMax,
@@ -489,20 +525,22 @@ if ($editWpId > 0 && $asset) {
 
 <div class="ui-container">
 
-  <div class="ui-page-header" style="margin: 0 0 var(--s-5) 0;">
+  <div class="ui-page-header">
     <h1 class="ui-page-title">Admin – Wartungspunkte</h1>
     <p class="ui-page-subtitle ui-muted">
       Wartungspunkte pro Anlage anlegen / bearbeiten / deaktivieren. Zusätzlich: Template kopieren, CSV/Paste-Import, Audit-Historie.
     </p>
 
-    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-      <?php if ($ok): ?>
-        <span class="ui-badge ui-badge--ok">Gespeichert</span>
-      <?php endif; ?>
-      <?php if ($err !== ''): ?>
-        <span class="ui-badge ui-badge--danger"><?= e($err) ?></span>
-      <?php endif; ?>
-    </div>
+    <?php if ($ok || $err !== ''): ?>
+      <div class="ui-row" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top: var(--s-3);">
+        <?php if ($ok): ?>
+          <span class="ui-badge ui-badge--ok">Gespeichert</span>
+        <?php endif; ?>
+        <?php if ($err !== ''): ?>
+          <span class="ui-badge ui-badge--danger"><?= e($err) ?></span>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
   </div>
 
   <!-- Anlage wählen -->
@@ -536,7 +574,6 @@ if ($editWpId > 0 && $asset) {
     </div>
   <?php else: ?>
 
-  <!-- 2 Spalten -->
   <div class="ui-grid" style="display:grid; grid-template-columns: 1.1fr 1.4fr; gap: var(--s-6); align-items:start;">
 
     <!-- LINKS -->
@@ -593,27 +630,28 @@ if ($editWpId > 0 && $asset) {
                        value="<?= e(isset($edit['plan_interval']) ? (string)$edit['plan_interval'] : '') ?>" placeholder="z.B. 168">
               </div>
             </div>
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-  <div>
-    <label for="soon_ratio">Bald fällig (Ratio, optional)</label>
-    <input id="soon_ratio" class="ui-input" name="soon_ratio" inputmode="decimal"
-           value="<?= e(isset($edit['soon_ratio']) ? (string)$edit['soon_ratio'] : '') ?>"
-           placeholder="z.B. 0,10 für 10%">
-    <div class="small ui-muted" style="margin-top:6px;">
-      0,10 = „bald fällig“, wenn 90% des Intervalls erreicht sind.
-    </div>
-  </div>
 
-  <div>
-    <label for="soon_hours">Bald fällig (Stunden, optional)</label>
-    <input id="soon_hours" class="ui-input" name="soon_hours" inputmode="decimal"
-           value="<?= e(isset($edit['soon_hours']) ? (string)$edit['soon_hours'] : '') ?>"
-           placeholder="z.B. 12">
-    <div class="small ui-muted" style="margin-top:6px;">
-      Wenn gesetzt, gilt diese Schwelle (Gewinner = nicht NULL).
-    </div>
-  </div>
-</div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <label for="soon_ratio">Bald fällig (Ratio, optional)</label>
+                <input id="soon_ratio" class="ui-input" name="soon_ratio" inputmode="decimal"
+                       value="<?= e(isset($edit['soon_ratio']) ? (string)$edit['soon_ratio'] : '') ?>"
+                       placeholder="z.B. 0,10 für 10%">
+                <div class="small ui-muted" style="margin-top:6px;">
+                  0,10 = „bald fällig“, wenn ≤ 10% Restzeit/Reststunden übrig sind.
+                </div>
+              </div>
+
+              <div>
+                <label for="soon_hours">Bald fällig (Stunden, optional)</label>
+                <input id="soon_hours" class="ui-input" name="soon_hours" inputmode="decimal"
+                       value="<?= e(isset($edit['soon_hours']) ? (string)$edit['soon_hours'] : '') ?>"
+                       placeholder="z.B. 12">
+                <div class="small ui-muted" style="margin-top:6px;">
+                  Wenn gesetzt, gilt diese Schwelle (Gewinner = nicht NULL).
+                </div>
+              </div>
+            </div>
 
             <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center;">
               <label style="display:flex; gap:8px; align-items:center; margin:0;">
@@ -662,9 +700,8 @@ if ($editWpId > 0 && $asset) {
         <h2 style="margin:0;">CSV / Paste Import</h2>
         <p class="small ui-muted" style="margin-top:8px;">
           Format pro Zeile (Delimiter <code>;</code>, <code>,</code> oder TAB):
-          <br><code>text_kurz;intervall_typ;plan_interval;messwert_pflicht;einheit;grenzwert_min;grenzwert_max;aktiv;soon_ratio;text_lang</code>
-          <br>Beispiel:
-          <br><code>KSS Stand prüfen;zeit;168;0;;;;1;Tank prüfen und nachfüllen</code>
+          <br><code>text_kurz;intervall_typ;plan_interval;messwert_pflicht;einheit;grenzwert_min;grenzwert_max;aktiv;soon_hours;soon_ratio;text_lang</code>
+          <br><span class="ui-muted">Legacy: <code>...;aktiv;soon_ratio;text_lang</code> wird weiterhin akzeptiert.</span>
         </p>
 
         <form method="post" action="<?= e($base) ?>/app.php?r=wartung.admin_punkte&asset_id=<?= (int)$assetId ?>" style="margin-top: var(--s-4);">
@@ -736,7 +773,6 @@ if ($editWpId > 0 && $asset) {
     <!-- RECHTS -->
     <div>
 
-      <!-- Liste -->
       <div class="ui-card">
         <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:flex-end;">
           <h2 style="margin:0;">Wartungspunkte</h2>
@@ -752,7 +788,7 @@ if ($editWpId > 0 && $asset) {
                 <th scope="col" style="width:90px;">Typ</th>
                 <th scope="col" style="width:130px;">Intervall</th>
                 <th scope="col">Text</th>
-                <th scope="col" style="width:110px;">Bald fällig</th>
+                <th scope="col" style="width:140px;">Bald fällig</th>
                 <th scope="col" class="ui-th-actions" style="width:220px;">Aktion</th>
               </tr>
             </thead>
@@ -775,15 +811,15 @@ if ($editWpId > 0 && $asset) {
                     </a>
                     <div class="small ui-muted">WP #<?= (int)$p['id'] ?></div>
                   </td>
-<td style="white-space:nowrap;">
-  <?php if (!empty($p['soon_hours']) && (float)$p['soon_hours'] > 0): ?>
-    <span><?= number_format((float)$p['soon_hours'], 1, ',', '.') ?> h</span>
-  <?php elseif (isset($p['soon_ratio']) && $p['soon_ratio'] !== null): ?>
-    <span><?= number_format(((float)$p['soon_ratio']) * 100, 1, ',', '.') ?> %</span>
-  <?php else: ?>
-    <span class="ui-muted">—</span>
-  <?php endif; ?>
-</td>
+                  <td style="white-space:nowrap;">
+                    <?php if (!empty($p['soon_hours']) && (float)$p['soon_hours'] > 0): ?>
+                      <span><?= number_format((float)$p['soon_hours'], 1, ',', '.') ?> h</span>
+                    <?php elseif (isset($p['soon_ratio']) && $p['soon_ratio'] !== null): ?>
+                      <span><?= number_format(((float)$p['soon_ratio']) * 100, 1, ',', '.') ?> %</span>
+                    <?php else: ?>
+                      <span class="ui-muted">—</span>
+                    <?php endif; ?>
+                  </td>
                   <td class="ui-td-actions" style="white-space:nowrap;">
                     <a class="ui-btn ui-btn--sm ui-btn--primary"
                        href="<?= e($base) ?>/app.php?r=wartung.admin_punkte&asset_id=<?= (int)$assetId ?>&edit_wp=<?= (int)$p['id'] ?>">
@@ -865,8 +901,8 @@ if ($editWpId > 0 && $asset) {
 
     </div>
 
-  </div><!-- /ui-grid -->
+  </div>
 
   <?php endif; ?>
 
-</div><!-- /ui-container -->
+</div>

@@ -56,16 +56,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $adminRow = perm_row($userId, '*', '*', null);
     if ($wantAdmin) {
       if ($adminRow) {
+        $oldPerm = $adminRow;
         db_exec("UPDATE core_permission SET darf_sehen=1, darf_aendern=1, darf_loeschen=1 WHERE id=?", [(int)$adminRow['id']]);
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+        audit_log('admin', 'permission', (int)$adminRow['id'], 'UPDATE', $oldPerm, $newPerm, $u['id'] ?? null, $u['benutzername'] ?? null);
       } else {
         db_exec(
           "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
            VALUES (?,?,?,?,1,1,1)",
           [$userId, '*', '*', null]
         );
+        $newId = (int)db()->lastInsertId();
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [$newId]);
+        audit_log('admin', 'permission', $newId, 'CREATE', null, $newPerm, $u['id'] ?? null, $u['benutzername'] ?? null);
       }
     } else {
-      if ($adminRow) db_exec("DELETE FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+      if ($adminRow) {
+        $oldPerm = $adminRow;
+        db_exec("DELETE FROM core_permission WHERE id=?", [(int)$adminRow['id']]);
+        audit_log('admin', 'permission', (int)$adminRow['id'], 'DELETE', $oldPerm, null, $u['id'] ?? null, $u['benutzername'] ?? null);
+      }
     }
 
     // Route-Permissions
@@ -84,21 +94,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $row = perm_row($userId, $modul, $objt, $oid);
 
       if ($see === 0 && $chg === 0 && $del === 0) {
-        if ($row) db_exec("DELETE FROM core_permission WHERE id=?", [(int)$row['id']]);
+        if ($row) {
+          $oldPerm = $row;
+          db_exec("DELETE FROM core_permission WHERE id=?", [(int)$row['id']]);
+          audit_log('admin', 'permission', (int)$row['id'], 'DELETE', $oldPerm, null, $u['id'] ?? null, $u['benutzername'] ?? null);
+        }
         continue;
       }
 
       if ($row) {
+        $oldPerm = $row;
         db_exec(
           "UPDATE core_permission SET darf_sehen=?, darf_aendern=?, darf_loeschen=? WHERE id=?",
           [$see, $chg, $del, (int)$row['id']]
         );
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [(int)$row['id']]);
+        audit_log('admin', 'permission', (int)$row['id'], 'UPDATE', $oldPerm, $newPerm, $u['id'] ?? null, $u['benutzername'] ?? null);
       } else {
         db_exec(
           "INSERT INTO core_permission (user_id, modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen)
            VALUES (?,?,?,?,?,?,?)",
           [$userId, $modul, $objt, $oid, $see, $chg, $del]
         );
+        $newId = (int)db()->lastInsertId();
+        $newPerm = db_one("SELECT * FROM core_permission WHERE id=?", [$newId]);
+        audit_log('admin', 'permission', $newId, 'CREATE', null, $newPerm, $u['id'] ?? null, $u['benutzername'] ?? null);
       }
     }
 
@@ -114,66 +134,72 @@ $isAdmin = (bool)db_one("SELECT 1 FROM core_permission WHERE user_id=? AND modul
 
 // Vorladen bestehender Permissions (für Checkboxen)
 $permMap = [];
-$existing = db_all("SELECT modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen FROM core_permission WHERE user_id=?", [$selected]);
-foreach ($existing as $p) {
-  $k = ($p['modul'] ?? '') . '|' . ($p['objekt_typ'] ?? '') . '|' . (($p['objekt_id'] === null) ? 'NULL' : (string)$p['objekt_id']);
-  $permMap[$k] = $p;
+$rows = db_all("SELECT modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen FROM core_permission WHERE user_id=?", [$selected]);
+foreach ($rows as $pr) {
+  $k = ($pr['modul'] ?? '') . '|' . ($pr['objekt_typ'] ?? '') . '|' . (($pr['objekt_id'] === null) ? 'null' : (string)$pr['objekt_id']);
+  $permMap[$k] = $pr;
 }
-?>
 
-<div class="card">
-  <h2>Berechtigungen</h2>
+// UI
+echo '<div class="ui-card ui-p-3">';
+echo '<h2 class="ui-h2">Berechtigungen</h2>';
 
-  <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
-  <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
+if ($ok) echo '<div class="ui-alert ui-alert-success ui-mt-2">' . e($ok) . '</div>';
+if ($err) echo '<div class="ui-alert ui-alert-danger ui-mt-2">' . e($err) . '</div>';
 
-  <form method="get" style="margin-bottom:10px;">
-    <input type="hidden" name="r" value="admin.permissions">
-    <label for="perm_user_id">User auswählen</label>
-    <select id="perm_user_id" name="user_id" onchange="this.form.submit()">
-      <?php foreach ($users as $usr): ?>
-        <option value="<?= (int)$usr['id'] ?>" <?= ((int)$usr['id']===$selected?'selected':'') ?>>
-          <?= e($usr['benutzername'] . ' — ' . ($usr['anzeigename'] ?? '')) ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-  </form>
+echo '<form method="get" class="ui-mt-3 ui-flex ui-gap-2 ui-items-end">';
+echo '<input type="hidden" name="r" value="admin.permissions">';
+echo '<label class="ui-label">User</label>';
+echo '<select name="user_id" class="ui-select">';
+foreach ($users as $uu) {
+  $sel = ((int)$uu['id'] === (int)$selected) ? ' selected' : '';
+  $label = $uu['benutzername'] . (($uu['anzeigename'] ?? '') ? ' – ' . $uu['anzeigename'] : '');
+  echo '<option value="' . (int)$uu['id'] . '"' . $sel . '>' . e($label) . '</option>';
+}
+echo '</select>';
+echo '<button class="ui-btn ui-btn-primary" type="submit">Laden</button>';
+echo '</form>';
 
-  <form method="post">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-    <input type="hidden" name="user_id" value="<?= (int)$selected ?>">
+echo '<form method="post" class="ui-mt-4">';
+echo '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
+echo '<input type="hidden" name="user_id" value="' . (int)$selected . '">';
 
-    <label><input type="checkbox" name="is_admin" value="1" <?= $isAdmin ? 'checked' : '' ?>> Admin (Wildcard: alles sehen/ändern/löschen)</label>
+echo '<div class="ui-card ui-p-2 ui-mb-3">';
+echo '<label class="ui-inline ui-gap-2">';
+echo '<input type="checkbox" name="is_admin" value="1"' . ($isAdmin ? ' checked' : '') . '>';
+echo '<span>Admin (Wildcard)</span>';
+echo '</label>';
+echo '</div>';
 
-    <div class="tablewrap" style="margin-top:10px;">
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Route</th><th scope="col">modul/obj</th><th scope="col">Sehen</th><th scope="col">Ändern</th><th scope="col">Löschen</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($routes as $r):
-            if (empty($r['modul']) || empty($r['objekt_typ'])) continue;
-            $k = $r['modul'].'|'.$r['objekt_typ'].'|'.(($r['objekt_id']===null)?'NULL':(string)$r['objekt_id']);
-            $p = $permMap[$k] ?? null;
-          ?>
-            <tr>
-              <td><code><?= e($r['route_key']) ?></code><div class="small"><?= e($r['titel']) ?></div></td>
-              <td><?= e($r['modul'].' / '.$r['objekt_typ']) ?></td>
-              <td><input type="checkbox" name="see[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_sehen']===1)?'checked':'' ?> aria-label="<?= e($r['titel']) ?> sehen"></td>
-              <td><input type="checkbox" name="chg[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_aendern']===1)?'checked':'' ?> aria-label="<?= e($r['titel']) ?> ändern"></td>
-              <td><input type="checkbox" name="del[<?= e($r['route_key']) ?>]" value="1" <?= (!empty($p) && (int)$p['darf_loeschen']===1)?'checked':'' ?> aria-label="<?= e($r['titel']) ?> löschen"></td>
-            </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-    </div>
+echo '<table class="ui-table ui-table-sm">';
+echo '<thead><tr><th>Route</th><th>Sehen</th><th>Ändern</th><th>Löschen</th></tr></thead><tbody>';
 
-    <div style="margin-top:12px;">
-      <button class="btn" type="submit">Speichern</button>
-    </div>
-  </form>
-</div>
+foreach ($routes as $r) {
+  if (empty($r['modul']) || empty($r['objekt_typ'])) continue;
 
-<?php if ($standalone) render_footer(); ?>
+  $key = $r['route_key'];
+  $k = ($r['modul'] ?? '') . '|' . ($r['objekt_typ'] ?? '') . '|' . (($r['objekt_id'] === null) ? 'null' : (string)$r['objekt_id']);
+  $pr = $permMap[$k] ?? null;
+
+  $see = !empty($pr['darf_sehen']) ? ' checked' : '';
+  $chg = !empty($pr['darf_aendern']) ? ' checked' : '';
+  $del = !empty($pr['darf_loeschen']) ? ' checked' : '';
+
+  echo '<tr>';
+  echo '<td>' . e($key . ' – ' . ($r['titel'] ?? '')) . '</td>';
+  echo '<td><input type="checkbox" name="see[' . e($key) . ']" value="1"' . $see . '></td>';
+  echo '<td><input type="checkbox" name="chg[' . e($key) . ']" value="1"' . $chg . '></td>';
+  echo '<td><input type="checkbox" name="del[' . e($key) . ']" value="1"' . $del . '></td>';
+  echo '</tr>';
+}
+
+echo '</tbody></table>';
+
+echo '<div class="ui-mt-3">';
+echo '<button class="ui-btn ui-btn-primary" type="submit">Speichern</button>';
+echo '</div>';
+
+echo '</form>';
+echo '</div>';
+
+if ($standalone) render_footer();
