@@ -460,8 +460,7 @@ $krit = (int)($wp['kritischkeitsstufe'] ?? 0);
   status.value = 'abweichung';
   ticket.checked = true;
 } else {
-  // Ticket nicht zwangsweise ausmachen, falls User es bewusst anlassen will:
-  // ticket.checked bleibt wie gewählt.
+  ticket.checked = false;
 }
   }
 

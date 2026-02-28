@@ -219,8 +219,8 @@ Beim Speichern eines Wartungsprotokolls:
 3. `audit_log(wartungstool, protokoll, CREATE, ...)` + `audit_log(wartungstool, wartungspunkt, UPDATE, ...)`  
    (Quelle: `punkt_save.php:114, 124`)
 4. Optional: Wenn der User die Checkbox „Ticket erzeugen" aktiviert (`create_ticket=1`), wird ein Ticket in `stoerungstool_ticket` angelegt.
-   Bei Messwert-Grenzwertüberschreitung setzt JavaScript die Checkbox automatisch vor; der Nutzer kann diese jedoch deaktivieren.  
-   (Quelle: `punkt_save.php:28, 127–199`)
+   JavaScript setzt die Checkbox automatisch, wenn der Messwert außerhalb der Grenzwerte liegt, und deaktiviert sie automatisch, wenn der Messwert wieder in den Normalbereich zurückkehrt.  
+   (Quelle: `punkt_save.php:28, 127–199`; JS: `punkt.php:461–464`)
 
 ---
 
