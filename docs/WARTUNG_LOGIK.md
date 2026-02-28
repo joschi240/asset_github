@@ -211,15 +211,15 @@ wochenschnitt = h28 / 4   (Stunden/Woche Durchschnitt über 4 Wochen)
 
 Beim Speichern eines Wartungsprotokolls:
 
-1. INSERT in `wartungstool_protokoll` (Zeile 87–99)
+1. INSERT in `wartungstool_protokoll` (Zeile 86–99)
 2. UPDATE `wartungstool_wartungspunkt`:
    - bei `produktiv`: `letzte_wartung = core_runtime_counter.productive_hours`
    - bei `zeit`: `datum = NOW()`
-   (Quelle: `punkt_save.php:110–112`)
+   (Quelle: `punkt_save.php:107–112`)
 3. `audit_log(wartungstool, protokoll, CREATE, ...)` + `audit_log(wartungstool, wartungspunkt, UPDATE, ...)`  
-   (Quelle: `punkt_save.php:115, 125`)
+   (Quelle: `punkt_save.php:114, 124`)
 4. Optional: Bei Status `abweichung` kann Ticket in `stoerungstool_ticket` angelegt werden  
-   (Quelle: `punkt_save.php:156–170`)
+   (Quelle: `punkt_save.php:158–163`)
 
 ---
 

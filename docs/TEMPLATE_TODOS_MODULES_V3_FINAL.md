@@ -38,7 +38,7 @@ Ziel: Alle Modul-Views auf das aktuelle UI-v2-Template und STYLE_RULES angleiche
 - [ ] Optional: Redirect-Helper-Closure für konsistente `ok`/`err` Redirects wie in Upload-Handlern
 
 ### 2) Optional / Fachlich
-- [ ] `module/stoerungstool/melden.php`: `audit_log(..., 'CREATE')` beim Ticket-Anlegen ergänzen (bekannte Lücke)
+- [x] `module/stoerungstool/melden.php`: `audit_log(..., 'CREATE')` beim Ticket-Anlegen – bereits implementiert (Zeile 127, verifiziert 2026-02-28)
 
 ---
 
