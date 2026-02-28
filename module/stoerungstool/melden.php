@@ -118,6 +118,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       // optional Foto/PDF
       upload_first_ticket_file($ticketId);
 
+      audit_log('stoerungstool', 'ticket', $ticketId, 'CREATE', null, [
+        'asset_id'           => $assetId,
+        'titel'              => $titel,
+        'meldungstyp'        => $meldungstyp,
+        'fachkategorie'      => $fachkategorie,
+        'prioritaet'         => $prio,
+        'maschinenstillstand'=> $still,
+      ], null, ($name !== '' ? $name : 'anonym'));
+
       $pdo->commit();
       $ok = "Danke! Ticket #{$ticketId} wurde angelegt.";
 
