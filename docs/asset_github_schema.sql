@@ -1,3 +1,5 @@
+-- DEPRECATED: Verwende docs/asset_github_schema_v3.sql für den aktuellen Stand.
+-- Diese Datei ist ein älterer Export und fehlt v2/v3-Felder (soon_ratio, soon_hours, planned_at, planned_text).
 -- Hinweis: Dies ist das aktuelle Datenbankschema. Testdaten/Seeds sind in asset_github_seed_testdaten.sql zu finden.
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";

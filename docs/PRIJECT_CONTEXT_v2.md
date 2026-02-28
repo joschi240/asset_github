@@ -4,8 +4,8 @@
 
 Stand: 2026-02-24 (Europa/Berlin)  
 DB: MariaDB 10.4.32, Projekt-DB: `asset_ki`  
-Datenbankschema (aktuell): **[asset_github_schema.sql](asset_github_schema.sql)**  
-Testdaten/Seeds: **[asset_github_seed_testdaten.sql](asset_github_seed_testdaten.sql)**  
+Datenbankschema (aktuell): **[asset_github_schema_v3.sql](asset_github_schema_v3.sql)**  
+Testdaten/Seeds: **[asset_github_seed_testdaten_v3.sql](asset_github_seed_testdaten_v3.sql)**  
 PHP: 8.2.x  
 Architektur: PHP (PDO), Front-Controller: `app.php` (DB-Routing), Navigation & Seiten DB-getrieben  
 Ziel: **modular, auditfähig, shopfloor-tauglich** – Erweiterungen **schrittweise**, ohne Chaos.

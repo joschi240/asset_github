@@ -1,7 +1,7 @@
 
 # DB_SCHEMA_DELTA_NOTES.md (Warum gibt’s was, was ist Core vs Modul)
 
-> Hinweis: Das aktuelle Datenbankschema befindet sich in **asset_github_schema.sql**. Testdaten/Seeds sind in **asset_github_seed_testdaten.sql** zu finden.
+> Hinweis: Das aktuelle Datenbankschema befindet sich in **asset_github_schema_v3.sql**. Testdaten/Seeds sind in **asset_github_seed_testdaten_v3.sql** zu finden.
 
 Stand: 2026-02-28 (aktualisiert; ursprünglich: 24.02.2026)  
 Ziel: Schnell verstehen, welche Tabellen „Core“ sind (stabil) und welche pro Modul flexibel verändert werden dürfen.
