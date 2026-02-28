@@ -10,8 +10,8 @@ $u = current_user();
 $userId = (int)($u['id'] ?? 0);
 
 // Rechte
-$canDoWartung = function_exists('user_can_edit') ? user_can_edit($userId, 'wartungstool', 'global', null) : true;
-$canCreateTicket = function_exists('user_can_edit') ? user_can_edit($userId, 'stoerungstool', 'global', null) : true;
+$canDoWartung = user_can_edit($userId, 'wartungstool', 'global', null);
+$canCreateTicket = user_can_edit($userId, 'stoerungstool', 'global', null);
 
 $wpId = (int)($_GET['wp'] ?? 0);
 if ($wpId <= 0) {

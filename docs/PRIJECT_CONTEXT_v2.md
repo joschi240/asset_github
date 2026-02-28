@@ -248,13 +248,11 @@ Regel:
 - Upload in `wartung.punkt` (oder eigener Tab)
 - Anzeige im Detail (PDF/Foto)
 
-### Next 4: SLA vorbereiten (später aktivieren, aber geplant)
-DB (stoerungstool_ticket):
-- `first_response_at`, `closed_at`
-Scripts:
-- Migration + Backfill
-Code:
-- Auto-Set beim Statuswechsel
+### ✅ Next 4: SLA – implementiert (DONE 2026-02-24)
+DB (`stoerungstool_ticket`):
+- `first_response_at`, `closed_at` – vorhanden in Schema + Code
+Code (`module/stoerungstool/ticket.php`):
+- Auto-Set beim Statuswechsel (`set_status` + `add_action` mit `status_neu`)
 
 ### Next 5: Reports (Audit/ISO)
 - CSV Export: Tickets im Zeitraum + Reaktionszeiten + Durchlaufzeiten

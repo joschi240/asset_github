@@ -161,6 +161,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
       } else {
         db_exec("UPDATE stoerungstool_ticket SET updated_at=NOW() WHERE id=?", [$id]);
+
+      audit_log('stoerungstool', 'ticket', $id, 'UPDATE',
+        null,
+        ['add_action_text' => $text],
+        $userId, $actor
+      );
       }
 
     } elseif ($action === 'update_ticket') {
@@ -190,6 +196,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                    maschinenstillstand=?, ausfallzeitpunkt=?, updated_at=NOW()
                WHERE id=?",
               [$assetId, $titel, $beschreibung, $meldungstyp, $fachkategorie, $prior, $still, $ausfall, $id]);
+
+      audit_log('stoerungstool', 'ticket', $id, 'UPDATE',
+        [
+          'asset_id'            => $ticketOld['asset_id'],
+          'titel'               => $ticketOld['titel'],
+          'beschreibung'        => $ticketOld['beschreibung'],
+          'meldungstyp'         => $ticketOld['meldungstyp'],
+          'fachkategorie'       => $ticketOld['fachkategorie'],
+          'prioritaet'          => $ticketOld['prioritaet'],
+          'maschinenstillstand' => $ticketOld['maschinenstillstand'],
+          'ausfallzeitpunkt'    => $ticketOld['ausfallzeitpunkt'],
+        ],
+        [
+          'asset_id'            => $assetId,
+          'titel'               => $titel,
+          'beschreibung'        => $beschreibung,
+          'meldungstyp'         => $meldungstyp,
+          'fachkategorie'       => $fachkategorie,
+          'prioritaet'          => $prior,
+          'maschinenstillstand' => $still,
+          'ausfallzeitpunkt'    => $ausfall,
+        ],
+        $userId, $actor
+      );
 
     } elseif ($action === 'upload_doc') {
       upload_ticket_file($id, $userId);
