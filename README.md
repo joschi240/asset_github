@@ -1,6 +1,6 @@
 # Asset KI – Instandhaltung & Störungsmanagement
 
-> **Repo-verifiziert. Stand: 2026-02-28. Branch: `ui_v2`.**  
+> **Repo-verifiziert. Stand: 2026-02-28. Branch: `v3_final`.**  
 > Jede technische Aussage enthält eine Fundstelle im Repository.
 
 Eine modulare PHP-Webanwendung für **Anlagenwartung** und **Störungsmanagement** im Shopfloor-Umfeld.
@@ -129,7 +129,7 @@ Menu-Items nutzen `route_key` → Link wird zu `app.php?r=<route_key>`.
 /module/
   /wartungstool/
     dashboard.php                 # INNER-VIEW: Wartungs-Dashboard (UI v2)
-    punkt.php                     # INNER-VIEW: Wartungspunkt Detail + Durchführungsformular (UI v2 TODO)
+   punkt.php                     # INNER-VIEW: Wartungspunkt Detail + Durchführungsformular (UI v2)
     punkt_save.php                # INNER-VIEW: POST – Protokoll speichern
     punkt_dokument_upload.php     # INNER-VIEW: Dokument-Upload für Wartungspunkt
     uebersicht.php                # INNER-VIEW: Übersicht pro Asset (UI v2)
@@ -137,8 +137,8 @@ Menu-Items nutzen `route_key` → Link wird zu `app.php?r=<route_key>`.
 
   /stoerungstool/
     melden.php                    # INNER-VIEW: Störung melden (öffentlich, require_login=0)
-    inbox.php                     # INNER-VIEW: Ticket-Inbox
-    ticket.php                    # INNER-VIEW: Ticket-Detail
+      inbox.php                     # INNER-VIEW: Ticket-Inbox (UI v2)
+      ticket.php                    # INNER-VIEW: Ticket-Detail (UI v2)
 
   /admin/
     setup.php                     # Erstbenutzer anlegen
@@ -570,11 +570,17 @@ Body-Klasse: `ui-v2` (alle Seiten)
 | Seite | Status |
 |---|---|
 | `wartung.dashboard` | ✅ UI v2 |
-| `wartung.uebersicht` | ✅ UI v2 |
+| `wartung.uebersicht` | ✅ UI v2 (finalisiert, Schnellzugriff nur im Header) |
 | `wartung.admin_punkte` | ✅ UI v2 |
-| `wartung.punkt` | ⚠ UI v2 TODO |
-| Störungstool-Seiten | Nicht im Repository verifizierbar (kein expliziter Migrationsvermerk) |
-| Admin-Seiten | Nicht im Repository verifizierbar |
+| `wartung.punkt` | ✅ UI v2 |
+| `stoerung.melden` | ✅ UI v2 |
+| `stoerung.inbox` | ✅ UI v2 |
+| `stoerung.ticket` | ✅ UI v2 |
+| `admin.setup` | ✅ UI v2 |
+| `admin.users` | ✅ UI v2 |
+| `admin.routes` | ✅ UI v2 |
+| `admin.menu` | ✅ UI v2 |
+| `admin.permissions` | ✅ UI v2 |
 
 ---
 
@@ -644,8 +650,16 @@ function audit_log(
 5. **Störung UX Level 2**: Inbox Quick-Filter, Ticket-Timeline, Aktions-Templates geplant.  
    (Quelle: `docs/PRIJECT_CONTEXT_v2.md`, Abschnitt „Next 2")
 
-6. **Wartung – Dokumente an Wartungspunkten**: `core_dokument` für `wartungspunkt` Upload/Anzeige geplant.  
-   (Quelle: `docs/PRIJECT_CONTEXT_v2.md`, Abschnitt „Next 3")
+---
+
+## Manueller Smoke-Test (Wartung v3_final)
+
+1. Dashboard öffnen: `/app.php?r=wartung.dashboard`  
+   Erwartung: Seite lädt ohne Fehler, Links auf Übersicht/Punkt funktionieren.
+2. Übersicht öffnen: `/app.php?r=wartung.uebersicht&asset_id=1`  
+   Erwartung: Tabelle rendert, Tabs `Offen/Alle` und Suche reagieren.
+3. Punkt öffnen: `/app.php?r=wartung.punkt&wp=1`  
+   Erwartung: Formular + Dokumentbereich sichtbar; Upload (jpg/png/webp/pdf) führt zurück auf dieselbe Seite mit `ok` oder `err`.
 
 ---
 

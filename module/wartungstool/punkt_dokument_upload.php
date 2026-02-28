@@ -9,9 +9,16 @@ require_can_edit('wartungstool', 'global', null);
 $cfg  = app_cfg();
 $base = $cfg['app']['base_url'] ?? '';
 
+$redirectToPunkt = function(int $wpId, ?string $ok = null, ?string $err = null) use ($base): void {
+  $params = ['r' => 'wartung.punkt', 'wp' => $wpId];
+  if ($ok !== null && $ok !== '') $params['ok'] = $ok;
+  if ($err !== null && $err !== '') $params['err'] = $err;
+  header('Location: ' . $base . '/app.php?' . http_build_query($params));
+  exit;
+};
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  http_response_code(405);
-  echo '<div class="card"><h2>Method not allowed</h2></div>';
+  header("Location: {$base}/app.php?r=wartung.dashboard");
   exit;
 }
 
@@ -21,6 +28,11 @@ $wpId = (int)($_POST['wp_id'] ?? 0);
 if ($wpId <= 0) {
   header("Location: {$base}/app.php?r=wartung.dashboard");
   exit;
+}
+
+$wpExists = db_one("SELECT id FROM wartungstool_wartungspunkt WHERE id=? AND aktiv=1 LIMIT 1", [$wpId]);
+if (!$wpExists) {
+  $redirectToPunkt($wpId, null, 'Wartungspunkt nicht gefunden oder inaktiv.');
 }
 
 $u      = current_user();
@@ -54,7 +66,7 @@ try {
   $absPath = rtrim($baseDir, '/\\') . '/' . $relPath;
 
   $dir = dirname($absPath);
-  if (!is_dir($dir) && !mkdir($dir, 0775, true)) throw new RuntimeException("Upload-Verzeichnis nicht anlegbar.");
+  ensure_dir($dir);
   if (!move_uploaded_file($f['tmp_name'], $absPath)) throw new RuntimeException("Konnte Datei nicht speichern.");
 
   $sha = hash_file('sha256', $absPath);
@@ -75,10 +87,8 @@ try {
     'mime'         => $mime,
   ], $userId, $actor);
 
-  header("Location: {$base}/app.php?r=wartung.punkt&wp={$wpId}&ok=1");
-  exit;
+  $redirectToPunkt($wpId, '1', null);
 
 } catch (Throwable $e) {
-  header("Location: {$base}/app.php?r=wartung.punkt&wp={$wpId}&err=" . urlencode($e->getMessage()));
-  exit;
+  $redirectToPunkt($wpId, null, $e->getMessage());
 }

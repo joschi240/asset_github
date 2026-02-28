@@ -1,23 +1,31 @@
 <?php
 // module/admin/setup.php
-
-if (!defined('APP_INNER')) {
-  require_once __DIR__ . '/../../src/layout.php';
-  render_header('Setup – Erstuser');
-  $standalone = true;
-} else {
-  $standalone = false;
-}
+require_once __DIR__ . '/../../src/helpers.php';
 
 $cfg = app_cfg();
 $base = $cfg['app']['base_url'] ?? '';
 
 $ok = null;
 $err = null;
+$formUser = '';
+$formName = '';
 
 if (has_any_user()) {
-  echo '<div class="card"><h2>Setup bereits erledigt</h2><p class="small">Es existiert bereits mindestens ein Benutzer.</p></div>';
-  if ($standalone) render_footer();
+  ?>
+  <div class="ui-container">
+    <div class="ui-page-header">
+      <h1 class="ui-page-title">Setup – Erstuser</h1>
+      <p class="ui-page-subtitle ui-muted">Initiales Setup für den ersten Admin-Benutzer.</p>
+    </div>
+    <div class="ui-card">
+      <h2 style="margin:0;">Setup bereits erledigt</h2>
+      <p class="small ui-muted" style="margin-top:10px;">Es existiert bereits mindestens ein Benutzer.</p>
+      <div style="margin-top:12px;">
+        <a class="ui-btn ui-btn--ghost" href="<?= e($base) ?>/login.php">Zum Login</a>
+      </div>
+    </div>
+  </div>
+  <?php
   return;
 }
 
@@ -26,6 +34,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   $user = trim((string)($_POST['benutzername'] ?? ''));
   $name = trim((string)($_POST['anzeigename'] ?? ''));
+  $formUser = $user;
+  $formName = $name;
   $pass = (string)($_POST['passwort'] ?? '');
   $pass2 = (string)($_POST['passwort2'] ?? '');
 
@@ -60,39 +70,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<div class="grid">
-  <div class="col-6">
-    <div class="card">
-      <h2>Erstuser / Admin anlegen</h2>
+<div class="ui-container">
+  <div class="ui-page-header">
+    <h1 class="ui-page-title">Setup – Erstuser</h1>
+    <p class="ui-page-subtitle ui-muted">Initiales Setup für den ersten Admin-Benutzer.</p>
 
-      <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
-      <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
+    <?php if ($ok || $err): ?>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <?php if ($ok): ?><span class="ui-badge ui-badge--ok" role="status"><?= e($ok) ?></span><?php endif; ?>
+        <?php if ($err): ?><span class="ui-badge ui-badge--danger" role="alert"><?= e($err) ?></span><?php endif; ?>
+      </div>
+    <?php endif; ?>
+  </div>
 
-      <form method="post">
-        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+  <div class="ui-card" style="max-width:760px;">
+    <h2 style="margin:0;">Erstuser / Admin anlegen</h2>
 
-        <label for="setup_benutzername">Benutzername</label>
-        <input id="setup_benutzername" name="benutzername" required aria-required="true">
+    <form method="post" style="margin-top: var(--s-4);">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-        <label for="setup_anzeigename">Anzeigename (optional)</label>
-        <input id="setup_anzeigename" name="anzeigename">
-
-        <label for="setup_passwort">Passwort</label>
-        <input id="setup_passwort" type="password" name="passwort" required aria-required="true">
-
-        <label for="setup_passwort2">Passwort wiederholen</label>
-        <input id="setup_passwort2" type="password" name="passwort2" required aria-required="true">
-
-        <div style="margin-top:12px;">
-          <button class="btn" type="submit">Admin erstellen</button>
-          <a class="btn btn--ghost" href="<?= e($base) ?>/login.php">Zum Login</a>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:end;">
+        <div>
+          <label for="setup_benutzername">Benutzername</label>
+          <input class="ui-input" id="setup_benutzername" name="benutzername" value="<?= e($formUser) ?>" required aria-required="true">
         </div>
 
-        <p class="small" style="margin-top:10px;">
-          Setup ist nur möglich, solange noch kein Benutzer existiert.
-        </p>
-      </form>
-    </div>
+        <div>
+          <label for="setup_anzeigename">Anzeigename (optional)</label>
+          <input class="ui-input" id="setup_anzeigename" name="anzeigename" value="<?= e($formName) ?>">
+        </div>
+
+        <div>
+          <label for="setup_passwort">Passwort</label>
+          <input class="ui-input" id="setup_passwort" type="password" name="passwort" required aria-required="true">
+        </div>
+
+        <div>
+          <label for="setup_passwort2">Passwort wiederholen</label>
+          <input class="ui-input" id="setup_passwort2" type="password" name="passwort2" required aria-required="true">
+        </div>
+      </div>
+
+      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <button class="ui-btn ui-btn--primary" type="submit">Admin erstellen</button>
+        <a class="ui-btn ui-btn--ghost" href="<?= e($base) ?>/login.php">Zum Login</a>
+      </div>
+
+      <p class="small ui-muted" style="margin-top:10px;">
+        Setup ist nur möglich, solange noch kein Benutzer existiert.
+      </p>
+    </form>
   </div>
 </div>
 

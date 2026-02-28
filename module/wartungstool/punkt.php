@@ -1,8 +1,8 @@
 <?php
 // module/wartungstool/punkt.php (INNER VIEW)
-// UI v2 Migration (Desktop-first, ui-* patterns).
+// UI v2 Final (Desktop-first, ui-* patterns).
 // Wichtig: Diese View rendert kein eigenes Layout (Front-Controller app.php).
-// Hinweis (TODO aus Projekt): "Bald fällig" Logik sollte perspektivisch zentralisiert werden
+// Hinweis: "Bald fällig" Logik sollte perspektivisch zentralisiert werden
 // (Dashboard/Übersicht/Punkt). Hier: Implementierung nach aktueller Feldlogik:
 //  - soon_hours gewinnt (wenn >0)
 //  - sonst soon_ratio (0..1)
@@ -18,8 +18,8 @@ $u = current_user();
 $userId = (int)($u['id'] ?? 0);
 
 // Rechte
-$canDoWartung = function_exists('user_can_edit') ? user_can_edit($userId, 'wartungstool', 'global', null) : true;
-$canCreateTicket = function_exists('user_can_edit') ? user_can_edit($userId, 'stoerungstool', 'global', null) : true;
+$canDoWartung = user_can_edit($userId, 'wartungstool', 'global', null);
+$canCreateTicket = user_can_edit($userId, 'stoerungstool', 'global', null);
 
 $wpId = (int)($_GET['wp'] ?? 0);
 if ($wpId <= 0) {
@@ -162,6 +162,8 @@ $krit = (int)($wp['kritischkeitsstufe'] ?? 0);
         <h1 class="ui-page-title">Wartungspunkt</h1>
         <p class="ui-page-subtitle ui-muted">
           <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.dashboard">← zurück zum Dashboard</a>
+          <span class="ui-muted">·</span>
+          <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.uebersicht&asset_id=<?= (int)$wp['asset_id'] ?>">zur Übersicht</a>
           <span class="ui-muted">·</span>
           WP #<?= (int)$wpId ?>
         </p>
@@ -343,12 +345,14 @@ $krit = (int)($wp['kritischkeitsstufe'] ?? 0);
       </div>
     <?php endif; ?>
 
-    <div style="margin-top:12px;">
-      <a class="ui-btn ui-btn--ghost ui-btn--sm"
-         href="<?= e($base) ?>/app.php?r=wartung.admin_punkte&asset_id=<?= (int)$wp['asset_id'] ?>&edit_wp=<?= (int)$wpId ?>">
-        Wartungspunkt im Admin öffnen
-      </a>
-    </div>
+    <?php if ($canDoWartung): ?>
+      <div style="margin-top:12px;">
+        <a class="ui-btn ui-btn--ghost ui-btn--sm"
+           href="<?= e($base) ?>/app.php?r=wartung.admin_punkte&asset_id=<?= (int)$wp['asset_id'] ?>&edit_wp=<?= (int)$wpId ?>">
+          Wartungspunkt im Admin öffnen
+        </a>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
 

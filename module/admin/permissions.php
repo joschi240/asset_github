@@ -1,32 +1,28 @@
 <?php
-// module/admin/permissions.php
-
-if (!defined('APP_INNER')) {
-  require_once __DIR__ . '/../../src/layout.php';
-  $standalone = true;
-  render_header('Admin – Berechtigungen');
-} else {
-  $standalone = false;
-}
+// module/admin/permissions.php (INNER VIEW)
+require_once __DIR__ . '/../../src/helpers.php';
 
 $cfg = app_cfg();
 $base = $cfg['app']['base_url'] ?? '';
 
-if (!has_any_user()) { header("Location: {$base}/app.php?r=admin.setup"); exit; }
+if (!has_any_user()) {
+  header("Location: {$base}/app.php?r=admin.setup");
+  exit;
+}
 
 require_login();
 $u = current_user();
 if (!is_admin_user($u['id'] ?? null)) {
   http_response_code(403);
-  echo '<div class="card"><h2>Kein Zugriff</h2><p class="small">Admin-Recht erforderlich.</p></div>';
-  if ($standalone) render_footer();
+  echo '<div class="ui-container"><div class="ui-card"><h2>Kein Zugriff</h2><p class="small ui-muted">Admin-Recht erforderlich.</p></div></div>';
   return;
 }
 
 $users = db_all("SELECT id, benutzername, anzeigename FROM core_user WHERE aktiv=1 ORDER BY benutzername ASC");
 $selected = (int)($_GET['user_id'] ?? ($users[0]['id'] ?? 0));
 
-$ok = null; $err = null;
+$ok = null;
+$err = null;
 
 $routes = db_all(
   "SELECT route_key, titel, modul, objekt_typ, objekt_id
@@ -51,9 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $userId = (int)($_POST['user_id'] ?? 0);
     if ($userId <= 0) throw new RuntimeException('Kein User gewählt.');
 
-    // Admin wildcard
     $wantAdmin = !empty($_POST['is_admin']) ? 1 : 0;
     $adminRow = perm_row($userId, '*', '*', null);
+
     if ($wantAdmin) {
       if ($adminRow) {
         $oldPerm = $adminRow;
@@ -78,9 +74,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       }
     }
 
-    // Route-Permissions
     foreach ($routes as $r) {
-      if (empty($r['modul']) || empty($r['objekt_typ'])) continue; // public / keine Rechte nötig
+      if (empty($r['modul']) || empty($r['objekt_typ'])) continue;
 
       $key = $r['route_key'];
       $see = !empty($_POST['see'][$key]) ? 1 : 0;
@@ -132,74 +127,96 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $isAdmin = (bool)db_one("SELECT 1 FROM core_permission WHERE user_id=? AND modul='*' AND darf_sehen=1 LIMIT 1", [$selected]);
 
-// Vorladen bestehender Permissions (für Checkboxen)
 $permMap = [];
 $rows = db_all("SELECT modul, objekt_typ, objekt_id, darf_sehen, darf_aendern, darf_loeschen FROM core_permission WHERE user_id=?", [$selected]);
 foreach ($rows as $pr) {
   $k = ($pr['modul'] ?? '') . '|' . ($pr['objekt_typ'] ?? '') . '|' . (($pr['objekt_id'] === null) ? 'null' : (string)$pr['objekt_id']);
   $permMap[$k] = $pr;
 }
+?>
 
-// UI
-echo '<div class="ui-card ui-p-3">';
-echo '<h2 class="ui-h2">Berechtigungen</h2>';
+<div class="ui-container">
+  <div class="ui-page-header">
+    <h1 class="ui-page-title">Admin – Berechtigungen</h1>
+    <p class="ui-page-subtitle ui-muted">Benutzerrechte je Route verwalten.</p>
 
-if ($ok) echo '<div class="ui-alert ui-alert-success ui-mt-2">' . e($ok) . '</div>';
-if ($err) echo '<div class="ui-alert ui-alert-danger ui-mt-2">' . e($err) . '</div>';
+    <?php if ($ok || $err): ?>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <?php if ($ok): ?><span class="ui-badge ui-badge--ok" role="status"><?= e($ok) ?></span><?php endif; ?>
+        <?php if ($err): ?><span class="ui-badge ui-badge--danger" role="alert"><?= e($err) ?></span><?php endif; ?>
+      </div>
+    <?php endif; ?>
+  </div>
 
-echo '<form method="get" class="ui-mt-3 ui-flex ui-gap-2 ui-items-end">';
-echo '<input type="hidden" name="r" value="admin.permissions">';
-echo '<label class="ui-label">User</label>';
-echo '<select name="user_id" class="ui-select">';
-foreach ($users as $uu) {
-  $sel = ((int)$uu['id'] === (int)$selected) ? ' selected' : '';
-  $label = $uu['benutzername'] . (($uu['anzeigename'] ?? '') ? ' – ' . $uu['anzeigename'] : '');
-  echo '<option value="' . (int)$uu['id'] . '"' . $sel . '>' . e($label) . '</option>';
-}
-echo '</select>';
-echo '<button class="ui-btn ui-btn-primary" type="submit">Laden</button>';
-echo '</form>';
+  <div class="ui-card ui-filterbar" style="margin-bottom: var(--s-6);">
+    <form method="get" action="<?= e($base) ?>/app.php" class="ui-filterbar__form">
+      <input type="hidden" name="r" value="admin.permissions">
 
-echo '<form method="post" class="ui-mt-4">';
-echo '<input type="hidden" name="csrf" value="' . e(csrf_token()) . '">';
-echo '<input type="hidden" name="user_id" value="' . (int)$selected . '">';
+      <div class="ui-filterbar__group" style="min-width: 420px;">
+        <label for="perm_user_id">User</label>
+        <select id="perm_user_id" name="user_id" class="ui-input">
+          <?php foreach ($users as $uu): ?>
+            <?php
+              $label = $uu['benutzername'] . (($uu['anzeigename'] ?? '') ? ' – ' . $uu['anzeigename'] : '');
+              $sel = ((int)$uu['id'] === (int)$selected) ? 'selected' : '';
+            ?>
+            <option value="<?= (int)$uu['id'] ?>" <?= $sel ?>><?= e($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
 
-echo '<div class="ui-card ui-p-2 ui-mb-3">';
-echo '<label class="ui-inline ui-gap-2">';
-echo '<input type="checkbox" name="is_admin" value="1"' . ($isAdmin ? ' checked' : '') . '>';
-echo '<span>Admin (Wildcard)</span>';
-echo '</label>';
-echo '</div>';
+      <div class="ui-filterbar__actions">
+        <button class="ui-btn ui-btn--primary ui-btn--sm" type="submit">Laden</button>
+      </div>
+    </form>
+  </div>
 
-echo '<table class="ui-table ui-table-sm">';
-echo '<thead><tr><th>Route</th><th>Sehen</th><th>Ändern</th><th>Löschen</th></tr></thead><tbody>';
+  <div class="ui-card">
+    <form method="post">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+      <input type="hidden" name="user_id" value="<?= (int)$selected ?>">
 
-foreach ($routes as $r) {
-  if (empty($r['modul']) || empty($r['objekt_typ'])) continue;
+      <div style="margin-bottom: var(--s-4); display:flex; align-items:center; gap:8px;">
+        <input id="perm_is_admin" type="checkbox" name="is_admin" value="1" <?= $isAdmin ? 'checked' : '' ?>>
+        <label for="perm_is_admin" style="margin:0;">Admin (Wildcard)</label>
+      </div>
 
-  $key = $r['route_key'];
-  $k = ($r['modul'] ?? '') . '|' . ($r['objekt_typ'] ?? '') . '|' . (($r['objekt_id'] === null) ? 'null' : (string)$r['objekt_id']);
-  $pr = $permMap[$k] ?? null;
+      <div class="ui-table-wrap">
+        <table class="ui-table">
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>Sehen</th>
+              <th>Ändern</th>
+              <th>Löschen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($routes as $r): ?>
+              <?php if (empty($r['modul']) || empty($r['objekt_typ'])) continue; ?>
+              <?php
+                $key = $r['route_key'];
+                $k = ($r['modul'] ?? '') . '|' . ($r['objekt_typ'] ?? '') . '|' . (($r['objekt_id'] === null) ? 'null' : (string)$r['objekt_id']);
+                $pr = $permMap[$k] ?? null;
 
-  $see = !empty($pr['darf_sehen']) ? ' checked' : '';
-  $chg = !empty($pr['darf_aendern']) ? ' checked' : '';
-  $del = !empty($pr['darf_loeschen']) ? ' checked' : '';
+                $see = !empty($pr['darf_sehen']) ? 'checked' : '';
+                $chg = !empty($pr['darf_aendern']) ? 'checked' : '';
+                $del = !empty($pr['darf_loeschen']) ? 'checked' : '';
+              ?>
+              <tr>
+                <td><?= e($key . ' – ' . ($r['titel'] ?? '')) ?></td>
+                <td><input type="checkbox" name="see[<?= e($key) ?>]" value="1" <?= $see ?>></td>
+                <td><input type="checkbox" name="chg[<?= e($key) ?>]" value="1" <?= $chg ?>></td>
+                <td><input type="checkbox" name="del[<?= e($key) ?>]" value="1" <?= $del ?>></td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
 
-  echo '<tr>';
-  echo '<td>' . e($key . ' – ' . ($r['titel'] ?? '')) . '</td>';
-  echo '<td><input type="checkbox" name="see[' . e($key) . ']" value="1"' . $see . '></td>';
-  echo '<td><input type="checkbox" name="chg[' . e($key) . ']" value="1"' . $chg . '></td>';
-  echo '<td><input type="checkbox" name="del[' . e($key) . ']" value="1"' . $del . '></td>';
-  echo '</tr>';
-}
-
-echo '</tbody></table>';
-
-echo '<div class="ui-mt-3">';
-echo '<button class="ui-btn ui-btn-primary" type="submit">Speichern</button>';
-echo '</div>';
-
-echo '</form>';
-echo '</div>';
-
-if ($standalone) render_footer();
+      <div style="margin-top: var(--s-4);">
+        <button class="ui-btn ui-btn--primary" type="submit">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>

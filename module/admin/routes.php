@@ -1,25 +1,20 @@
 <?php
-// module/admin/routes.php
-
-if (!defined('APP_INNER')) {
-  require_once __DIR__ . '/../../src/layout.php';
-  $standalone = true;
-  render_header('Admin – Routes');
-} else {
-  $standalone = false;
-}
+// module/admin/routes.php (INNER VIEW)
+require_once __DIR__ . '/../../src/helpers.php';
 
 $cfg = app_cfg();
 $base = $cfg['app']['base_url'] ?? '';
 
-if (!has_any_user()) { header("Location: {$base}/app.php?r=admin.setup"); exit; }
+if (!has_any_user()) {
+  header("Location: {$base}/app.php?r=admin.setup");
+  exit;
+}
 
 require_login();
 $u = current_user();
 if (!is_admin_user($u['id'] ?? null)) {
   http_response_code(403);
-  echo '<div class="card"><h2>Kein Zugriff</h2><p class="small">Admin-Recht erforderlich.</p></div>';
-  if ($standalone) render_footer();
+  echo '<div class="ui-container"><div class="ui-card"><h2>Kein Zugriff</h2><p class="small ui-muted">Admin-Recht erforderlich.</p></div></div>';
   return;
 }
 
@@ -82,99 +77,153 @@ if ($action === 'edit') {
     ? db_one("SELECT * FROM core_route WHERE id=?", [$id])
     : ['id'=>0,'route_key'=>'','titel'=>'','file_path'=>'','modul'=>null,'objekt_typ'=>null,'objekt_id'=>null,'require_login'=>1,'aktiv'=>1,'sort'=>0];
 
+  if (!is_array($r)) {
+    $r = ['id'=>0,'route_key'=>'','titel'=>'','file_path'=>'','modul'=>null,'objekt_typ'=>null,'objekt_id'=>null,'require_login'=>1,'aktiv'=>1,'sort'=>0];
+  }
   ?>
-  <div class="grid">
-    <div class="col-6">
-      <div class="card">
-        <h2><?= $r['id'] ? 'Route bearbeiten' : 'Route anlegen' ?></h2>
-        <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
-        <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
 
-        <form method="post">
-          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="action" value="save">
-          <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+  <div class="ui-container">
+    <div class="ui-page-header">
+      <h1 class="ui-page-title">Admin – Routes</h1>
+      <p class="ui-page-subtitle ui-muted">
+        <?= $r['id'] ? 'Route bearbeiten' : 'Route anlegen' ?>
+        <span class="ui-muted">·</span>
+        <a class="ui-link" href="<?= e($base) ?>/app.php?r=admin.routes">zurück zur Liste</a>
+      </p>
 
-          <label for="route_key_input">route_key</label>
-          <input id="route_key_input" name="route_key" value="<?= e($r['route_key']) ?>" required aria-required="true">
+      <?php if ($ok || $err): ?>
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <?php if ($ok): ?><span class="ui-badge ui-badge--ok" role="status"><?= e($ok) ?></span><?php endif; ?>
+          <?php if ($err): ?><span class="ui-badge ui-badge--danger" role="alert"><?= e($err) ?></span><?php endif; ?>
+        </div>
+      <?php endif; ?>
+    </div>
 
-          <label for="route_titel">Titel</label>
-          <input id="route_titel" name="titel" value="<?= e($r['titel']) ?>" required aria-required="true">
+    <div class="ui-card" style="max-width:860px;">
+      <form method="post">
+        <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="action" value="save">
+        <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
 
-          <label for="route_file_path">file_path (z.B. module/wartungstool/dashboard.php)</label>
-          <input id="route_file_path" name="file_path" value="<?= e($r['file_path']) ?>" required aria-required="true">
-
-          <label for="route_modul">modul (für Permission)</label>
-          <input id="route_modul" name="modul" value="<?= e($r['modul'] ?? '') ?>">
-
-          <label for="route_obj_typ">objekt_typ (für Permission)</label>
-          <input id="route_obj_typ" name="objekt_typ" value="<?= e($r['objekt_typ'] ?? '') ?>">
-
-          <label for="route_obj_id">objekt_id (optional)</label>
-          <input id="route_obj_id" name="objekt_id" value="<?= e($r['objekt_id'] !== null ? (string)$r['objekt_id'] : '') ?>">
-
-          <label><input type="checkbox" name="require_login" value="1" <?= ((int)$r['require_login']===1?'checked':'') ?>> Login erforderlich</label>
-          <label><input type="checkbox" name="aktiv" value="1" <?= ((int)$r['aktiv']===1?'checked':'') ?>> Aktiv</label>
-
-          <label for="route_sort">Sort</label>
-          <input id="route_sort" name="sort" value="<?= (int)$r['sort'] ?>">
-
-          <div style="margin-top:12px;">
-            <button class="btn" type="submit">Speichern</button>
-            <a class="btn btn--ghost" href="<?= e($base) ?>/app.php?r=admin.routes">Zurück</a>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:end;">
+          <div>
+            <label for="route_key_input">route_key</label>
+            <input class="ui-input" id="route_key_input" name="route_key" value="<?= e($r['route_key']) ?>" required aria-required="true">
           </div>
-        </form>
 
-        <?php if ((int)$r['id'] > 0): ?>
-          <form method="post" style="margin-top:12px;">
-            <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="action" value="delete">
-            <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-            <button class="btn btn--ghost" type="submit">Route löschen</button>
-          </form>
-        <?php endif; ?>
-      </div>
+          <div>
+            <label for="route_titel">Titel</label>
+            <input class="ui-input" id="route_titel" name="titel" value="<?= e($r['titel']) ?>" required aria-required="true">
+          </div>
+
+          <div style="grid-column: 1 / -1;">
+            <label for="route_file_path">file_path (z.B. module/wartungstool/dashboard.php)</label>
+            <input class="ui-input" id="route_file_path" name="file_path" value="<?= e($r['file_path']) ?>" required aria-required="true">
+          </div>
+
+          <div>
+            <label for="route_modul">modul (für Permission)</label>
+            <input class="ui-input" id="route_modul" name="modul" value="<?= e($r['modul'] ?? '') ?>">
+          </div>
+
+          <div>
+            <label for="route_obj_typ">objekt_typ (für Permission)</label>
+            <input class="ui-input" id="route_obj_typ" name="objekt_typ" value="<?= e($r['objekt_typ'] ?? '') ?>">
+          </div>
+
+          <div>
+            <label for="route_obj_id">objekt_id (optional)</label>
+            <input class="ui-input" id="route_obj_id" name="objekt_id" value="<?= e($r['objekt_id'] !== null ? (string)$r['objekt_id'] : '') ?>">
+          </div>
+
+          <div>
+            <label for="route_sort">Sort</label>
+            <input class="ui-input" id="route_sort" name="sort" value="<?= (int)$r['sort'] ?>">
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px; padding-bottom:10px;">
+            <input id="route_req_login" type="checkbox" name="require_login" value="1" <?= ((int)$r['require_login']===1?'checked':'') ?>>
+            <label for="route_req_login" style="margin:0;">Login erforderlich</label>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px; padding-bottom:10px;">
+            <input id="route_aktiv" type="checkbox" name="aktiv" value="1" <?= ((int)$r['aktiv']===1?'checked':'') ?>>
+            <label for="route_aktiv" style="margin:0;">Aktiv</label>
+          </div>
+        </div>
+
+        <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="ui-btn ui-btn--primary" type="submit">Speichern</button>
+          <a class="ui-btn ui-btn--ghost" href="<?= e($base) ?>/app.php?r=admin.routes">Zurück</a>
+        </div>
+      </form>
+
+      <?php if ((int)$r['id'] > 0): ?>
+        <form method="post" style="margin-top:12px;">
+          <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+          <button class="ui-btn ui-btn--ghost" type="submit">Route löschen</button>
+        </form>
+      <?php endif; ?>
     </div>
   </div>
+
   <?php
-  if ($standalone) render_footer();
   return;
 }
 
 $routes = db_all("SELECT * FROM core_route ORDER BY aktiv DESC, sort ASC, route_key ASC");
 ?>
 
-<div class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-    <h2>Routes</h2>
-    <a class="btn" href="<?= e($base) ?>/app.php?r=admin.routes&a=edit">+ Neu</a>
+<div class="ui-container">
+  <div class="ui-page-header">
+    <h1 class="ui-page-title">Admin – Routes</h1>
+    <p class="ui-page-subtitle ui-muted">Routen anlegen, bearbeiten und aktivieren.</p>
+
+    <?php if ($ok || $err): ?>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <?php if ($ok): ?><span class="ui-badge ui-badge--ok" role="status"><?= e($ok) ?></span><?php endif; ?>
+        <?php if ($err): ?><span class="ui-badge ui-badge--danger" role="alert"><?= e($err) ?></span><?php endif; ?>
+      </div>
+    <?php endif; ?>
   </div>
 
-  <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
-  <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
+  <div class="ui-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom: var(--s-4);">
+      <h2 style="margin:0;">Routes</h2>
+      <a class="ui-btn ui-btn--primary ui-btn--sm" href="<?= e($base) ?>/app.php?r=admin.routes&a=edit">+ Neu</a>
+    </div>
 
-  <div class="tablewrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th scope="col">route_key</th><th scope="col">Titel</th><th scope="col">file_path</th><th scope="col">login</th><th scope="col">modul/obj</th><th scope="col">aktiv</th><th scope="col"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($routes as $r): ?>
+    <div class="ui-table-wrap">
+      <table class="ui-table">
+        <thead>
           <tr>
-            <td><?= e($r['route_key']) ?></td>
-            <td><?= e($r['titel']) ?></td>
-            <td><code><?= e($r['file_path']) ?></code></td>
-            <td><?= ((int)$r['require_login']===1)?'ja':'nein' ?></td>
-            <td><?= e(($r['modul'] ?? '—') . ' / ' . ($r['objekt_typ'] ?? '—')) ?></td>
-            <td><?= ((int)$r['aktiv']===1)?'ja':'nein' ?></td>
-            <td><a class="btn btn--ghost" href="<?= e($base) ?>/app.php?r=admin.routes&a=edit&id=<?= (int)$r['id'] ?>">Edit</a></td>
+            <th>route_key</th>
+            <th>Titel</th>
+            <th>file_path</th>
+            <th>login</th>
+            <th>modul/obj</th>
+            <th>aktiv</th>
+            <th class="ui-th-actions">Aktion</th>
           </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <?php foreach ($routes as $r): ?>
+            <tr>
+              <td><?= e($r['route_key']) ?></td>
+              <td><?= e($r['titel']) ?></td>
+              <td><span class="small ui-muted"><?= e($r['file_path']) ?></span></td>
+              <td><?= ((int)$r['require_login']===1)?'ja':'nein' ?></td>
+              <td><?= e(($r['modul'] ?? '—') . ' / ' . ($r['objekt_typ'] ?? '—')) ?></td>
+              <td><?= ((int)$r['aktiv']===1)?'ja':'nein' ?></td>
+              <td class="ui-td-actions">
+                <a class="ui-btn ui-btn--ghost ui-btn--sm" href="<?= e($base) ?>/app.php?r=admin.routes&a=edit&id=<?= (int)$r['id'] ?>">Edit</a>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
-
-<?php if ($standalone) render_footer(); ?>

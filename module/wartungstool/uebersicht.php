@@ -6,7 +6,16 @@ require_login();
 $cfg  = app_cfg();
 $base = $cfg['app']['base_url'] ?? '';
 
+$u = current_user();
+$userId = (int)($u['id'] ?? 0);
+$canSeePunkt = user_can_see($userId, 'wartungstool', 'global', null);
+$canAdmin = user_can_edit($userId, 'wartungstool', 'global', null);
+
 $assetId = (int)($_GET['asset_id'] ?? 0);
+
+// Suche
+$q = trim((string)($_GET['q'] ?? ''));
+$qNorm = mb_strtolower($q);
 
 // Filter / Toggles
 $mode = (string)($_GET['mode'] ?? 'offen'); // 'offen' | 'alle'
@@ -106,6 +115,13 @@ if ($assetId > 0) {
   ", [$assetId, $assetId]);
 
   foreach ($punkteRaw as $wp) {
+    if ($qNorm !== '') {
+      $haystack = mb_strtolower(trim((string)($wp['text_kurz'] ?? '') . ' ' . (string)($wp['text_lang'] ?? '')));
+      if ($haystack === '' || mb_strpos($haystack, $qNorm) === false) {
+        continue;
+      }
+    }
+
     $interval = (float)$wp['plan_interval'];
     $soonRatio = ($wp['soon_ratio'] ?? null);
     $soonRatio = ($soonRatio !== null ? (float)$soonRatio : null);
@@ -176,24 +192,46 @@ if ($mode === 'offen') {
 } else {
   $punkteToShow = $punkte;
 }
+
+$urlFor = function(array $overrides = []) use ($base, $assetId, $mode, $q) {
+  $params = [
+    'r' => 'wartung.uebersicht',
+    'asset_id' => $assetId,
+    'mode' => $mode,
+  ];
+  if ($q !== '') $params['q'] = $q;
+  foreach ($overrides as $k => $v) {
+    if ($v === null || $v === '') unset($params[$k]);
+    else $params[$k] = $v;
+  }
+  return $base . '/app.php?' . http_build_query($params);
+};
 ?>
 
 <div class="ui-container">
 
   <div class="ui-page-header" style="margin: 0 0 var(--s-5) 0;">
     <h1 class="ui-page-title">Wartung – Übersicht</h1>
-    <p class="ui-page-subtitle ui-muted">
-      Anlage wählen, Wartungspunkte nach Fälligkeit prüfen. „OK“ kann optional eingeklappt werden.
-    </p>
+    <p class="ui-page-subtitle ui-muted">Anlage wählen, offene Punkte priorisieren, dann direkt in den Wartungspunkt springen.</p>
+
+    <div style="margin-top:8px; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
+      <div class="small">
+        <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.dashboard">Zum Dashboard</a>
+        <?php if ($canAdmin): ?>
+          · <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.admin_punkte">Admin Wartungspunkte</a>
+        <?php endif; ?>
+      </div>
+    </div>
   </div>
 
-  <div class="ui-card">
-    <form method="get" action="<?= e($base) ?>/app.php" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+  <div class="ui-card ui-filterbar" style="margin-bottom: var(--s-6);">
+    <form method="get" action="<?= e($base) ?>/app.php" class="ui-filterbar__form">
       <input type="hidden" name="r" value="wartung.uebersicht">
+      <input type="hidden" name="mode" value="<?= e($mode) ?>">
 
-      <div style="min-width:360px; flex:1;">
+      <div class="ui-filterbar__group" style="min-width:360px; flex:1;">
         <label for="uebersicht_asset_id">Anlage auswählen</label>
-        <select id="uebersicht_asset_id" name="asset_id" onchange="this.form.submit()">
+        <select id="uebersicht_asset_id" name="asset_id">
           <?php foreach ($assets as $a): ?>
             <option value="<?= (int)$a['id'] ?>" <?= ((int)$a['id'] === $assetId ? 'selected' : '') ?>>
               <?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?>
@@ -203,19 +241,17 @@ if ($mode === 'offen') {
         </select>
       </div>
 
-      <div style="min-width:220px;">
-        <label for="uebersicht_mode">Anzeige</label>
-        <select id="uebersicht_mode" name="mode" onchange="this.form.submit()">
-          <option value="offen" <?= $mode==='offen' ? 'selected' : '' ?>>nur offene</option>
-          <option value="alle" <?= $mode==='alle' ? 'selected' : '' ?>>alle</option>
-        </select>
+      <div class="ui-filterbar__group" style="min-width:300px;">
+        <label for="uebersicht_q">Suche</label>
+        <input id="uebersicht_q" name="q" class="ui-input" value="<?= e($q) ?>" placeholder="Wartungspunkt suchen…">
       </div>
 
-      <noscript>
-        <div style="margin-top:10px;">
-          <button class="ui-btn ui-btn--primary" type="submit">Anzeigen</button>
-        </div>
-      </noscript>
+      <div class="ui-filterbar__actions">
+        <button class="ui-btn ui-btn--primary ui-btn--sm" type="submit">Anwenden</button>
+        <?php if ($q !== ''): ?>
+          <a class="ui-btn ui-btn--ghost ui-btn--sm" href="<?= e($urlFor(['q'=>null])) ?>">Reset</a>
+        <?php endif; ?>
+      </div>
     </form>
   </div>
 
@@ -225,149 +261,129 @@ if ($mode === 'offen') {
     <p class="small">Bitte Anlage auswählen.</p>
   </div>
 <?php else: ?>
-  <div class="ui-card">
-    <h2><?= e(($asset['code'] ? $asset['code'].' — ' : '') . $asset['name']) ?></h2>
-    <div class="small">
-      <?= e($asset['asset_typ'] ?: '') ?>
-      · Kategorie: <b><?= e($asset['kategorie_name'] ?: '—') ?></b>
-      · Kritikalität: <b><?= (int)$asset['kritischkeitsstufe'] ?></b>
-      · Produktivstunden: <b><?= number_format($counterHours, 1, ',', '.') ?> h</b>
-      · Offene Punkte: <b><?= count($openList) ?></b>
-      · OK Punkte: <b><?= count($okList) ?></b>
-    </div>
-  </div>
+  <div class="ui-grid" style="display:grid; grid-template-columns: 1.7fr 0.9fr; gap: var(--s-6); align-items:start;">
 
-  <div class="ui-card">
-    <h2><?= $mode === 'offen' ? 'Offene Wartungen' : 'Wartungspunkte (sortiert)' ?></h2>
+    <div>
+      <div class="ui-card">
+        <div class="ui-card-head">
+          <div class="ui-tabs">
+            <a class="ui-tab <?= $mode==='offen'?'ui-tab--active':'' ?>" href="<?= e($urlFor(['mode'=>'offen'])) ?>">
+              Offen <span class="ui-count ui-count--warn"><?= (int)count($openList) ?></span>
+            </a>
+            <a class="ui-tab <?= $mode==='alle'?'ui-tab--active':'' ?>" href="<?= e($urlFor(['mode'=>'alle'])) ?>">
+              Alle <span class="ui-count"><?= (int)count($punkte) ?></span>
+            </a>
+          </div>
+        </div>
 
-    <?php if (empty($punkteToShow)): ?>
-      <p class="small">Keine passenden Wartungspunkte.</p>
-    <?php else: ?>
-      <div class="ui-table-wrap" style="margin-top:10px;">
-      <table class="ui-table">
-        <thead>
-          <tr>
-            <th scope="col">Ampel</th>
-            <th scope="col">Punkt</th>
-            <th scope="col" style="width:110px;">Typ</th>
-            <th scope="col" style="width:130px;">Intervall</th>
-            <th scope="col" style="width:170px;">Fällig bei</th>
-            <th scope="col" style="width:120px;">Rest</th>
-            <th scope="col" style="width:260px;">Letzter Eintrag</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php foreach ($punkteToShow as $p):
-            $wp = $p['wp'];
-          ?>
-          <tr>
-            <td><span class="<?= e($p['ampel']['cls']) ?>"><?= e($p['ampel']['label']) ?></span></td>
-
-            <td>
-              <a href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wp['id'] ?>">
-                <?= e($wp['text_kurz']) ?>
-              </a>
-              <div class="small">WP #<?= (int)$wp['id'] ?></div>
-              <?php if ((int)$wp['messwert_pflicht'] === 1): ?>
-                <div class="small">
-                  Messwert: Pflicht
-                  <?php if ($wp['einheit']): ?> (<?= e($wp['einheit']) ?>)<?php endif; ?>
-                  <?php if ($wp['grenzwert_min'] !== null || $wp['grenzwert_max'] !== null): ?>
-                    · Grenzen: <?= $wp['grenzwert_min'] !== null ? e((string)$wp['grenzwert_min']) : '—' ?>
-                    bis <?= $wp['grenzwert_max'] !== null ? e((string)$wp['grenzwert_max']) : '—' ?>
-                  <?php endif; ?>
-                </div>
-              <?php endif; ?>
-            </td>
-
-            <td style="white-space:nowrap;"><?= e($wp['intervall_typ']) ?></td>
-
-            <td style="white-space:nowrap;"><?= number_format((float)$wp['plan_interval'], 1, ',', '.') ?> h</td>
-
-            <td style="white-space:nowrap;"><?= e($p['due']) ?></td>
-
-            <td style="white-space:nowrap;">
-              <?php if ($p['rest'] === null): ?>
-                —
-              <?php else: ?>
-                <?= number_format((float)$p['rest'], 1, ',', '.') ?> h
-              <?php endif; ?>
-            </td>
-
-            <td class="small">
-              <?php if (!empty($wp['last_datum'])): ?>
-                <div>
-                  <b><?= e($wp['last_status']) ?></b>
-                  · <?= e($wp['last_datum']) ?>
-                  <?php if ($wp['last_team_text']): ?> · <?= e($wp['last_team_text']) ?><?php endif; ?>
-                </div>
-                <?php if ($wp['last_messwert'] !== null): ?>
-                  <div>Messwert: <?= e((string)$wp['last_messwert']) ?><?= $wp['einheit'] ? ' ' . e($wp['einheit']) : '' ?></div>
-                <?php endif; ?>
-                <?php if ($wp['last_bemerkung']): ?>
-                  <div><?= e(short_text($wp['last_bemerkung'], 100)) ?></div>
-                <?php endif; ?>
-                <?php if ($p['ticket_id']): ?>
-                  <div><span class="ui-badge">Ticket <?= (int)$p['ticket_id'] ?></span></div>
-                <?php endif; ?>
-              <?php else: ?>
-                —
-              <?php endif; ?>
-            </td>
-          </tr>
-          <?php endforeach; ?>
-        </tbody>
-      </table>
-      </div>
-    <?php endif; ?>
-  </div>
-
-  <?php if ($mode === 'alle' && count($okList) > 0): ?>
-    <div class="ui-card">
-      <details>
-        <summary style="cursor:pointer; font-weight:600;">
-          OK Punkte einklappen/anzeigen (<?= count($okList) ?>)
-        </summary>
-        <div style="margin-top:10px;" class="ui-table-wrap">
+        <div class="ui-table-wrap">
           <table class="ui-table">
             <thead>
               <tr>
-                <th scope="col">Ampel</th>
-                <th scope="col">Punkt</th>
-                <th scope="col">Typ</th>
-                <th scope="col">Fällig bei</th>
-                <th scope="col">Rest</th>
-                <th scope="col">Letzter Eintrag</th>
+                <th>Wartungspunkt</th>
+                <th>Rest</th>
+                <th>Intervall</th>
+                <th>Fällig bei</th>
+                <th>Letzter Eintrag</th>
+                <th>Status</th>
+                <th class="ui-th-actions">Aktion</th>
               </tr>
             </thead>
             <tbody>
-              <?php foreach ($okList as $p):
-                $wp = $p['wp'];
-              ?>
-              <tr>
-                <td><span class="<?= e($p['ampel']['cls']) ?>"><?= e($p['ampel']['label']) ?></span></td>
-                <td>
-                  <a href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wp['id'] ?>"><?= e($wp['text_kurz']) ?></a>
-                  <div class="small">WP #<?= (int)$wp['id'] ?></div>
-                </td>
-                <td style="white-space:nowrap;"><?= e($wp['intervall_typ']) ?></td>
-                <td style="white-space:nowrap;"><?= e($p['due']) ?></td>
-                <td style="white-space:nowrap;"><?= $p['rest'] === null ? '—' : number_format((float)$p['rest'], 1, ',', '.') . ' h' ?></td>
-                <td class="small">
-                  <?php if (!empty($wp['last_datum'])): ?>
-                    <b><?= e($wp['last_status']) ?></b> · <?= e($wp['last_datum']) ?>
-                  <?php else: ?>
-                    —
-                  <?php endif; ?>
-                </td>
-              </tr>
-              <?php endforeach; ?>
+              <?php if (empty($punkteToShow)): ?>
+                <tr><td colspan="7" class="small ui-muted">Keine passenden Wartungspunkte.</td></tr>
+              <?php else: ?>
+                <?php foreach ($punkteToShow as $p):
+                  $wp = $p['wp'];
+                  $restCls = 'ui-num';
+                  if ($p['rest'] !== null && (float)$p['rest'] < 0) $restCls .= ' ui-num--danger';
+                ?>
+                <tr>
+                  <td>
+                    <?php if ($canSeePunkt): ?>
+                      <a class="ui-link" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wp['id'] ?>"><?= e($wp['text_kurz']) ?></a>
+                      <span class="small ui-muted"> · WP #<?= (int)$wp['id'] ?></span>
+                    <?php else: ?>
+                      <?= e($wp['text_kurz']) ?> <span class="small ui-muted">(WP #<?= (int)$wp['id'] ?>)</span>
+                    <?php endif; ?>
+                    <?php if ((int)$wp['messwert_pflicht'] === 1): ?>
+                      <div class="small ui-muted" style="margin-top:2px;">Messwert Pflicht<?= $wp['einheit'] ? ' · '.e($wp['einheit']) : '' ?></div>
+                    <?php endif; ?>
+                  </td>
+
+                  <td class="<?= e($restCls) ?>"><strong><?= $p['rest'] === null ? '—' : e(number_format((float)$p['rest'], 1, ',', '.') . ' h') ?></strong></td>
+                  <td class="ui-num"><?= e(number_format((float)$wp['plan_interval'], 1, ',', '.')) ?> h</td>
+                  <td class="small ui-muted"><?= e($p['due']) ?></td>
+
+                  <td class="small ui-muted">
+                    <?php if (!empty($wp['last_datum'])): ?>
+                      <div><strong><?= e((string)$wp['last_status']) ?></strong> · <?= e((string)$wp['last_datum']) ?></div>
+                      <?php if ($wp['last_bemerkung']): ?>
+                        <div><?= e(short_text((string)$wp['last_bemerkung'], 80)) ?></div>
+                      <?php endif; ?>
+                    <?php else: ?>
+                      —
+                    <?php endif; ?>
+                  </td>
+
+                  <td>
+                    <span class="<?= e($p['ampel']['cls']) ?>"><?= e($p['ampel']['label']) ?></span>
+                    <?php if ($p['ticket_id']): ?>
+                      <div style="margin-top:4px;"><span class="ui-badge">Ticket #<?= (int)$p['ticket_id'] ?></span></div>
+                    <?php endif; ?>
+                  </td>
+
+                  <td class="ui-td-actions">
+                    <?php if ($canSeePunkt): ?>
+                      <a class="ui-btn ui-btn--sm ui-btn--primary" href="<?= e($base) ?>/app.php?r=wartung.punkt&wp=<?= (int)$wp['id'] ?>">Öffnen</a>
+                    <?php else: ?>
+                      <span class="ui-muted small">—</span>
+                    <?php endif; ?>
+                  </td>
+                </tr>
+                <?php endforeach; ?>
+              <?php endif; ?>
             </tbody>
           </table>
         </div>
-      </details>
+
+        <div style="margin-top: var(--s-4);" class="small ui-muted">
+          Sortierung: offene Punkte zuerst, danach nach Reststunden.
+        </div>
+      </div>
     </div>
-  <?php endif; ?>
+
+    <aside>
+      <div class="ui-card" style="margin-bottom: var(--s-6);">
+        <h2 style="margin:0;"><?= e(($asset['code'] ? $asset['code'].' — ' : '') . $asset['name']) ?></h2>
+        <p class="small ui-muted" style="margin-top:6px;">
+          <?= e((string)($asset['asset_typ'] ?: '')) ?>
+          · Kategorie: <?= e((string)($asset['kategorie_name'] ?: '—')) ?>
+        </p>
+
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">Produktivstunden</span>
+            <span class="ui-count"><?= e(number_format($counterHours, 1, ',', '.')) ?> h</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">Offen</span>
+            <span class="ui-count ui-count--warn"><?= (int)count($openList) ?></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">OK</span>
+            <span class="ui-count ui-count--ok"><?= (int)count($okList) ?></span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="small ui-muted">Gesamt Punkte</span>
+            <span class="ui-count"><?= (int)count($punkte) ?></span>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
 
 <?php endif; ?>
 

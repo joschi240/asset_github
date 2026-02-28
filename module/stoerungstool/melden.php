@@ -9,6 +9,7 @@ $assets = db_all("SELECT id, code, name FROM core_asset WHERE aktiv=1 ORDER BY n
 
 $ok = null;
 $err = null;
+$stillChecked = !empty($_POST['maschinenstillstand']);
 
 function upload_first_ticket_file(int $ticketId): void {
   if (empty($_FILES['file']) || !isset($_FILES['file']['error'])) return; // optional
@@ -41,7 +42,7 @@ function upload_first_ticket_file(int $ticketId): void {
   $relPath = "stoerungstool/tickets/{$ticketId}/{$stored}";
   $absPath = rtrim($baseDir, '/\\') . '/' . $relPath;
   $dir = dirname($absPath);
-  if (!is_dir($dir) && !mkdir($dir, 0775, true)) throw new RuntimeException("Upload-Verzeichnis nicht anlegbar.");
+  ensure_dir($dir);
   if (!move_uploaded_file($tmp, $absPath)) throw new RuntimeException("Konnte Datei nicht speichern.");
   $sha = hash_file('sha256', $absPath);
   $u = current_user();
@@ -129,62 +130,106 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<div class="card">
-  <div class="content__top"><h1>Neue Meldung</h1></div>
+<div class="ui-container">
+  <div class="ui-page-header">
+    <h1 class="ui-page-title">Neue Störung melden</h1>
+    <p class="ui-page-subtitle ui-muted">
+      Meldung direkt erfassen und optional mit Foto/PDF dokumentieren.
+      <span class="ui-muted">·</span>
+      <a class="ui-link" href="<?= e($base) ?>/app.php?r=stoerung.inbox">zur Inbox</a>
+    </p>
 
-  <?php if ($ok): ?><p class="badge badge--g" role="status"><?= e($ok) ?></p><?php endif; ?>
-  <?php if ($err): ?><p class="badge badge--r" role="alert"><?= e($err) ?></p><?php endif; ?>
+    <?php if ($ok || $err): ?>
+      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+        <?php if ($ok): ?><span class="ui-badge ui-badge--ok" role="status"><?= e($ok) ?></span><?php endif; ?>
+        <?php if ($err): ?><span class="ui-badge ui-badge--danger" role="alert"><?= e($err) ?></span><?php endif; ?>
+      </div>
+    <?php endif; ?>
+  </div>
 
-  <form method="post" enctype="multipart/form-data">
-    <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
+  <div class="ui-card">
+    <form method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>">
 
-    <label for="melden_asset_id">Maschine/Anlage</label>
-    <select id="melden_asset_id" name="asset_id">
-      <option value="">Bitte auswählen (optional)</option>
-      <?php foreach ($assets as $a): ?>
-        <option value="<?= (int)$a['id'] ?>"><?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?></option>
-      <?php endforeach; ?>
-    </select>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; align-items:end;">
+        <div>
+          <label for="melden_asset_id">Maschine/Anlage</label>
+          <select id="melden_asset_id" name="asset_id" class="ui-input">
+            <option value="">Bitte auswählen (optional)</option>
+            <?php foreach ($assets as $a): ?>
+              <option value="<?= (int)$a['id'] ?>"><?= e(($a['code'] ? $a['code'].' — ' : '') . $a['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
 
-    <label for="melden_typ">Meldungsart</label>
-    <select id="melden_typ" name="meldungstyp">
-      <option value="Störmeldung">Störmeldung</option>
-      <option value="Mängelkarte">Mängelkarte</option>
-      <option value="Logeintrag">Logeintrag</option>
-    </select>
+        <div>
+          <label for="melden_typ">Meldungsart</label>
+          <select id="melden_typ" name="meldungstyp" class="ui-input">
+            <option value="Störmeldung">Störmeldung</option>
+            <option value="Mängelkarte">Mängelkarte</option>
+            <option value="Logeintrag">Logeintrag</option>
+          </select>
+        </div>
 
-    <label for="melden_fachkat">Fachkategorie (optional)</label>
-    <input id="melden_fachkat" name="fachkategorie" placeholder="z.B. Mechanik / Elektrik / Sicherheit / Qualität">
+        <div>
+          <label for="melden_fachkat">Fachkategorie (optional)</label>
+          <input id="melden_fachkat" class="ui-input" name="fachkategorie" placeholder="z.B. Mechanik / Elektrik / Sicherheit / Qualität">
+        </div>
 
-    <label class="chip" style="display:flex; gap:8px; align-items:center; margin:10px 0 6px;"><input type="checkbox" name="maschinenstillstand" value="1"> Maschinenstillstand</label>
+        <div>
+          <label for="melden_prio">Priorität</label>
+          <select id="melden_prio" name="prioritaet" class="ui-input">
+            <option value="1">1 (hoch)</option>
+            <option value="2" selected>2</option>
+            <option value="3">3 (niedrig)</option>
+          </select>
+        </div>
 
-    <label for="melden_name">Name (optional)</label>
-    <input id="melden_name" name="name" placeholder="z.B. Max Mustermann">
+        <div>
+          <label for="melden_name">Name (optional)</label>
+          <input id="melden_name" class="ui-input" name="name" placeholder="z.B. Max Mustermann">
+        </div>
 
-    <label for="melden_kontakt">Kontakt (optional)</label>
-    <input id="melden_kontakt" name="kontakt" placeholder="z.B. Tel / Schicht / Bereich">
+        <div>
+          <label for="melden_kontakt">Kontakt (optional)</label>
+          <input id="melden_kontakt" class="ui-input" name="kontakt" placeholder="z.B. Tel / Schicht / Bereich">
+        </div>
 
-    <label for="melden_ausfall">Ausfallzeitpunkt (optional)</label>
-    <input id="melden_ausfall" type="datetime-local" name="ausfallzeitpunkt">
+        <div>
+          <label for="melden_ausfall">Ausfallzeitpunkt (optional)</label>
+          <input id="melden_ausfall" class="ui-input" type="datetime-local" name="ausfallzeitpunkt">
+        </div>
 
-    <label for="melden_prio">Priorität</label>
-    <select id="melden_prio" name="prioritaet">
-      <option value="1">1 (hoch)</option>
-      <option value="2" selected>2</option>
-      <option value="3">3 (niedrig)</option>
-    </select>
+        <div>
+          <label style="margin-bottom:6px; display:block;">Stillstand</label>
+          <div style="display:inline-flex; align-items:center; gap:8px;">
+            <input id="melden_stillstand" type="checkbox" name="maschinenstillstand" value="1" <?= $stillChecked ? 'checked' : '' ?>>
+            <label for="melden_stillstand" style="margin:0; display:inline; font-weight:600;">Maschinenstillstand</label>
+          </div>
+        </div>
+      </div>
 
-    <label for="melden_titel">Titel (optional)</label>
-    <input id="melden_titel" name="titel" placeholder="z.B. Palettenwechsler klemmt">
+      <div style="margin-top:12px; display:grid; grid-template-columns: 1fr; gap:12px;">
+        <div>
+          <label for="melden_titel">Titel (optional)</label>
+          <input id="melden_titel" class="ui-input" name="titel" placeholder="z.B. Palettenwechsler klemmt">
+        </div>
 
-    <label for="melden_beschreibung">Fehlerbeschreibung</label>
-    <textarea id="melden_beschreibung" name="beschreibung" required aria-required="true" placeholder="Was ist passiert?"></textarea>
+        <div>
+          <label for="melden_beschreibung">Fehlerbeschreibung</label>
+          <textarea id="melden_beschreibung" class="ui-input" name="beschreibung" required aria-required="true" placeholder="Was ist passiert?" style="min-height:120px;"></textarea>
+        </div>
 
-    <label for="melden_file">Foto / PDF (optional)</label>
-    <input id="melden_file" type="file" name="file">
+        <div>
+          <label for="melden_file">Foto / PDF (optional)</label>
+          <input id="melden_file" class="ui-input" type="file" name="file">
+        </div>
 
-    <div class="form-actions">
-      <button class="btn" type="submit">Absenden</button>
-    </div>
-  </form>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="ui-btn ui-btn--primary" type="submit">Absenden</button>
+          <a class="ui-btn ui-btn--ghost" href="<?= e($base) ?>/app.php?r=stoerung.inbox">Abbrechen</a>
+        </div>
+      </div>
+    </form>
+  </div>
 </div>

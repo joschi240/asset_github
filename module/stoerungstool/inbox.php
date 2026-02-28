@@ -42,6 +42,32 @@ $sql .= " ORDER BY t.created_at DESC";
 
 $tickets = db_all($sql, $params);
 $assets  = db_all("SELECT id, name FROM core_asset ORDER BY name");
+
+$statusCounts = [
+    'all' => count($tickets),
+    'neu' => 0,
+    'angenommen' => 0,
+    'in_arbeit' => 0,
+    'bestellt' => 0,
+    'erledigt' => 0,
+    'geschlossen' => 0,
+];
+foreach ($tickets as $t) {
+    $st = (string)($t['status'] ?? '');
+    if (isset($statusCounts[$st])) $statusCounts[$st]++;
+}
+
+$mkInboxUrl = function(array $overrides = []) use ($base, $q, $status, $asset) {
+    $params = ['r' => 'stoerung.inbox'];
+    if ($q !== '') $params['q'] = $q;
+    if ($status !== '') $params['status'] = $status;
+    if ($asset > 0) $params['asset_id'] = $asset;
+    foreach ($overrides as $k => $v) {
+        if ($v === null || $v === '') unset($params[$k]);
+        else $params[$k] = $v;
+    }
+    return $base . '/app.php?' . http_build_query($params);
+};
 ?>
 
 <div class="ui-container">
@@ -51,6 +77,18 @@ $assets  = db_all("SELECT id, name FROM core_asset ORDER BY name");
         <p class="ui-page-subtitle ui-muted">
             Übersicht aller Tickets mit Filter- und Suchfunktion.
         </p>
+        <div style="margin-top:8px;" class="small">
+            <a class="ui-link" href="<?= e($base) ?>/app.php?r=stoerung.melden">Neue Störung melden</a>
+        </div>
+    </div>
+
+    <div class="ui-card" style="margin-bottom: var(--s-6);">
+        <div class="ui-tabs">
+            <a class="ui-tab <?= $status===''?'ui-tab--active':'' ?>" href="<?= e($mkInboxUrl(['status'=>null])) ?>">Alle <span class="ui-count"><?= (int)$statusCounts['all'] ?></span></a>
+            <a class="ui-tab <?= $status==='neu'?'ui-tab--active':'' ?>" href="<?= e($mkInboxUrl(['status'=>'neu'])) ?>">Neu <span class="ui-count ui-count--warn"><?= (int)$statusCounts['neu'] ?></span></a>
+            <a class="ui-tab <?= $status==='in_arbeit'?'ui-tab--active':'' ?>" href="<?= e($mkInboxUrl(['status'=>'in_arbeit'])) ?>">In Arbeit <span class="ui-count ui-count--danger"><?= (int)$statusCounts['in_arbeit'] ?></span></a>
+            <a class="ui-tab <?= $status==='erledigt'?'ui-tab--active':'' ?>" href="<?= e($mkInboxUrl(['status'=>'erledigt'])) ?>">Erledigt <span class="ui-count ui-count--ok"><?= (int)$statusCounts['erledigt'] ?></span></a>
+        </div>
     </div>
 
     <div class="ui-card ui-filterbar" style="margin-bottom: var(--s-6);">
@@ -119,7 +157,9 @@ $assets  = db_all("SELECT id, name FROM core_asset ORDER BY name");
                     <?php foreach ($tickets as $t): ?>
                         <tr>
                             <td>#<?= (int)$t['id'] ?></td>
-                            <td><?= e($t['titel']) ?></td>
+                            <td>
+                                <a class="ui-link" href="<?= e($base) ?>/app.php?r=stoerung.ticket&id=<?= (int)$t['id'] ?>"><?= e($t['titel']) ?></a>
+                            </td>
                             <td><?= e($t['asset_name'] ?? '-') ?></td>
                             <td>
                                 <?php

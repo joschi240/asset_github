@@ -10,8 +10,7 @@ $cfg  = app_cfg();
 $base = $cfg['app']['base_url'] ?? '';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-  http_response_code(405);
-  echo '<div class="card"><h2>Method not allowed</h2></div>';
+  header("Location: {$base}/app.php?r=wartung.dashboard");
   exit;
 }
 
