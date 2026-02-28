@@ -173,7 +173,7 @@ if (!function_exists('require_can_edit')) {
     $userId = (int)($u['id'] ?? 0);
     if (!user_can_edit($userId, $modul, $objektTyp, $objektId)) {
       http_response_code(403);
-      echo '<div class="card"><h2>Kein Zugriff</h2><p class="small">Dir fehlt die Bearbeiten-Berechtigung.</p></div>';
+      echo '<div class="ui-card"><h2>Kein Zugriff</h2><p class="small">Dir fehlt die Bearbeiten-Berechtigung.</p></div>';
       exit;
     }
   }
@@ -185,7 +185,7 @@ if (!function_exists('require_can_delete')) {
     $userId = (int)($u['id'] ?? 0);
     if (!user_can_delete($userId, $modul, $objektTyp, $objektId)) {
       http_response_code(403);
-      echo '<div class="card"><h2>Kein Zugriff</h2><p class="small">Dir fehlt die Lösch-Berechtigung.</p></div>';
+      echo '<div class="ui-card"><h2>Kein Zugriff</h2><p class="small">Dir fehlt die Lösch-Berechtigung.</p></div>';
       exit;
     }
   }

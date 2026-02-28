@@ -53,9 +53,9 @@ function render_header(string $title): void {
       <div class="sidebar__user">
         <?php if ($u): ?>
           <div class="sidebar__user-name"><span aria-hidden="true">👤</span> <?= e($u['anzeigename']) ?></div>
-          <a class="btn btn--ghost sidebar__logout" href="<?= e($base) ?>/logout.php">Logout</a>
+          <a class="ui-btn ui-btn--ghost sidebar__logout" href="<?= e($base) ?>/logout.php">Logout</a>
         <?php else: ?>
-          <a class="btn btn--ghost sidebar__logout" href="<?= e($base) ?>/login.php">Login</a>
+          <a class="ui-btn ui-btn--ghost sidebar__logout" href="<?= e($base) ?>/login.php">Login</a>
         <?php endif; ?>
       </div>
 

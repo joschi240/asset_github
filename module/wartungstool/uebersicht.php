@@ -39,20 +39,25 @@ if ($assetId <= 0 && !empty($assets)) {
 }
 
 // Hilfsfunktionen
-// soon_ratio: wenn gesetzt (>0), bestimmt ab welchem Rest/Intervall-Verhältnis "Bald fällig" gilt.
-function ampel_from_rest(?float $restHours, float $intervalHours, ?float $soonRatio = null): array {
+// soon_ratio / soon_hours: wenn gesetzt (>0), bestimmt "Bald fällig" Schwelle.
+// soon_hours hat Vorrang vor soon_ratio wenn gesetzt.
+function ampel_from_rest(?float $restHours, float $intervalHours, ?float $soonRatio = null, ?float $soonHours = null): array {
   if ($restHours === null) return ['cls'=>'ui-badge', 'label'=>'Neu/Unbekannt'];
   if ($restHours < 0) return ['cls'=>'ui-badge ui-badge--danger','label'=>'Überfällig'];
+  if ($soonHours !== null && $soonHours > 0 && $restHours <= $soonHours) {
+    return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig'];
+  }
   $ratioLimit = ($soonRatio !== null && $soonRatio > 0) ? $soonRatio : 0.20;
   $ratio = $intervalHours > 0 ? ($restHours / $intervalHours) : 1.0;
   if ($ratio <= $ratioLimit) return ['cls'=>'ui-badge ui-badge--warn','label'=>'Bald fällig'];
   return ['cls'=>'ui-badge ui-badge--ok','label'=>'OK'];
 }
 
-function is_open_item(?float $restHours, float $intervalHours, ?float $soonRatio = null): bool {
+function is_open_item(?float $restHours, float $intervalHours, ?float $soonRatio = null, ?float $soonHours = null): bool {
   // "offen" = überfällig oder bald fällig oder unbekannt (initiale Wartung)
   if ($restHours === null) return true;
   if ($restHours < 0) return true;
+  if ($soonHours !== null && $soonHours > 0 && $restHours <= $soonHours) return true;
   $ratioLimit = ($soonRatio !== null && $soonRatio > 0) ? $soonRatio : 0.20;
   $ratio = $intervalHours > 0 ? ($restHours / $intervalHours) : 1.0;
   return ($ratio <= $ratioLimit);
@@ -92,7 +97,7 @@ if ($assetId > 0) {
     SELECT
       wp.id, wp.asset_id, wp.text_kurz, wp.text_lang,
       wp.intervall_typ, wp.plan_interval, wp.letzte_wartung, wp.datum,
-      wp.soon_ratio,
+      wp.soon_ratio, wp.soon_hours,
       wp.messwert_pflicht, wp.grenzwert_min, wp.grenzwert_max, wp.einheit,
       lp.datum AS last_datum,
       lp.status AS last_status,
@@ -125,6 +130,8 @@ if ($assetId > 0) {
     $interval = (float)$wp['plan_interval'];
     $soonRatio = ($wp['soon_ratio'] ?? null);
     $soonRatio = ($soonRatio !== null ? (float)$soonRatio : null);
+    $soonHours = ($wp['soon_hours'] ?? null);
+    $soonHours = ($soonHours !== null ? (float)$soonHours : null);
 
     // due/rest berechnen
     $dueLabel = '—';
@@ -149,8 +156,8 @@ if ($assetId > 0) {
       }
     }
 
-    $ampel = ampel_from_rest($restHours, $interval, $soonRatio);
-    $open = is_open_item($restHours, $interval, $soonRatio);
+    $ampel = ampel_from_rest($restHours, $interval, $soonRatio, $soonHours);
+    $open = is_open_item($restHours, $interval, $soonRatio, $soonHours);
 
     // optional: Ticket Marker aus letzter Bemerkung
     $ticketId = extract_ticket_marker($wp['last_bemerkung'] ?? null);

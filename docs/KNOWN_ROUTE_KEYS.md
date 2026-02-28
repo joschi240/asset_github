@@ -18,7 +18,7 @@ Format:
 - `wartung.dashboard`
   - Titel: Wartung – Dashboard
   - Datei: module/wartungstool/dashboard.php
-  - modul/objekt_typ/objekt_id: wartungstool / dashboard / NULL
+  - modul/objekt_typ/objekt_id: wartungstool / global / NULL
   - require_login: 1
   - sort: 10
 

@@ -259,7 +259,7 @@ Regel:
 
 | Route                | modul / objekt_typ     | darf_sehen | darf_aendern   | darf_loeschen |
 |----------------------|------------------------|:----------:|:--------------:|:-------------:|
-| wartung.dashboard    | wartungstool/dashboard | ✅         | —              | —             |
+| wartung.dashboard    | wartungstool/global    | ✅         | —              | —             |
 | wartung.punkt        | wartungstool/global    | ✅         | —              | —             |
 | wartung.uebersicht   | wartungstool/global    | ✅         | —              | —             |
 | wartung.punkt_save   | wartungstool/global    | ✅         | ✅ (erzwungen) | —             |
@@ -336,7 +336,7 @@ Referenz: `docs/UI_V2_GUIDE.md`
 - `wartung.dashboard` → UI v2 ✔
 - `wartung.uebersicht` → UI v2 ✔
 - `wartung.admin_punkte` → UI v2 ✔
-- `wartung.punkt` → UI v2 TODO
+- `wartung.punkt` → UI v2 ✔
 
 ---
 

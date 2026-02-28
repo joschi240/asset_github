@@ -19,6 +19,9 @@ Jeder Wartungspunkt liefert `rest` (Reststunden bis fällig):
 - `rest < 0`  
   → **Überfällig**
 
+- `rest >= 0` und `soon_hours` gesetzt und `rest <= soon_hours`  
+  → **Bald fällig** (`soon_hours` hat Vorrang vor `soon_ratio`)
+
 - `rest >= 0` und `(rest / interval) <= soon_ratio`  
   → **Bald fällig**
 
@@ -37,6 +40,14 @@ Die Schwelle „Bald fällig“ ist pro Wartungspunkt einstellbar über:
 Beispiele:
 - `interval=100h`, `soon_ratio=0.2` → bald fällig ab `rest <= 20h`
 - `interval=50h`, `soon_ratio=0.1` → bald fällig ab `rest <= 5h`
+
+### soon_hours (pro Wartungspunkt, hat Vorrang)
+
+- Tabelle: `wartungstool_wartungspunkt`
+- Feld: `soon_hours` (float)
+- Bedeutung: Absoluter Reststunden-Schwellwert (z. B. `24` = bald fällig wenn weniger als 24h verbleiben)
+- Vorrang: wenn `soon_hours` gesetzt (> 0), wird `soon_ratio` ignoriert
+- Fallback: wenn `soon_hours` NULL oder <= 0 → Fallback auf `soon_ratio`
 
 ---
 

@@ -1,4 +1,7 @@
 ﻿-- =====================================================================
+-- DEPRECATED: Verwende docs/db_schema_v2.sql + docs/db_migration_*.sql für den aktuellen Stand.
+-- Diese Datei ist v1 ohne soon_ratio, soon_hours, planned_at, planned_text und weitere v2-Felder.
+-- =====================================================================
 -- Asset KI – Datenbankschema (OpenAI-tauglich, kommentiert)
 -- Stand: 2026-02-22 (MariaDB 10.4.x kompatibel)
 --
