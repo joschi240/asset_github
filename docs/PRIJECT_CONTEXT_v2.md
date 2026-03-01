@@ -173,6 +173,13 @@ Ticket-Linking aus Wartung (Option A):
 - Filesystem: Verzeichnisse pro Entity (z.B. `/uploads/stoerungstool/tickets/<id>/`)
 - Download-Link: `<base>/uploads/<dateiname>`
 
+### 4.3 Empfohlene Server-Einstellungen
+- `upload_max_filesize = 20M`
+- `post_max_size = 25M`
+- (nginx) `client_max_body_size 20M;`
+
+Diese Werte müssen in der `php.ini` und ggf. im Webserver gesetzt werden, damit große Bilder und PDFs hochgeladen werden können.
+
 ---
 
 ## 5) Auditlog – wie es funktioniert (`core_audit_log`)

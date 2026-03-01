@@ -109,6 +109,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       );
       $ticketId = (int)$pdo->lastInsertId();
 
+      audit_log('stoerungstool', 'ticket', $ticketId, 'CREATE', null,
+        ['titel'=>$titel,'meldungstyp'=>$meldungstyp,'asset_id'=>$assetId,'gemeldet_von'=>($name !== '' ? $name : null),'prioritaet'=>$prio,'maschinenstillstand'=>$still],
+        null, 'public'
+      );
+
       db_exec(
         "INSERT INTO stoerungstool_aktion (ticket_id, datum, user_id, text, status_neu, arbeitszeit_min)
          VALUES (?, NOW(), NULL, 'Meldung erfasst', 'neu', NULL)",
