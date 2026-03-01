@@ -170,7 +170,7 @@ tools/runtime_rollup.php
 
 ## 6) Audit-Log
 
-(Quelle: `src/helpers.php:78–103`)
+(Quelle: `src/helpers.php:78–100`)
 
 ### Funktionssignatur
 

@@ -7,7 +7,7 @@
 
 ## 1) Implementierung von `audit_log()`
 
-**Datei:** `src/helpers.php`, Zeilen 78–88
+**Datei:** `src/helpers.php`, Zeilen 90–100
 
 **Funktionssignatur:**
 ```php
@@ -23,7 +23,7 @@ function audit_log(
 ): void
 ```
 
-**Was wird gespeichert (INSERT-Statement, Zeilen 83–87):**
+**Was wird gespeichert (INSERT-Statement, Zeilen 95–99):**
 
 | Spalte          | Quelle                                            |
 |-----------------|---------------------------------------------------|
@@ -33,7 +33,7 @@ function audit_log(
 | `action`        | Parameter `$action`                               |
 | `actor_user_id` | Parameter `$actorUserId`                          |
 | `actor_text`    | Parameter `$actorText`                            |
-| `ip_addr`       | `$_SERVER['REMOTE_ADDR']` (Zeile 79)              |
+| `ip_addr`       | `$_SERVER['REMOTE_ADDR']` (Zeile 91)              |
 | `old_json`      | `json_encode($old, JSON_UNESCAPED_UNICODE)` — **Legacy-Hinweis:** Diese Datei dokumentiert eine frühere Version. Aktuelle Implementierung (`src/helpers.php:78–88`) nutzt `audit_json()` mit zusätzlichen Flags `JSON_UNESCAPED_SLASHES \| JSON_INVALID_UTF8_SUBSTITUTE \| JSON_PARTIAL_OUTPUT_ON_ERROR` und gibt `NULL` bei Fehler zurück (mit `error_log`). |
 | `new_json`      | `json_encode($new, JSON_UNESCAPED_UNICODE)` — Gleiche Anmerkung wie `old_json`. |
 
