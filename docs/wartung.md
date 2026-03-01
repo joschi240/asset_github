@@ -34,7 +34,7 @@ Die Schwelle „Bald fällig“ ist pro Wartungspunkt einstellbar über:
 - Tabelle: `wartungstool_wartungspunkt`
 - Feld: `soon_ratio` (float)
 - Bedeutung: Anteil des Intervalls (z. B. `0.2` = 20% Restzeit)
-- Fallback: wenn `soon_ratio` NULL oder <= 0 → **0.20**
+- Fallback: **0.20** – aber nur wenn **sowohl** `soon_hours` **als auch** `soon_ratio` NULL oder <= 0 sind
 - Empfehlung: Bereich **0 < soon_ratio <= 1.0**
 
 Beispiele:
